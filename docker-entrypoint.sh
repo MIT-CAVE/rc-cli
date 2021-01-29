@@ -11,8 +11,8 @@ load=$(docker load --quiet --input "${IMAGE_BASE_DIR}/${IMAGE_NAME}")
 
 echo "Running a Docker container..."
 docker run --name=arc \
-  --mount type=bind,source=$DATA_DIR,target=/home/arc/data,readonly \
-  --mount type=bind,source=$OUTPUT_DIR,target=/home/arc/output \
+  --mount type=bind,source=$INPUTS_DIR,target=/home/arc/data/inputs,readonly \
+  --mount type=bind,source=$OUTPUTS_DIR,target=/home/arc/data/outputs \
   ${load:14}
 
 echo "Done."
