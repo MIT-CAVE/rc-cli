@@ -1,4 +1,4 @@
-# `arc-hello` app
+# `hello-rc` app
 ## Introduction
 This document describes the minimal requirements for your application and the basic commands that you will use to build, run, debug (optional), and save your solution to a Docker image file.
 
@@ -35,7 +35,7 @@ Regardless of the programming language(s) or libraries you use for your applicat
 </details>
 
 ## Setup
-The following commands refer to the `arc-hello` application, but apart from the name of the Docker image, the syntax should remain exactly the same for your solution.
+The following commands refer to the `hello-rc` application, but apart from the name of the Docker image, the syntax should remain exactly the same for your solution.
 
 Please refer to your platform and choose the right path for you:
 ### Windows Command Line (`cmd`)
@@ -44,35 +44,35 @@ Please refer to your platform and choose the right path for you:
 
 #### Build
 ```sh
-docker build -t arc-hello .
+docker build -t hello-rc .
 ```
 
 #### Run
 ```sh
 docker run --rm ^
-  -v "%cd%\data\inputs":/home/arc/data/inputs:ro ^
-  -v "%cd%\data\outputs":/home/arc/data/outputs ^
-  arc-hello
+  -v "%cd%\data\inputs":/home/app/data/inputs:ro ^
+  -v "%cd%\data\outputs":/home/app/data/outputs ^
+  hello-rc
 ```
 
 #### Debug (optional)
 If there are any issues with your setup or if you want to debug your application inside the container, you can run the following command to enable an interactive shell at runtime:
 ```sh
 docker run --rm --entrypoint="" ^
-  -v "%cd%\data\inputs":/home/arc/data/inputs:ro ^
-  -v "%cd%\data\outputs":/home/arc/data/outputs ^
-  arc-hello
+  -v "%cd%\data\inputs":/home/app/data/inputs:ro ^
+  -v "%cd%\data\outputs":/home/app/data/outputs ^
+  hello-rc
 ```  
 > The default `ENTRYPOINT` has been intentionally overridden by an empty value to prevent the automatic execution of the `run.sh` script.
 
 #### Save
 Once you have a valid solution, you can save your Docker image to the standard location that will be fetched by the trainer:
 ```sh
-docker save --output ..\..\solutions\arc-hello.tar arc-hello
+docker save --output ..\..\solutions\hello-rc.tar hello-rc
 ```
-<!-- Although `tar` files are completely valid for submissions, you can follow [these instructions](https://stackoverflow.com/a/36733177) if you want to use the gzip compression utility. Then you can run the following alternative command:
+<!-- Although `tar` files are completely valid for submissions, you can follow [these instructions](https://stackoverflow.com/a/36733177) if you want to use the `gzip` compression utility. Then you can run the following alternative command:
 ```sh
-docker save arc-hello | gzip > ..\..\solutions\arc-hello.tar.gz # review
+docker save hello-rc | gzip > ..\..\solutions\hello-rc.tar.gz # review
 ``` -->
 </details>
 
@@ -82,35 +82,35 @@ docker save arc-hello | gzip > ..\..\solutions\arc-hello.tar.gz # review
 
 #### Build
 ```sh
-docker build -t arc-hello .
+docker build -t hello-rc .
 ```
 
 #### Run
 ```sh
 docker run --rm \
-  -v "$(pwd)"/data/inputs:/home/arc/data/inputs:ro \
-  -v "$(pwd)"/data/outputs:/home/arc/data/outputs \
-  arc-hello
+  -v "$(pwd)"/data/inputs:/home/app/data/inputs:ro \
+  -v "$(pwd)"/data/outputs:/home/app/data/outputs \
+  hello-rc
 ```
 
 #### Debug (optional)
 If there are any issues with your setup or if you want to debug your application inside the container, you can run the following command to enable an interactive shell at runtime:
 ```sh
 docker run --rm --entrypoint="" \
-  -v "$(pwd)"/data/inputs:/home/arc/data/inputs:ro \
-  -v "$(pwd)"/data/outputs:/home/arc/data/outputs \
-  -it arc-hello sh
+  -v "$(pwd)"/data/inputs:/home/app/data/inputs:ro \
+  -v "$(pwd)"/data/outputs:/home/app/data/outputs \
+  -it hello-rc sh
 ```
 > The default `ENTRYPOINT` has been intentionally overridden by an empty value to prevent the automatic execution of the `run.sh` script.
 
 #### Save
 Once you have a valid solution, you can save your Docker image to the standard location that will be fetched by the trainer:
 ```sh
-docker save --output ../../solutions/arc-hello.tar.gz arc-hello
+docker save --output ../../solutions/hello-rc.tar.gz hello-rc
 ```
 
 Alternatively, you can use the `gzip` compression utility to get a better compression ratio:
 ```sh
-docker save arc-hello | gzip > ../../solutions/arc-hello.tar.gz
+docker save hello-rc | gzip > ../../solutions/hello-rc.tar.gz
 ```
 </details>
