@@ -3,7 +3,7 @@
 # A CLI for the Routing Challenge.
 
 # Constants
-readonly DOCKER_BUILD_RC_TRAINER="rc-trainer"
+readonly DOCKER_BUILD_RC_TESTER="rc-tester"
 
 #######################################
 # Display an error message when the user input is invalid.
@@ -68,13 +68,15 @@ main() {
       echo "The 'rc-python' template is set by default"
       cp --recursive "templates/$t" $2
       chmod +x "$2/run.sh"
+      mkdir "$2/logs"
       echo "Done."
       ;;
 
     run) # Build and run the app image
       check_app "$@"
       cd $2
-      docker build --tag $2 .
+      docker build --tag $2 . >& \
+        "logs/$1-$(date --iso-8601=seconds).log"
       docker run --rm \
         --volume "$(pwd)"/data/inputs:/home/app/data/inputs:ro \
         --volume "$(pwd)"/data/outputs:/home/app/data/outputs \
@@ -109,19 +111,20 @@ main() {
       check_solution "$@"
       # Saving time if the 'rc-trainer' image exists.
       # This is not good, though. The image should be pulled from a registry.
-      if [[ ! $(docker images --quiet ${DOCKER_BUILD_RC_TRAINER}) ]]; then
-        echo "Building the 'rc-trainer' image..."
-        docker build --tag ${DOCKER_BUILD_RC_TRAINER} .
+      if [[ ! $(docker images --quiet ${DOCKER_BUILD_RC_TESTER}) ]]; then
+        echo "Building the 'rc-test' image..."
+        docker build --tag ${DOCKER_BUILD_RC_TESTER} . >& \
+          "logs/${DOCKER_BUILD_RC_TESTER}-build-$(date --iso-8601=seconds).log"
       fi
       image_file="$2.tar.gz"
       docker run --privileged --rm --env IMAGE_FILE=${image_file} \
         --volume "$(pwd)"/solutions/"${image_file}":"/mnt/${image_file}":ro \
         --volume "$(pwd)"/data/inputs:/data/inputs:ro \
         --volume "$(pwd)"/data/outputs:/data/outputs \
-        ${DOCKER_BUILD_RC_TRAINER}
+        ${DOCKER_BUILD_RC_TESTER}
       ;;
 
-    all) # Build, run and save the app image & validate it with the 'rc-trainer'
+    all) # Build, run and save the app image & validate it with the 'rc-tester'
       # TODO
       check_app "$@"
       err "this command is not available yet"
@@ -170,15 +173,15 @@ main() {
       #
       # # Saving time if the 'rc-trainer' image exists.
       # # This is not good, though. The image should be pulled from a registry.
-      # if [[ ! $(docker images --quiet ${DOCKER_BUILD_RC_TRAINER}) ]]; then
+      # if [[ ! $(docker images --quiet ${DOCKER_BUILD_RC_TESTER}) ]]; then
       #   echo "Building the 'rc-trainer' image..."
-      #   docker build --tag ${DOCKER_BUILD_RC_TRAINER} .
+      #   docker build --tag ${DOCKER_BUILD_RC_TESTER} .
       # fi
       # docker run --privileged --rm --env IMAGE_FILE=${image_file} \
       #   --mount type=bind,source=${image_abs},target=/mnt/${image_file},readonly \
       #   --volume "$(pwd)"/data/inputs:/data/inputs:ro \
       #   --volume "$(pwd)"/data/outputs:/data/outputs \
-      #   ${DOCKER_BUILD_RC_TRAINER}
+      #   ${DOCKER_BUILD_RC_TESTER}
       # # Check if the file exists in the specified
       # # path or in the 'solutions' directory
       # if [[ ! -f $2 && !(-f "solutions/$2" && $(dirname $2) = '.') ]]; then
