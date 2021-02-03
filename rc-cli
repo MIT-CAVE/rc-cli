@@ -18,7 +18,9 @@ err() {
   echo "$0: $1" >&2
 }
 
-get_app_name() {
+get_app_name() { # Strips off any `/` characters
+  # Allows easy autocompletion in bash using created folder names
+  # EG: my-container/ -> my-container
   app_name=$(echo $2 | sed 's|/||')
 }
 
@@ -44,7 +46,7 @@ check_solution() {
   fi
 }
 
-make_logs() {
+make_logs() { # Ensure the necessary log file structure for the calling command
   mkdir -p logs/$1
 }
 
@@ -149,6 +151,9 @@ main() {
         err "too many arguments"
         exit 1
       fi
+
+      # TODO: Add are you sure lingo here
+      # TODO: Add special tags to containers to make sure we only delete cli created containers
 
       echo "Removing all dangling images..."
       docker rmi $(docker images --all --filter dangling=true --quiet) >/dev/null >&2
