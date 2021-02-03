@@ -85,6 +85,7 @@ main() {
       ;;
 
     run) # Build and run the app image
+      # TODO: Break this up into two commands `setup` for `setup.sh` and `eval` for `eval.sh`
       make_logs "$@"
       check_app "$@" # Note: check_app runs get_app_name to convert $2 to app_name
       cd $app_name
