@@ -1,0 +1,197 @@
+#!/bin/bash
+#
+# A CLI for the Routing Challenge.
+
+# Constants
+readonly DOCKER_BUILD_RC_TRAINER="rc-trainer"
+
+#######################################
+# Display an error message when the user input is invalid.
+# Globals:
+#   None
+# Arguments:
+#   None
+# Returns:
+#   None
+#######################################
+err() {
+  echo "$0: $1" >&2
+}
+
+check_app() {
+  if [[ $# -lt 2 ]]; then
+    err "missing app operand"
+    exit 1
+  elif [[ ! -d $2 ]]; then
+    err "$2: app not found"
+    exit 1
+  fi
+}
+
+check_solution() {
+  if [[ $# -lt 2 ]]; then
+    err "missing solution operand"
+    exit 1
+  elif [[ ! -f "solutions/$2.tar.gz" ]]; then
+    err "$2: solution not found"
+    exit 1
+  fi
+}
+
+# Single main function
+main() {
+  if [[ $# -lt 1 ]]; then
+    err "missing command operand"
+    exit 1
+  elif [[ $# -gt 2 ]]; then
+    err "too many arguments"
+    exit 1
+  fi
+
+  # Select the command
+  case $1 in
+    new) # Create a new app based on a template
+      # TODO: Retrieve the template option (-t, --template)
+      t="rc-python"
+      if [[ $# -lt 2 ]]; then
+        err "missing app operand"
+        exit 1
+      elif [[ -d $2 ]]; then
+        err "$2: cannot create app: Already exists"
+        exit 1
+      elif [[ ! -d "templates/$t" ]]; then
+        err "$t: template not found"
+        exit 1
+      fi
+
+      echo "warn: the templates option is not available yet"
+      echo "The 'rc-python' template is set by default"
+      cp --recursive "templates/$t" $2
+      chmod +x "$2/run.sh"
+      echo "Done."
+      ;;
+
+    run) # Build and run the app image
+      check_app "$@"
+      cd $2
+      docker build --tag $2 .
+      docker run --rm \
+        --volume "$(pwd)"/data/inputs:/home/app/data/inputs:ro \
+        --volume "$(pwd)"/data/outputs:/home/app/data/outputs \
+        $2
+      ;;
+
+    save) # Build the app image and save it to the 'solutions' directory
+      check_app "$@"
+      image_name=$2
+      if [[ -f "solutions/$2.tar.gz" ]]; then
+        # Prompt confirmation to overwrite or rename image
+        read -r -p "image exists: Enter a new name or overwrite [$2]: " input
+        [[ ${input} != "" ]] && image_name=${input}
+      fi
+      cd $2
+      # TODO: Log save with timestamp
+      mkdir --parent logs # Create the logs dir if it doesn't exist yet
+      echo "Building the app image..."
+      docker build --tag ${image_name} . >& \
+        "logs/$1-${image_name}-$(date --iso-8601=seconds).log"
+      cd ..
+      echo "Done."
+      echo
+      echo "Saving the app image to 'solutions'..."
+      docker save $image_name | gzip > "solutions/${image_name}.tar.gz"
+      echo "Done."
+      echo
+      echo "Success!"
+      ;;
+
+    test)
+      check_solution "$@"
+      # Saving time if the 'rc-trainer' image exists.
+      # This is not good, though. The image should be pulled from a registry.
+      if [[ ! $(docker images --quiet ${DOCKER_BUILD_RC_TRAINER}) ]]; then
+        echo "Building the 'rc-trainer' image..."
+        docker build --tag ${DOCKER_BUILD_RC_TRAINER} .
+      fi
+      image_file="$2.tar.gz"
+      docker run --privileged --rm --env IMAGE_FILE=${image_file} \
+        --volume "$(pwd)"/solutions/"${image_file}":"/mnt/${image_file}":ro \
+        --volume "$(pwd)"/data/inputs:/data/inputs:ro \
+        --volume "$(pwd)"/data/outputs:/data/outputs \
+        ${DOCKER_BUILD_RC_TRAINER}
+      ;;
+
+    all) # Build, run and save the app image & validate it with the 'rc-trainer'
+      # TODO
+      check_app "$@"
+      err "this command is not available yet"
+      exit 1
+      ;;
+
+    purge)
+      if [[ $# -gt 1 ]]; then
+        err "too many arguments"
+        exit 1
+      fi
+
+      echo "Removing all dangling images..."
+      docker rmi $(docker images --all --filter dangling=true --quiet) >/dev/null >&2
+      # TODO: Remove images in 'solutions' directory
+      echo "Removing stopped containers..."
+      docker container prune --force
+      echo "Removing all unused local volumes..."
+      docker volume prune --force
+      echo "Done."
+      ;;
+
+    debug) # Enable an interactive shell at runtime to debug the app container.
+      # TODO
+      check_app "$@"
+      err "this command is not available yet"
+      exit 1
+      ;;
+
+    might_be_useful)
+      # Alternatively this would handle relative or absolute paths
+      # of an image file instead of building from the app name.
+      # # Check if the file exists in the specified
+      # # path or in the 'solutions' directory
+      # if [[ ! -f $1 && !(-f "solutions/$1" && $(dirname $1) = '.') ]]; then
+      #   err "cannot find '$1': No such file or directory"
+      #   exit 1
+      # fi
+      # # image_file=$(basename $2)
+      # # Fix the relative path (filename => solutions/filename)
+      # # In case the image file exists in the root directory,
+      # # prioritize the one in the 'solutions' directory.
+      # [[ -f "solutions/$2" && $(dirname $2) = '.' ]] && base_dir='solutions/'
+      # # Check if the image path is absolute (starts with '/')
+      # [[ $2 = /* ]] && image_abs=$2 || image_abs="$(pwd)/${base_dir}$2"
+      #
+      # # Saving time if the 'rc-trainer' image exists.
+      # # This is not good, though. The image should be pulled from a registry.
+      # if [[ ! $(docker images --quiet ${DOCKER_BUILD_RC_TRAINER}) ]]; then
+      #   echo "Building the 'rc-trainer' image..."
+      #   docker build --tag ${DOCKER_BUILD_RC_TRAINER} .
+      # fi
+      # docker run --privileged --rm --env IMAGE_FILE=${image_file} \
+      #   --mount type=bind,source=${image_abs},target=/mnt/${image_file},readonly \
+      #   --volume "$(pwd)"/data/inputs:/data/inputs:ro \
+      #   --volume "$(pwd)"/data/outputs:/data/outputs \
+      #   ${DOCKER_BUILD_RC_TRAINER}
+      # # Check if the file exists in the specified
+      # # path or in the 'solutions' directory
+      # if [[ ! -f $2 && !(-f "solutions/$2" && $(dirname $2) = '.') ]]; then
+      #   err "cannot find '$2': No such file or directory"
+      #   exit 1
+      # fi
+      ;;
+
+    *)
+      err "$1: command not found"
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"

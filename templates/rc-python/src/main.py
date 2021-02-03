@@ -9,16 +9,16 @@ if __name__ == '__main__':
     OUTPUTS_DIR = path.join(DATA_DIR, 'outputs')
 
     # Read input data
-    with open(path.join(INPUTS_DIR, 'hello-rc.csv'), newline='') as in_file:
+    with open(path.join(INPUTS_DIR, 'rc-in.csv'), newline='') as in_file:
         data_reader = reader(in_file, delimiter=',', quotechar='|')
         print() # separate results from the logs
         for row in data_reader:
             print(' '.join(row))
 
     # Write output data
-    with open(path.join(OUTPUTS_DIR, 'hello-rc.json'), 'w') as out_file:
+    with open(path.join(OUTPUTS_DIR, 'rc-out.json'), 'w') as out_file:
         dump({ 'output': 'Hello World from the app!' }, out_file)
         print((
-            "2. A file 'hello-rc.json' has been written"
+            "2. A file 'rc-out.json' has been written"
             " in the directory 'output'\n"
         ))
