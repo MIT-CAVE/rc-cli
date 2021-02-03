@@ -18,24 +18,34 @@ err() {
   echo "$0: $1" >&2
 }
 
+get_app_name() {
+  app_name=$(echo $2 | sed 's|/||')
+}
+
 check_app() {
+  get_app_name "$@"
   if [[ $# -lt 2 ]]; then
     err "missing app operand"
     exit 1
-  elif [[ ! -d $2 ]]; then
-    err "$2: app not found"
+  elif [[ ! -d $app_name ]]; then
+    err "$app_name: app not found"
     exit 1
   fi
 }
 
 check_solution() {
+  get_app_name "$@"
   if [[ $# -lt 2 ]]; then
     err "missing solution operand"
     exit 1
-  elif [[ ! -f "solutions/$2.tar.gz" ]]; then
-    err "$2: solution not found"
+  elif [[ ! -f "solutions/$app_name.tar.gz" ]]; then
+    err "$app_name: solution not found"
     exit 1
   fi
+}
+
+make_logs() {
+  mkdir -p logs/$1
 }
 
 # Single main function
@@ -73,30 +83,32 @@ main() {
       ;;
 
     run) # Build and run the app image
-      check_app "$@"
-      cd $2
-      docker build --tag $2 . >& \
-        "logs/$1-$(date --iso-8601=seconds).log"
+      make_logs "$@"
+      check_app "$@" # Note: check_app runs get_app_name to convert $2 to app_name
+      cd $app_name
+      docker build --tag $app_name . >& \
+        "../logs/$1/build-$app_name-$(date --iso-8601=seconds).log"
       docker run --rm \
         --volume "$(pwd)"/data/inputs:/home/app/data/inputs:ro \
         --volume "$(pwd)"/data/outputs:/home/app/data/outputs \
-        $2
+        $app_name
       ;;
 
     save) # Build the app image and save it to the 'solutions' directory
-      check_app "$@"
-      image_name=$2
-      if [[ -f "solutions/$2.tar.gz" ]]; then
+      make_logs "$@"
+      check_app "$@" # Note: check_app runs get_app_name to convert $2 to app_name
+      image_name=$app_name
+      if [[ -f "solutions/$app_name.tar.gz" ]]; then
         # Prompt confirmation to overwrite or rename image
-        read -r -p "image exists: Enter a new name or overwrite [$2]: " input
+        read -r -p "image exists: Enter a new name or overwrite [$app_name]: " input
         [[ ${input} != "" ]] && image_name=${input}
       fi
-      cd $2
+      cd $app_name
       # TODO: Log save with timestamp
       mkdir --parent logs # Create the logs dir if it doesn't exist yet
       echo "Building the app image..."
       docker build --tag ${image_name} . >& \
-        "logs/$1-${image_name}-$(date --iso-8601=seconds).log"
+        "../logs/${1}/build-${image_name}-$(date --iso-8601=seconds).log"
       cd ..
       echo "Done."
       echo
@@ -108,20 +120,21 @@ main() {
       ;;
 
     test)
-      check_solution "$@"
-      # Saving time if the 'rc-trainer' image exists.
-      # This is not good, though. The image should be pulled from a registry.
+      make_logs "$@"
+      check_solution "$@" # Note: check_solution runs get_app_name to convert $2 to app_name
+      # Saving time if the '${DOCKER_BUILD_RC_TESTER}' image exists.
       if [[ ! $(docker images --quiet ${DOCKER_BUILD_RC_TESTER}) ]]; then
-        echo "Building the 'rc-test' image..."
+        echo "Building the '${DOCKER_BUILD_RC_TESTER}' image..."
         docker build --tag ${DOCKER_BUILD_RC_TESTER} . >& \
-          "logs/${DOCKER_BUILD_RC_TESTER}-build-$(date --iso-8601=seconds).log"
+          "logs/${1}/build-${DOCKER_BUILD_RC_TESTER}-$(date --iso-8601=seconds).log"
       fi
-      image_file="$2.tar.gz"
+      image_file="$app_name.tar.gz"
       docker run --privileged --rm --env IMAGE_FILE=${image_file} \
         --volume "$(pwd)"/solutions/"${image_file}":"/mnt/${image_file}":ro \
         --volume "$(pwd)"/data/inputs:/data/inputs:ro \
         --volume "$(pwd)"/data/outputs:/data/outputs \
-        ${DOCKER_BUILD_RC_TESTER}
+        ${DOCKER_BUILD_RC_TESTER} >& \
+          "logs/${1}/run-${image_file}-$(date --iso-8601=seconds).log"
       ;;
 
     all) # Build, run and save the app image & validate it with the 'rc-tester'
