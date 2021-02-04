@@ -24,6 +24,16 @@ get_app_name() { # Strips off any leading directory components
   app_name="$(basename ${2:-''})"
 }
 
+get_solution_name() {
+  input=$1
+  image_name=$1
+  while [[ -f "solutions/${input}.tar.gz" && -n ${input} ]]; do
+    # Prompt confirmation to overwrite or rename image
+    read -r -p "image exists: Enter a new name or overwrite [${image_name}]: " input
+    [[ -n ${input} ]] && image_name=${input}
+  done
+}
+
 check_app() {
   get_app_name "$@"
   if [[ $# -lt 2 ]]; then
@@ -55,6 +65,28 @@ build_image() {
   echo "done"
 }
 
+run_app_image() {
+  docker run --rm \
+    --volume "$(pwd)"/data/inputs:/home/app/data/inputs:ro \
+    --volume "$(pwd)"/data/outputs:/home/app/data/outputs \
+    "$2:rc-cli"
+}
+
+save_image() {
+  echo -n "Saving the '${1}' image to 'solutions'... "
+  docker save "${1}:rc-cli" | gzip > "solutions/${1}.tar.gz"
+  echo "done"
+}
+
+run_test_image() {
+  docker run --privileged --rm --env IMAGE_FILE=$2 \
+    --volume "$(pwd)/solutions/$2:/mnt/$2":ro \
+    --volume "$(pwd)"/data/inputs:/data/inputs:ro \
+    --volume "$(pwd)"/data/outputs:/data/outputs \
+    "${DOCKER_BUILD_RC_TESTER}:rc-cli"
+    # >& "logs/$1/run-${image_file}-$(date --iso-8601=seconds).log"
+}
+
 make_logs() { # Ensure the necessary log file structure for the calling command
   mkdir -p logs/$1
 }
@@ -84,7 +116,6 @@ main() {
         err "$t: template not found"
         exit 1
       fi
-
       err "the templates option is not available yet"
       echo "The 'rc-python' template is set by default"
       cp --recursive "templates/$t" $2
@@ -97,26 +128,15 @@ main() {
       make_logs "$@"
       check_app "$@" # Note: check_app runs get_app_name to convert $2 to app_name
       build_image $1 ${app_name} ${app_name} # the third argument is the Docker context
-      docker run --rm \
-        --volume "$(pwd)"/data/inputs:/home/app/data/inputs:ro \
-        --volume "$(pwd)"/data/outputs:/home/app/data/outputs \
-        "${app_name}:rc-cli"
+      run_app_image $1 ${app_name}
       ;;
 
     save) # Build the app image and save it to the 'solutions' directory
       make_logs "$@"
-      check_app "$@" # Note: check_app runs get_app_name to convert $2 to app_name
-      input=${app_name}
-      image_name=${app_name}
-      while [[ -f "solutions/${input}.tar.gz" && -n ${input} ]]; do
-        # Prompt confirmation to overwrite or rename image
-        read -r -p "image exists: Enter a new name or overwrite [${image_name}]: " input
-        [[ -n ${input} ]] && image_name=${input}
-      done
+      check_app "$@" # runs get_app_name to convert $2 to app_name
+      get_solution_name ${app_name} # prompts for an image_name if the solution exists
       build_image $1 ${image_name} ${app_name} # the third argument is the Docker context
-      echo -n "Saving the '${image_name}' image to 'solutions'... "
-      docker save "${image_name}:rc-cli" | gzip > "solutions/${image_name}.tar.gz"
-      echo "done"
+      save_image ${image_name}
       echo "Finished!"
       ;;
 
@@ -127,31 +147,36 @@ main() {
       if [[ ! $(docker images --quiet ${DOCKER_BUILD_RC_TESTER}) ]]; then
         build_image $1 ${DOCKER_BUILD_RC_TESTER}
       fi
-      image_file="${app_name}.tar.gz"
-      docker run --privileged --rm --env IMAGE_FILE=${image_file} \
-        --volume "$(pwd)"/solutions/"${image_file}":"/mnt/${image_file}":ro \
-        --volume "$(pwd)"/data/inputs:/data/inputs:ro \
-        --volume "$(pwd)"/data/outputs:/data/outputs \
-        "${DOCKER_BUILD_RC_TESTER}:rc-cli"
-        # >& "logs/$1/run-${image_file}-$(date --iso-8601=seconds).log"
+      run_test_image $1 "${app_name}.tar.gz"
       ;;
 
     all) # Build, run and save the app image & validate it with the '${DOCKER_BUILD_RC_TESTER}'
-      # TODO
+      make_logs "$@"
       check_app "$@"
-      err "this command is not available yet"
-      exit 1
+      echo "app:"
+      # Build the app and save the solution
+      get_solution_name ${app_name} # prompts for an image_name if the solution exists
+      build_image $1 ${image_name} ${app_name} # the third argument is the Docker context
+      save_image ${image_name}
+      # Test
+      # Saving time if the '${DOCKER_BUILD_RC_TESTER}' image exists.
+      echo
+      echo ${DOCKER_BUILD_RC_TESTER}:
+      if [[ ! $(docker images --quiet ${DOCKER_BUILD_RC_TESTER}) ]]; then
+        build_image $1 ${DOCKER_BUILD_RC_TESTER}
+      fi
+      run_test_image $1 "${image_name}.tar.gz"
       ;;
 
     purge) # Remove all the logs, images and solutions created by 'rc-cli'.
+      make_logs "$@"
       # TODO: Do it by specifying app_name
       if [[ $# -gt 1 ]]; then
         err "too many arguments"
         exit 1
       fi
-
       # Prompt confirmation to delete user
-      echo "WARNING! All logs, images and solutions created by $0 will be removed"
+      echo "WARNING! All logs, Docker images and solutions created by $0 will be removed"
       read -r -p "Are you sure you want to continue? [y/N] " input
       case ${input} in
         [yY][eE][sS] | [yY])
@@ -179,7 +204,6 @@ main() {
           exit 1
           ;;
       esac
-
       ;;
 
     debug) # Enable an interactive shell at runtime to debug the app container.
