@@ -1,5 +1,5 @@
 # syntax = docker/dockerfile:1.2
-ARG DOCKER_VERSION=20.10.2
+ARG DOCKER_VERSION=20.10.3
 
 FROM docker:${DOCKER_VERSION}-dind
 LABEL edu.mit.cave.rct.image.vendor="MIT CTL Computational and Visual Education Lab"

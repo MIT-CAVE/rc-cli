@@ -143,37 +143,33 @@ main() {
       exit 1
       ;;
 
-    purge) # Remove all the images, containers, volumes & solutions (optional)
-           # created by 'rc-cli'.
-      # TODO:
-      # Add special tags to old images, containers and volumes
-      # to make sure we only delete 'rc-cli' created items
+    purge) # Remove all the logs, images and solutions created by 'rc-cli'.
+      # TODO: Do it by specifying app_name
       if [[ $# -gt 1 ]]; then
         err "too many arguments"
         exit 1
       fi
-      err "this command is not available yet"
-      exit 1
 
       # Prompt confirmation to delete user
-      echo "all unused images, container and volumes created by $0 will be removed"
-      read -r -p "Do you want to continue? [y/N] " input
+      echo "WARNING! All logs, images and solutions created by $0 will be removed"
+      read -r -p "Are you sure you want to continue? [y/N] " input
       case ${input} in
         [yY][eE][sS] | [yY])
-          echo -n "Removing old images... "
-          rc_images=$(docker images --all --filter dangling=true --quiet)
+          echo -n "Removing logs... "
+          rm --recursive --force "logs/"
+          echo "done"
+
+          echo -n "Removing images... "
+          rc_images=$(docker images --all --filter reference="*:rc-cli" --quiet)
           if [[ ${rc_images} ]]; then
-            docker rmi ${rc_images} >/dev/null >&2
+            docker rmi --force ${rc_images} >& /dev/null >&2
           fi
           echo "done"
-          # TODO: Remove images in 'solutions' directory with an '-a,--all' option
-          # echo -n "Removing stopped containers... "
-          # echo "done"
-          # docker container prune --force &> /dev/null
-          # echo -n "Removing all unused local volumes... "
-          # docker volume prune --force &> /dev/null
-          # echo "done"
-          # echo "Finished!"
+
+          echo -n "Removing solutions... "
+          rm --force solutions/*.tar.gz
+          echo "done"
+          echo "Finished!"
           ;;
         [nN][oO] | [nN] | "")
           err "purge was canceled by the user"
