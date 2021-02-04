@@ -65,13 +65,6 @@ build_image() {
   echo "done"
 }
 
-run_app_image() {
-  docker run --rm \
-    --volume "$(pwd)"/data/inputs:/home/app/data/inputs:ro \
-    --volume "$(pwd)"/data/outputs:/home/app/data/outputs \
-    "$2:rc-cli"
-}
-
 save_image() {
   echo -n "Saving the '${1}' image to 'solutions'... "
   docker save "${1}:rc-cli" | gzip > "solutions/${1}.tar.gz"
@@ -128,7 +121,11 @@ main() {
       make_logs "$@"
       check_app "$@" # Note: check_app runs get_app_name to convert $2 to app_name
       build_image $1 ${app_name} ${app_name} # the third argument is the Docker context
-      run_app_image $1 ${app_name}
+
+      docker run --rm \
+        --volume "$(pwd)"/data/inputs:/home/app/data/inputs:ro \
+        --volume "$(pwd)"/data/outputs:/home/app/data/outputs \
+        "${app_name}:rc-cli"
       ;;
 
     save) # Build the app image and save it to the 'solutions' directory
@@ -154,14 +151,13 @@ main() {
       make_logs "$@"
       check_app "$@"
       echo "app:"
-      # Build the app and save the solution
       get_solution_name ${app_name} # prompts for an image_name if the solution exists
       build_image $1 ${image_name} ${app_name} # the third argument is the Docker context
       save_image ${image_name}
-      # Test
-      # Saving time if the '${DOCKER_BUILD_RC_TESTER}' image exists.
+
       echo
-      echo ${DOCKER_BUILD_RC_TESTER}:
+      echo "${DOCKER_BUILD_RC_TESTER}:"
+      # Saving time if the '${DOCKER_BUILD_RC_TESTER}' image exists.
       if [[ ! $(docker images --quiet ${DOCKER_BUILD_RC_TESTER}) ]]; then
         build_image $1 ${DOCKER_BUILD_RC_TESTER}
       fi
@@ -169,14 +165,18 @@ main() {
       ;;
 
     purge) # Remove all the logs, images and solutions created by 'rc-cli'.
-      make_logs "$@"
       # TODO: Do it by specifying app_name
       if [[ $# -gt 1 ]]; then
         err "too many arguments"
         exit 1
       fi
+      make_logs "$@"
+      if [[ $# -gt 1 ]]; then
+        err "too many arguments"
+        exit 1
+      fi
       # Prompt confirmation to delete user
-      echo "WARNING! All logs, Docker images and solutions created by $0 will be removed"
+      echo "WARNING! This will remove all logs, Docker images and solutions created by $0"
       read -r -p "Are you sure you want to continue? [y/N] " input
       case ${input} in
         [yY][eE][sS] | [yY])
@@ -207,10 +207,18 @@ main() {
       ;;
 
     debug) # Enable an interactive shell at runtime to debug the app container.
-      # TODO
       check_app "$@"
-      err "this command is not available yet"
-      exit 1
+      echo "Debug mode:"
+      echo "  - the default shell is /bin/sh"
+      echo "  - switch to a preferred shell if available, ex. /bin/bash"
+      echo "  - run.sh has not been executed yet"
+      echo "  - use the 'exit' command to finish"
+      echo
+      echo "Enabling an interactive shell with the app container..."
+      docker run --rm --entrypoint="" \
+        --volume "$(pwd)"/data/inputs:/home/app/data/inputs:ro \
+        --volume "$(pwd)"/data/outputs:/home/app/data/outputs \
+        -it "${app_name}:rc-cli" sh
       ;;
 
     update) # Run maintenance commands after breaking changes on the framework.
