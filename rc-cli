@@ -18,32 +18,42 @@ err() {
   echo "$0: $1" >&2
 }
 
-get_app_name() { # Strips off any `/` characters
+get_app_name() { # Strips off any leading directory components
   # Allows easy autocompletion in bash using created folder names
-  # EG: my-container/ -> my-container
-  app_name=$(echo $2 | sed 's|/||')
+  # EG: my-image/ -> my-image, path/to/my/app/ -> app
+  app_name=$(basename $2)
 }
 
 check_app() {
-  get_app_name "$@"
   if [[ $# -lt 2 ]]; then
     err "missing app operand"
     exit 1
-  elif [[ ! -d $app_name ]]; then
-    err "$app_name: app not found"
+  fi
+  get_app_name "$@"
+  if [[ ! -d ${app_name} ]]; then
+    err "${app_name}: app not found"
     exit 1
   fi
 }
 
 check_solution() {
-  get_app_name "$@"
   if [[ $# -lt 2 ]]; then
     err "missing solution operand"
     exit 1
-  elif [[ ! -f "solutions/$app_name.tar.gz" ]]; then
-    err "$app_name: solution not found"
+  fi
+  get_app_name "$@"
+  if [[ ! -f "solutions/${app_name}.tar.gz" ]]; then
+    err "${app_name}: solution not found"
     exit 1
   fi
+}
+
+build_image() {
+  context=${3:-.}
+  echo -n "Building the '$2' image... "
+  docker build --file ${context}/Dockerfile --tag $2 ${context} >& \
+    "logs/$1/build-$2-$(date --iso-8601=seconds).log"
+  echo "done"
 }
 
 make_logs() { # Ensure the necessary log file structure for the calling command
@@ -76,11 +86,10 @@ main() {
         exit 1
       fi
 
-      echo "warn: the templates option is not available yet"
+      err "the templates option is not available yet"
       echo "The 'rc-python' template is set by default"
       cp --recursive "templates/$t" $2
       chmod +x "$2/run.sh"
-      mkdir "$2/logs"
       echo "Done."
       ;;
 
@@ -88,38 +97,28 @@ main() {
       # TODO: Break this up into two commands `setup` for `setup.sh` and `eval` for `eval.sh`
       make_logs "$@"
       check_app "$@" # Note: check_app runs get_app_name to convert $2 to app_name
-      cd $app_name
-      docker build --tag $app_name . >& \
-        "../logs/$1/build-$app_name-$(date --iso-8601=seconds).log"
+      build_image $1 ${app_name} ${app_name} # the third argument is the Docker context
       docker run --rm \
         --volume "$(pwd)"/data/inputs:/home/app/data/inputs:ro \
         --volume "$(pwd)"/data/outputs:/home/app/data/outputs \
-        $app_name
+        ${app_name}
       ;;
 
     save) # Build the app image and save it to the 'solutions' directory
       make_logs "$@"
       check_app "$@" # Note: check_app runs get_app_name to convert $2 to app_name
-      image_name=$app_name
-      if [[ -f "solutions/$app_name.tar.gz" ]]; then
+      input=${app_name}
+      image_name=${app_name}
+      while [[ -f "solutions/${input}.tar.gz" && -n ${input} ]]; do
         # Prompt confirmation to overwrite or rename image
-        read -r -p "image exists: Enter a new name or overwrite [$app_name]: " input
-        [[ ${input} != "" ]] && image_name=${input}
-      fi
-      cd $app_name
-      # TODO: Log save with timestamp
-      mkdir --parent logs # Create the logs dir if it doesn't exist yet
-      echo "Building the app image..."
-      docker build --tag ${image_name} . >& \
-        "../logs/${1}/build-${image_name}-$(date --iso-8601=seconds).log"
-      cd ..
-      echo "Done."
-      echo
-      echo "Saving the app image to 'solutions'..."
-      docker save $image_name | gzip > "solutions/${image_name}.tar.gz"
-      echo "Done."
-      echo
-      echo "Success!"
+        read -r -p "image exists: Enter a new name or overwrite [${image_name}]: " input
+        [[ -n ${input} ]] && image_name=${input}
+      done
+      build_image $1 ${image_name} ${app_name} # the third argument is the Docker context
+      echo -n "Saving the '${image_name}' image to 'solutions'... "
+      docker save ${image_name} | gzip > "solutions/${image_name}.tar.gz"
+      echo "done"
+      echo "Finished!"
       ;;
 
     test)
@@ -127,17 +126,15 @@ main() {
       check_solution "$@" # Note: check_solution runs get_app_name to convert $2 to app_name
       # Saving time if the '${DOCKER_BUILD_RC_TESTER}' image exists.
       if [[ ! $(docker images --quiet ${DOCKER_BUILD_RC_TESTER}) ]]; then
-        echo "Building the '${DOCKER_BUILD_RC_TESTER}' image..."
-        docker build --tag ${DOCKER_BUILD_RC_TESTER} . >& \
-          "logs/${1}/build-${DOCKER_BUILD_RC_TESTER}-$(date --iso-8601=seconds).log"
+        build_image $1 ${DOCKER_BUILD_RC_TESTER}
       fi
-      image_file="$app_name.tar.gz"
+      image_file="${app_name}.tar.gz"
       docker run --privileged --rm --env IMAGE_FILE=${image_file} \
         --volume "$(pwd)"/solutions/"${image_file}":"/mnt/${image_file}":ro \
         --volume "$(pwd)"/data/inputs:/data/inputs:ro \
         --volume "$(pwd)"/data/outputs:/data/outputs \
         ${DOCKER_BUILD_RC_TESTER} >& \
-          "logs/${1}/run-${image_file}-$(date --iso-8601=seconds).log"
+          "logs/$1/run-${image_file}-$(date --iso-8601=seconds).log"
       ;;
 
     all) # Build, run and save the app image & validate it with the '${DOCKER_BUILD_RC_TESTER}'
@@ -147,23 +144,47 @@ main() {
       exit 1
       ;;
 
-    purge)
+    purge) # Remove all the images, containers, volumes & solutions (optional)
+           # created by 'rc-cli'.
+      # TODO:
+      # Add special tags to old images, containers and volumes
+      # to make sure we only delete 'rc-cli' created items
       if [[ $# -gt 1 ]]; then
         err "too many arguments"
         exit 1
       fi
+      err "this command is not available yet"
+      exit 1
 
-      # TODO: Add are you sure lingo here
-      # TODO: Add special tags to containers to make sure we only delete cli created containers
+      # Prompt confirmation to delete user
+      echo "all unused images, container and volumes created by $0 will be removed"
+      read -r -p "Do you want to continue? [y/N] " input
+      case ${input} in
+        [yY][eE][sS] | [yY])
+          echo -n "Removing old images... "
+          rc_images=$(docker images --all --filter dangling=true --quiet)
+          if [[ ${rc_images} ]]; then
+            docker rmi ${rc_images} >/dev/null >&2
+          fi
+          echo "done"
+          # TODO: Remove images in 'solutions' directory with an '-a,--all' option
+          # echo -n "Removing stopped containers... "
+          # echo "done"
+          # docker container prune --force &> /dev/null
+          # echo -n "Removing all unused local volumes... "
+          # docker volume prune --force &> /dev/null
+          # echo "done"
+          # echo "Finished!"
+          ;;
+        [nN][oO] | [nN] | "")
+          err "purge was canceled by the user"
+          ;;
+        *)
+          err "invalid input: The purge was canceled"
+          exit 1
+          ;;
+      esac
 
-      echo "Removing all dangling images..."
-      docker rmi $(docker images --all --filter dangling=true --quiet) >/dev/null >&2
-      # TODO: Remove images in 'solutions' directory
-      echo "Removing stopped containers..."
-      docker container prune --force
-      echo "Removing all unused local volumes..."
-      docker volume prune --force
-      echo "Done."
       ;;
 
     debug) # Enable an interactive shell at runtime to debug the app container.
@@ -171,6 +192,13 @@ main() {
       check_app "$@"
       err "this command is not available yet"
       exit 1
+      ;;
+
+    update) # Run maintenance commands after breaking changes on the framework.
+      echo "Maintenance tasks will be run now"
+      make_logs "$@"
+      build_image $1 ${DOCKER_BUILD_RC_TESTER}
+      echo "Finished!"
       ;;
 
     *)
