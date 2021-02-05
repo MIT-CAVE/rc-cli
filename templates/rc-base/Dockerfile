@@ -17,6 +17,6 @@ RUN groupadd --gid 1000 app \
     build-essential \
     # other pkgs...
  && rm -rf /var/lib/apt/lists/*
-COPY --chown=app:app ./run.sh ./
+COPY --chown=app:app ./*.sh ./
 USER app
-ENTRYPOINT ["run.sh"]
+ENTRYPOINT ["setup.sh"]

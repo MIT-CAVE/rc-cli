@@ -17,6 +17,6 @@ RUN mkdir -p $SOURCE_DIR
 WORKDIR $SOURCE_DIR
 COPY --from=builder --chown=app:app /root/.local/ ./.local/
 COPY --chown=app:app ./src/ ./src/
-COPY --chown=app:app ./run.sh ./
+COPY --chown=app:app ./*.sh ./
 USER app
-ENTRYPOINT ["run.sh"]
+ENTRYPOINT ["setup.sh"]

@@ -4,6 +4,7 @@
 
 # Constants
 readonly DOCKER_BUILD_RC_TESTER="rc-tester"
+readonly TEXT_BORDER="============================"
 
 #######################################
 # Display an error message when the user input is invalid.
@@ -36,7 +37,7 @@ get_solution_name() {
 }
 
 check_app() {
-  get_app_name "$@"
+  get_app_name "$@" # runs get_app_name to convert $2 to app_name
   if [[ $# -lt 2 ]]; then
     err "missing app operand"
     exit 1
@@ -58,9 +59,9 @@ check_solution() {
 }
 
 build_image() {
-  context=${3:-.}
-  printf "\n============================\n"
-  printf "Build Image [${2}]:\n\n"
+  context="${3:-.}"
+  printf "\n${TEXT_BORDER}\n"
+  printf "Build Image [$2]:\n\n"
   printf "Building the '$2' image... "
   docker rmi "$2:rc-cli" >& /dev/null
   docker build --file ${context}/Dockerfile --tag "$2:rc-cli" ${context} >& \
@@ -68,22 +69,33 @@ build_image() {
   printf "done\n"
 }
 
+run_app_image() {
+  run_mode="${3:-setup}"
+  printf "\n${TEXT_BORDER}\n"
+  printf "Running App [$2] (${run_mode^}):\n\n"
+  docker run --rm --entrypoint "$1.sh" $4 \
+    --volume "$(pwd)/data/${run_mode}_inputs:/home/app/data/${run_mode}_inputs:ro" \
+    --volume "$(pwd)/data/${run_mode}_outputs:/home/app/data/${run_mode}_outputs" \
+    "$2-${run_mode}:rc-cli" 2>&1 | tee "logs/$1/$2-${run_mode}-$(date --iso-8601=seconds).log"
+  printf "${TEXT_BORDER}\n"
+}
+
 save_image() {
-  printf "\n============================\n"
-  printf "Save Image [${1}]:\n\n"
-  printf "Saving the '${1}' image to 'solutions'... "
-  docker save "${1}:rc-cli" | gzip > "solutions/${1}.tar.gz"
+  printf "\n${TEXT_BORDER}\n"
+  printf "Save Image [$1]:\n\n"
+  printf "Saving the '$1' image to 'solutions'... "
+  docker save "$1:rc-cli" | gzip > "solutions/$1.tar.gz"
   printf "done\n"
 }
 
 run_test_image() {
-  printf "============================\n"
+  printf "${TEXT_BORDER}\n"
   printf "Preparing Test Image [$2] to Run With [${DOCKER_BUILD_RC_TESTER}]:\n\n"
   docker run --privileged --rm --env IMAGE_FILE=$2 \
-    --volume "$(pwd)/solutions/$2:/mnt/$2":ro \
-    --volume "$(pwd)"/data/inputs:/data/inputs:ro \
-    --volume "$(pwd)"/data/outputs:/data/outputs \
-    "${DOCKER_BUILD_RC_TESTER}:rc-cli" 2>&1 | tee ./logs/"$1"/"$app_name"-run-"$(date --iso-8601=seconds)".log
+    --volume "$(pwd)/solutions/$2:/mnt/$2:ro" \
+    --volume "$(pwd)/data/inputs:/data/inputs:ro" \
+    --volume "$(pwd)/data/outputs:/data/outputs" \
+    "${DOCKER_BUILD_RC_TESTER}:rc-cli" 2>&1 | tee "./logs/$1/${app_name}-run-$(date --iso-8601=seconds).log"
 }
 
 make_logs() { # Ensure the necessary log file structure for the calling command
@@ -118,33 +130,46 @@ main() {
       err "the templates option is not available yet"
       echo "The 'rc-python' template is set by default"
       cp --recursive "templates/$t" $2
-      chmod +x "$2/run.sh"
+      chmod +x $(echo "$2/*.sh")
       echo "Done."
       ;;
 
-    run) # Build and run the app image
-      # TODO: Break this up into two commands `setup` for `setup.sh` and `eval` for `eval.sh`
+    setup) # Build and run the 'setup.sh' script
+      if [[ $# -lt 2 ]]; then
+        err "missing app operand"
+        exit 1
+      fi
       make_logs "$@"
-      check_app "$@" # Note: check_app runs get_app_name to convert $2 to app_name
-      build_image $1 ${app_name} ${app_name} # the third argument is the Docker context
-      printf "\n============================\n"
-      printf "Running App [${app_name}]:\n\n"
-      docker run --rm \
-        --volume "$(pwd)"/data/inputs:/home/app/data/inputs:ro \
-        --volume "$(pwd)"/data/outputs:/home/app/data/outputs \
-        "${app_name}:rc-cli" 2>&1 | tee ./logs/"$1"/"$app_name"-run-"$(date --iso-8601=seconds)".log
-      printf "============================\n"
+      check_app "$@"
+      build_image $1 "${app_name}-$1" ${app_name} # the third argument is the Docker context
+      run_app_image $1 ${app_name}
+      ;;
+
+    evaluate) # Build and run the 'evaluate.sh' script
+      if [[ $# -lt 2 ]]; then
+        err "missing app operand"
+        exit 1
+      fi
+      make_logs "$@"
+      check_app "$@"
+      build_image $1 "${app_name}-$1" ${app_name} # the third argument is the Docker context
+      extra_opts=\
+        "--volume '$(pwd)/data/setup_outputs:/home/app/data/setup_outputs:ro' \
+        "
+      # TODO: Depending on how we handle the 'save' command,
+      # we can drop the third argument (run_mode)
+      run_app_image $1 ${app_name} $1 ${extra_opts}
       ;;
 
     save) # Build the app image and save it to the 'solutions' directory
       make_logs "$@"
       check_app "$@" # Note: check_app runs get_app_name to convert $2 to app_name
-      printf "============================\n"
+      printf "${TEXT_BORDER}\n"
       printf "Build and Save Image for App [${app_name}]:\n\n"
       get_solution_name ${app_name} # prompts for an image_name if the solution exists
       build_image $1 ${image_name} ${app_name} # the third argument is the Docker context
       save_image ${image_name}
-      printf "============================\n"
+      printf "${TEXT_BORDER}\n"
       ;;
 
     test)
@@ -155,13 +180,13 @@ main() {
         build_image $1 ${DOCKER_BUILD_RC_TESTER}
       fi
       run_test_image $1 "${app_name}.tar.gz"
-      printf "\n============================\n"
+      printf "\n${TEXT_BORDER}\n"
       ;;
 
     all) # Build, run and save the app image & validate it with the '${DOCKER_BUILD_RC_TESTER}'
       make_logs "$@"
       check_app "$@"
-      printf "============================\n"
+      printf "${TEXT_BORDER}\n"
       printf "Build and Save Image for [${app_name}]:\n\n"
       get_solution_name ${app_name} # prompts for an image_name if the solution exists
       build_image $1 ${image_name} ${app_name} # the third argument is the Docker context
@@ -172,7 +197,7 @@ main() {
         build_image $1 ${DOCKER_BUILD_RC_TESTER}
       fi
       run_test_image $1 "${image_name}.tar.gz"
-      printf "============================\n"
+      printf "${TEXT_BORDER}\n"
       ;;
 
     purge) # Remove all the logs, images and solutions created by 'rc-cli'.
@@ -220,9 +245,10 @@ main() {
       check_app "$@"
       echo "Debug mode:"
       echo "  - the default shell is /bin/sh"
-      echo "  - switch to a preferred shell if available, ex. /bin/bash"
-      echo "  - run.sh has not been executed yet"
-      echo "  - use the 'exit' command to finish"
+      echo "  - find all valid login shells: cat /etc/shells"
+      echo "  - switch to a preferred shell if available, e.g. /bin/bash"
+      echo -e "  - \033[1mrun.sh has not been executed yet\033[0m"
+      echo "  - use the 'exit' command to exit the current shell"
       echo
       echo "Enabling an interactive shell with the app container..."
       docker run --rm --entrypoint="" \
