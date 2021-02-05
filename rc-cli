@@ -29,7 +29,8 @@ get_solution_name() {
   image_name=$1
   while [[ -f "solutions/${input}.tar.gz" && -n ${input} ]]; do
     # Prompt confirmation to overwrite or rename image
-    read -r -p "image exists: Enter a new name or overwrite [${image_name}]: " input
+    echo "Save Warning: Solution with name '${image_name}' exists"
+    read -r -p "Enter a new name or overwrite [${image_name}]: " input
     [[ -n ${input} ]] && image_name=${input}
   done
 }
@@ -58,26 +59,31 @@ check_solution() {
 
 build_image() {
   context=${3:-.}
-  echo -n "Building the '$2' image... "
+  printf "\n============================\n"
+  printf "Build Image [${2}]:\n\n"
+  printf "Building the '$2' image... "
   docker rmi "$2:rc-cli" >& /dev/null
   docker build --file ${context}/Dockerfile --tag "$2:rc-cli" ${context} >& \
-    "logs/$1/build-$2-$(date --iso-8601=seconds).log"
-  echo "done"
+    "logs/$1/$2-build-$(date --iso-8601=seconds).log"
+  printf "done\n"
 }
 
 save_image() {
-  echo -n "Saving the '${1}' image to 'solutions'... "
+  printf "\n============================\n"
+  printf "Save Image [${1}]:\n\n"
+  printf "Saving the '${1}' image to 'solutions'... "
   docker save "${1}:rc-cli" | gzip > "solutions/${1}.tar.gz"
-  echo "done"
+  printf "done\n"
 }
 
 run_test_image() {
+  printf "============================\n"
+  printf "Preparing Test Image [$2] to Run With [${DOCKER_BUILD_RC_TESTER}]:\n\n"
   docker run --privileged --rm --env IMAGE_FILE=$2 \
     --volume "$(pwd)/solutions/$2:/mnt/$2":ro \
     --volume "$(pwd)"/data/inputs:/data/inputs:ro \
     --volume "$(pwd)"/data/outputs:/data/outputs \
-    "${DOCKER_BUILD_RC_TESTER}:rc-cli"
-    # >& "logs/$1/run-${image_file}-$(date --iso-8601=seconds).log"
+    "${DOCKER_BUILD_RC_TESTER}:rc-cli" 2>&1 | tee ./logs/"$1"/"$app_name"-run-"$(date --iso-8601=seconds)".log
 }
 
 make_logs() { # Ensure the necessary log file structure for the calling command
@@ -121,20 +127,24 @@ main() {
       make_logs "$@"
       check_app "$@" # Note: check_app runs get_app_name to convert $2 to app_name
       build_image $1 ${app_name} ${app_name} # the third argument is the Docker context
-
+      printf "\n============================\n"
+      printf "Running App [${app_name}]:\n\n"
       docker run --rm \
         --volume "$(pwd)"/data/inputs:/home/app/data/inputs:ro \
         --volume "$(pwd)"/data/outputs:/home/app/data/outputs \
-        "${app_name}:rc-cli"
+        "${app_name}:rc-cli" 2>&1 | tee ./logs/"$1"/"$app_name"-run-"$(date --iso-8601=seconds)".log
+      printf "============================\n"
       ;;
 
     save) # Build the app image and save it to the 'solutions' directory
       make_logs "$@"
-      check_app "$@" # runs get_app_name to convert $2 to app_name
+      check_app "$@" # Note: check_app runs get_app_name to convert $2 to app_name
+      printf "============================\n"
+      printf "Build and Save Image for App [${app_name}]:\n\n"
       get_solution_name ${app_name} # prompts for an image_name if the solution exists
       build_image $1 ${image_name} ${app_name} # the third argument is the Docker context
       save_image ${image_name}
-      echo "Finished!"
+      printf "============================\n"
       ;;
 
     test)
@@ -145,23 +155,24 @@ main() {
         build_image $1 ${DOCKER_BUILD_RC_TESTER}
       fi
       run_test_image $1 "${app_name}.tar.gz"
+      printf "\n============================\n"
       ;;
 
     all) # Build, run and save the app image & validate it with the '${DOCKER_BUILD_RC_TESTER}'
       make_logs "$@"
       check_app "$@"
-      echo "app:"
+      printf "============================\n"
+      printf "Build and Save Image for [${app_name}]:\n\n"
       get_solution_name ${app_name} # prompts for an image_name if the solution exists
       build_image $1 ${image_name} ${app_name} # the third argument is the Docker context
       save_image ${image_name}
 
-      echo
-      echo "${DOCKER_BUILD_RC_TESTER}:"
       # Saving time if the '${DOCKER_BUILD_RC_TESTER}' image exists.
       if [[ ! $(docker images --quiet ${DOCKER_BUILD_RC_TESTER}) ]]; then
         build_image $1 ${DOCKER_BUILD_RC_TESTER}
       fi
       run_test_image $1 "${image_name}.tar.gz"
+      printf "============================\n"
       ;;
 
     purge) # Remove all the logs, images and solutions created by 'rc-cli'.
@@ -170,7 +181,6 @@ main() {
         err "too many arguments"
         exit 1
       fi
-      make_logs "$@"
       if [[ $# -gt 1 ]]; then
         err "too many arguments"
         exit 1
