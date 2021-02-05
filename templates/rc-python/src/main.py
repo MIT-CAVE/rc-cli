@@ -10,8 +10,6 @@ if __name__ == '__main__':
     INPUTS_DIR = path.join(DATA_DIR, '{}_inputs'.format(run_mode))
     OUTPUTS_DIR = path.join(DATA_DIR, '{}_outputs'.format(run_mode))
 
-    print(BASE_DIR, DATA_DIR)
-
     # Read input data
     with open(path.join(INPUTS_DIR, '{}-in.csv'.format(run_mode)), newline='') as in_file:
         data_reader = reader(in_file, delimiter=',', quotechar='|')
