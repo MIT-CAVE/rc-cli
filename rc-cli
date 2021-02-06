@@ -234,18 +234,24 @@ main() {
 
     debug) # Enable an interactive shell at runtime to debug the app container.
       check_app "$@"
+      # Find all available shells in container and choose bash if available
+      valid_sh=$(docker run --rm --entrypoint="" "${app_name}:rc-cli" cat /etc/shells)
+      [[ -n $(echo ${valid_sh} | grep "/bin/bash") ]] \
+        && app_sh="/bin/bash" || app_sh="/bin/sh"
       echo "Debug mode:"
-      echo "  - the default shell is /bin/sh"
+      echo "  - the default shell is ${app_sh}"
       echo "  - find all valid login shells: cat /etc/shells"
-      echo "  - switch to a preferred shell if available, e.g. /bin/bash"
-      echo -e "  - \033[1mno '*.sh' script has been executed yet\033[0m"
+      echo "  - switch to a preferred shell if available, e.g. /bin/zsh"
+      echo -e "  - \033[1mno '*.sh' script has been run yet\033[0m"
       echo "  - use the 'exit' command to exit the current shell"
       echo
       echo "Enabling an interactive shell with the app container..."
       docker run --rm --entrypoint="" \
-        --volume "$(pwd)"/data/inputs:/home/app/data/inputs:ro \
-        --volume "$(pwd)"/data/outputs:/home/app/data/outputs \
-        -it "${app_name}:rc-cli" sh
+        --volume "$(pwd)/${app_name}/data/setup_inputs:/home/app/data/setup_inputs:ro" \
+        --volume "$(pwd)/${app_name}/data/setup_outputs:/home/app/data/setup_outputs" \
+        --volume "$(pwd)/${app_name}/data/evaluate_inputs:/home/app/data/evaluate_inputs:ro" \
+        --volume "$(pwd)/${app_name}/data/evaluate_outputs:/home/app/data/evaluate_outputs" \
+        -it "${app_name}:rc-cli" ${app_sh}
       ;;
 
     update) # Run maintenance commands after breaking changes on the framework.
