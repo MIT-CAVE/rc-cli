@@ -10,11 +10,15 @@ Please note that after saving the Docker image, all participants are strongly en
 Regardless of the programming language(s) or libraries you use for your application, the following directories and files must be present in your solution:
 ```
 ├── data
-│   ├── inputs
-│   │   └── <input-file(s)>
-│   └── outputs
+│   ├── evaluate_inputs
+│   │   └── <evaluate-input-file(s)>
+│   ├── evaluate_outputs
+│   ├── setup_inputs
+│   │   └── <setup-input-file(s)>
+│   └── setup_outputs
 ├── Dockerfile
-└── run.sh
+├── evaluate.sh
+└── setup.sh
 ```
 
 <details>
@@ -22,17 +26,24 @@ Regardless of the programming language(s) or libraries you use for your applicat
 
 ```
 ├── data
-│   ├── inputs
-│   │   └── <input-file(s)>
-│   └── outputs
+│   ├── evaluate_inputs
+│   │   └── <evaluate-input-file(s)>
+│   ├── evaluate_outputs
+│   ├── setup_inputs
+│   │   └── <setup-input-file(s)>
+│   └── setup_outputs
 ├── src
 │   └── main.py
 ├── .dockerignore
 ├── Dockerfile
+├── evaluate.sh
 ├── requirements.txt
-└── run.sh
+└── setup.sh
 ```
 </details>
+
+## Solutions
+The `solutions` directory helps participants to organize and save their Docker images to be validated by the RC Tester. All files under this directory will be ignored by the Git repository.
 
 ## Setup
 The following commands refer to the `rc-python` application, but apart from the name of the Docker image, the syntax should remain exactly the same for your solution.
