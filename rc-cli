@@ -69,16 +69,17 @@ build_image() {
   printf "done\n"
 }
 
+# Args
+# $1: [setup,evaluate]
+# $2: app_name
 run_app_image() {
-  run_mode="${3:-setup}"
-  extra_opts=${@:4}
-  echo ${extra_opts}
+  docker_run_opts=${@:3}
   printf "\n${CHARS_LINE}\n"
-  printf "Running App [$2] (${run_mode^}):\n\n"
-  docker run --rm --entrypoint "$1.sh" ${extra_opts} \
-    --volume "$(pwd)/$2/data/${run_mode}_inputs:/home/app/data/${run_mode}_inputs:ro" \
-    --volume "$(pwd)/$2/data/${run_mode}_outputs:/home/app/data/${run_mode}_outputs" \
-    "$2:rc-cli" 2>&1 | tee "logs/$1/$2-${run_mode}-$(date --iso-8601=seconds).log"
+  printf "Running App [$2] (${1^}):\n\n"
+  docker run --rm --entrypoint "$1.sh" ${docker_run_opts} \
+    --volume "$(pwd)/$2/data/$1_inputs:/home/app/data/$1_inputs:ro" \
+    --volume "$(pwd)/$2/data/$1_outputs:/home/app/data/$1_outputs" \
+    "$2:rc-cli" 2>&1 | tee "logs/$1/$2-$(date --iso-8601=seconds).log"
   printf "${CHARS_LINE}\n"
 }
 
@@ -91,12 +92,15 @@ save_image() {
 }
 
 run_test_image() {
+  image_file="$2.tar.gz"
   printf "${CHARS_LINE}\n"
   printf "Preparing Test Image [$2] to Run With [${DOCKER_BUILD_RC_TESTER}]:\n\n"
-  docker run --privileged --rm --env IMAGE_FILE=$2 \
-    --volume "$(pwd)/solutions/$2:/mnt/$2:ro" \
-    --volume "$(pwd)/data/inputs:/data/inputs:ro" \
-    --volume "$(pwd)/data/outputs:/data/outputs" \
+  docker run --privileged --rm --env IMAGE_FILE=${image_file} \
+    --volume "$(pwd)/solutions/${image_file}:/mnt/${image_file}:ro" \
+    --volume "$(pwd)/data/setup_inputs:/data/setup_inputs:ro" \
+    --volume "$(pwd)/data/setup_outputs:/data/setup_outputs" \
+    --volume "$(pwd)/data/evaluate_inputs:/data/evaluate_inputs:ro" \
+    --volume "$(pwd)/data/evaluate_outputs:/data/evaluate_outputs" \
     "${DOCKER_BUILD_RC_TESTER}:rc-cli" 2>&1 | tee "./logs/$1/${app_name}-run-$(date --iso-8601=seconds).log"
 }
 
@@ -136,27 +140,16 @@ main() {
       echo "Done."
       ;;
 
-    setup) # Build and run the 'setup.sh' script
+    setup | evaluate) # Build and run the '[setup,evaluate].sh' script
       if [[ $# -lt 2 ]]; then
         err "missing app operand"
         exit 1
       fi
       make_logs "$@"
       check_app "$@"
-      build_image $1 "${app_name}" ${app_name} # the third argument is the Docker context
-      run_app_image $1 ${app_name}
-      ;;
-
-    evaluate) # Build and run the 'evaluate.sh' script
-      if [[ $# -lt 2 ]]; then
-        err "missing app operand"
-        exit 1
-      fi
-      make_logs "$@"
-      check_app "$@"
-      build_image $1 "${app_name}" ${app_name} # the third argument is the Docker context
-      run_app_image $1 ${app_name} $1 \
-        "--volume $(pwd)/$2/data/setup_outputs:/home/app/data/setup_outputs:ro"
+      build_image $1 ${app_name} ${app_name} # the third argument is the Docker context
+      [[ $1 = "evaluate" ]] && docker_run_opts="--volume $(pwd)/${app_name}/data/setup_outputs:/home/app/data/setup_outputs:ro"
+      run_app_image $1 ${app_name} ${docker_run_opts}
       ;;
 
     save) # Build the app image and save it to the 'solutions' directory
@@ -177,7 +170,7 @@ main() {
       if [[ ! $(docker images --quiet ${DOCKER_BUILD_RC_TESTER}) ]]; then
         build_image $1 ${DOCKER_BUILD_RC_TESTER}
       fi
-      run_test_image $1 "${app_name}.tar.gz"
+      run_test_image $1 ${app_name}
       printf "\n${CHARS_LINE}\n"
       ;;
 
@@ -194,7 +187,7 @@ main() {
       if [[ ! $(docker images --quiet ${DOCKER_BUILD_RC_TESTER}) ]]; then
         build_image $1 ${DOCKER_BUILD_RC_TESTER}
       fi
-      run_test_image $1 "${image_name}.tar.gz"
+      run_test_image $1 ${image_name}
       printf "${CHARS_LINE}\n"
       ;;
 

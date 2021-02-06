@@ -13,13 +13,12 @@ if __name__ == '__main__':
     # Read input data
     with open(path.join(INPUTS_DIR, '{}-in.csv'.format(run_mode)), newline='') as in_file:
         data_reader = reader(in_file, delimiter=',', quotechar='|')
-        print() # separate results from the logs
         for row in data_reader:
             print(' '.join(row))
 
     # Write output data
     with open(path.join(OUTPUTS_DIR, '{}-out.json'.format(run_mode)), 'w') as out_file:
-        dump({ 'output': 'Hello World from the app!' }, out_file)
+        dump({ run_mode: 'Hello World from the app!' }, out_file)
         print((
             "2. A file '{0}-out.json' has been written"
             " in the directory '{0}_outputs'\n".format(run_mode)
