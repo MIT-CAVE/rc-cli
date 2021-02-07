@@ -81,8 +81,8 @@ run_app_image() {
   printf "\n${CHARS_LINE}\n"
   printf "Running App [$2] (${1^}):\n\n"
   docker run --rm --entrypoint "$1.sh" ${docker_run_opts} \
-    --volume "$(pwd)/$2/data/$1_inputs:/home/app/data/$1_inputs:ro" \
-    --volume "$(pwd)/$2/data/$1_outputs:/home/app/data/$1_outputs" \
+    --volume "$(pwd)/${APPS_PATH}/$2/data/$1_inputs:/home/app/data/$1_inputs:ro" \
+    --volume "$(pwd)/${APPS_PATH}/$2/data/$1_outputs:/home/app/data/$1_outputs" \
     "$2:rc-cli" 2>&1 | tee "logs/$1/$2-$(date --iso-8601=seconds).log"
   printf "${CHARS_LINE}\n"
 }
