@@ -97,15 +97,16 @@ save_image() {
 
 run_test_image() {
   image_file="$2.tar.gz"
-  data_path="$(pwd)/${CLI_SRC_PATH}/data"
+  in_path="$(pwd)/${CLI_SRC_PATH}/data"
+  out_path="$(pwd)/${APPS_PATH}/${app_name}/data"
   printf "${CHARS_LINE}\n"
   printf "Preparing Test Image [$2] to Run With [${DOCKER_BUILD_RC_TESTER}]:\n\n"
   docker run --privileged --rm --env IMAGE_FILE=${image_file} \
     --volume "$(pwd)/solutions/${image_file}:/mnt/${image_file}:ro" \
-    --volume "${data_path}/setup_inputs:/data/setup_inputs:ro" \
-    --volume "${data_path}/setup_outputs:/data/setup_outputs" \
-    --volume "${data_path}/evaluate_inputs:/data/evaluate_inputs:ro" \
-    --volume "${data_path}/evaluate_outputs:/data/evaluate_outputs" \
+    --volume "${in_path}/setup_inputs:/data/setup_inputs:ro" \
+    --volume "${out_path}/setup_outputs:/data/setup_outputs" \
+    --volume "${in_path}/evaluate_inputs:/data/evaluate_inputs:ro" \
+    --volume "${out_path}/evaluate_outputs:/data/evaluate_outputs" \
     "${DOCKER_BUILD_RC_TESTER}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-$(date --iso-8601=seconds).log"
 }
 
@@ -155,7 +156,7 @@ main() {
       check_app "$@"
       app_path="${APPS_PATH}/${app_name}"
       build_image $1 ${app_name} ${app_path}
-      [[ $1 = "evaluate" ]] \
+      [[ $1 == "evaluate" ]] \
         && docker_run_opts="--volume $(pwd)/${app_path}/data/setup_outputs:/home/app/data/setup_outputs:ro"
       run_app_image $1 ${app_name} ${docker_run_opts}
       ;;
@@ -251,13 +252,14 @@ main() {
       echo "  - use the 'exit' command to exit the current shell"
       echo
       echo "Enabling an interactive shell with the app container..."
-      src_path="$(pwd)/${app_name}/data"
+      in_path="$(pwd)/${CLI_SRC_PATH}/data"
+      out_path="$(pwd)/${APPS_PATH}/${app_name}/data"
       dest_path="/home/app/data/"
       docker run --rm --entrypoint="" \
-        --volume "${src_path}/setup_inputs:${dest_path}/setup_inputs:ro" \
-        --volume "${src_path}/setup_outputs:${dest_path}/setup_outputs" \
-        --volume "${src_path}/evaluate_inputs:${dest_path}/evaluate_inputs:ro" \
-        --volume "${src_path}/evaluate_outputs:${dest_path}/evaluate_outputs" \
+        --volume "${in_path}/setup_inputs:${dest_path}/setup_inputs:ro" \
+        --volume "${out_path}/setup_outputs:${dest_path}/setup_outputs" \
+        --volume "${in_path}/evaluate_inputs:${dest_path}/evaluate_inputs:ro" \
+        --volume "${out_path}/evaluate_outputs:${dest_path}/evaluate_outputs" \
         -it "${app_name}:rc-cli" ${app_sh}
       ;;
 
