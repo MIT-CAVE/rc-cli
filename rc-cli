@@ -32,9 +32,10 @@ get_solution_name() {
   image_name=$1
   while [[ -f "solutions/${input}.tar.gz" && -n ${input} ]]; do
     # Prompt confirmation to overwrite or rename image
-    echo "Save Warning: Solution with name '${image_name}' exists"
+    printf "Save Warning: Solution with name '${image_name}' exists\n"
     read -r -p "Enter a new name or overwrite [${image_name}]: " input
     [[ -n ${input} ]] && image_name=${input}
+    printf "\n"
   done
 }
 
@@ -64,13 +65,13 @@ build_image() {
   # $1
   # $2
   context="${3:-.}" # the third argument is the Docker context
-  printf "\n${CHARS_LINE}\n"
+  printf "${CHARS_LINE}\n"
   printf "Build Image [$2]:\n\n"
   printf "Building the '$2' image... "
   docker rmi "$2:rc-cli" >& /dev/null
   docker build --file ${context}/Dockerfile --tag $2:rc-cli ${context} >& \
     "logs/$1/$2-build-$(date --iso-8601=seconds).log"
-  printf "done\n"
+  printf "done\n\n"
 }
 
 # Args
@@ -78,21 +79,21 @@ build_image() {
 # $2: app_name
 run_app_image() {
   docker_run_opts=${@:3}
-  printf "\n${CHARS_LINE}\n"
+  printf "${CHARS_LINE}\n"
   printf "Running App [$2] (${1^}):\n\n"
   docker run --rm --entrypoint "$1.sh" ${docker_run_opts} \
     --volume "$(pwd)/${APPS_PATH}/$2/data/$1_inputs:/home/app/data/$1_inputs:ro" \
     --volume "$(pwd)/${APPS_PATH}/$2/data/$1_outputs:/home/app/data/$1_outputs" \
     "$2:rc-cli" 2>&1 | tee "logs/$1/$2-$(date --iso-8601=seconds).log"
-  printf "${CHARS_LINE}\n"
+  printf "\n${CHARS_LINE}\n"
 }
 
 save_image() {
-  printf "\n${CHARS_LINE}\n"
+  printf "${CHARS_LINE}\n"
   printf "Save Image [$1]:\n\n"
   printf "Saving the '$1' image to 'solutions'... "
   docker save "$1:rc-cli" | gzip > "solutions/$1.tar.gz"
-  printf "done\n"
+  printf "done\n\n"
 }
 
 run_test_image() {
@@ -208,8 +209,9 @@ main() {
       check_app "$@" # Note: check_app runs get_app_name to convert $2 to app_name
       app_path="${APPS_PATH}/${app_name}"
       printf "${CHARS_LINE}\n"
-      printf "Build and Save Image for App [${app_name}]:\n\n"
+      printf "Save Precheck for App [${app_name}]:\n\n"
       get_solution_name ${app_name} # prompts for an image_name if the solution exists
+      printf "Save Precheck Complete\n\n"
       build_image $1 ${image_name} ${app_path}
       save_image ${image_name}
       printf "${CHARS_LINE}\n"
