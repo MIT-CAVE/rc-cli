@@ -78,11 +78,13 @@ build_image() {
 # $2: app_name
 run_app_image() {
   docker_run_opts=${@:3}
+  data_path=$(pwd)/${APPS_PATH}/$2/data
+  dest_path="/home/app/data"
   printf "\n${CHARS_LINE}\n"
   printf "Running App [$2] (${1^}):\n\n"
   docker run --rm --entrypoint "$1.sh" ${docker_run_opts} \
-    --volume "$(pwd)/${APPS_PATH}/$2/data/$1_inputs:/home/app/data/$1_inputs:ro" \
-    --volume "$(pwd)/${APPS_PATH}/$2/data/$1_outputs:/home/app/data/$1_outputs" \
+    --volume "${data_path}/$1_inputs:${dest_path}/$1_inputs:ro" \
+    --volume "${data_path}/$1_outputs:${dest_path}/$1_outputs" \
     "$2:rc-cli" 2>&1 | tee "logs/$1/$2-$(date --iso-8601=seconds).log"
   printf "${CHARS_LINE}\n"
 }
@@ -97,16 +99,15 @@ save_image() {
 
 run_test_image() {
   image_file="$2.tar.gz"
-  in_path="$(pwd)/${CLI_SRC_PATH}/data"
-  out_path="$(pwd)/${APPS_PATH}/${app_name}/data"
+  data_path="$(pwd)/${APPS_PATH}/${app_name}/data"
   printf "${CHARS_LINE}\n"
   printf "Preparing Test Image [$2] to Run With [${DOCKER_BUILD_RC_TESTER}]:\n\n"
   docker run --privileged --rm --env IMAGE_FILE=${image_file} \
     --volume "$(pwd)/solutions/${image_file}:/mnt/${image_file}:ro" \
-    --volume "${in_path}/setup_inputs:/data/setup_inputs:ro" \
-    --volume "${out_path}/setup_outputs:/data/setup_outputs" \
-    --volume "${in_path}/evaluate_inputs:/data/evaluate_inputs:ro" \
-    --volume "${out_path}/evaluate_outputs:/data/evaluate_outputs" \
+    --volume "${data_path}/setup_inputs:/data/setup_inputs:ro" \
+    --volume "${data_path}/setup_outputs:/data/setup_outputs" \
+    --volume "${data_path}/evaluate_inputs:/data/evaluate_inputs:ro" \
+    --volume "${data_path}/evaluate_outputs:/data/evaluate_outputs" \
     "${DOCKER_BUILD_RC_TESTER}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-$(date --iso-8601=seconds).log"
 }
 
@@ -116,14 +117,13 @@ reset_action() {
   case ${input} in
     [yY][eE][sS] | [yY])
       echo -n "Resetting output directories... "
-      find ${APPS_PATH}/${scope}/data/*_outputs \
-        -type f \
-        -not -name 'README.md' \
-        -not -name '.gitignore' \
-        -delete
+      rm --recursive --force ${APPS_PATH}/${scope}/data
+      find ${APPS_PATH}/${scope} -maxdepth 0 -type d \
+        -exec cp --recursive ${CLI_SRC_PATH}/data {} \;
       echo "done"
       echo "Finished!"
       ;;
+
     [nN][oO] | [nN] | "")
       err "$1 was canceled by the user"
       ;;
@@ -151,23 +151,26 @@ main() {
   # Select the command
   case $1 in
     new) # Create a new app based on a template
-      # TODO: Retrieve the template option (-t, --template)
       # usage() { echo "$0 usage:" && grep " .)\ #" $0; exit 0; }
       # options=$(getopt --name $0 --longoptions "template:" --options "t:" -- "${@:3}")
-      # eval set --op
-      # while options; do
+      # eval set --options
+      # while ${options}; do
       #   case "${options}" in
       #     -t | --template)
       #       template="rc-python"
       #       echo ${options}
-      #
-      #       template=${OPTARG}
-      #       ((s == 45 || s == 90)) || usage
+      #       # template=${OPTARG}
+      #       # ((s == 45 || s == 90)) || usage
+      #       ;;
+      #     --)
+      #       shift
+      #       break
       #       ;;
       #     *)
       #       usage
       #       ;;
       #   esac
+      #   shift
       # done
       template="rc-python"
       app_path="${APPS_PATH}/$2"
@@ -185,7 +188,7 @@ main() {
       err "the templates option is not available yet"
       echo "The 'rc-python' template is set by default"
       cp --recursive "${template_path}" "${app_path}"
-      chmod +x "$(echo "${app_path}/*.sh")"
+      chmod +x $(echo "${app_path}/*.sh")
       echo "Done."
       ;;
 
@@ -282,7 +285,7 @@ main() {
 
     reset) # Flush the output data in the app output directories
       check_app "$@"
-      echo "WARNING! This will reset the output directories of '${app_name}' to a blank state"
+      echo "WARNING! This will reset the data of '${app_name}' to a blank state"
       reset_action $1 ${app_name}
       ;;
 
@@ -292,9 +295,9 @@ main() {
         exit 1
       fi
       cat << EOF
-WARNING! This will reset all output directories to a blank state
-If you want to reset the output directories of a single app, use
-the reset command instead.
+WARNING! This will reset all data directories to a blank state
+If you want to reset the data of a single app, use the 'reset'
+command instead.
 EOF
       reset_action $1 "*"
       ;;
@@ -313,14 +316,13 @@ EOF
       echo "  - use the 'exit' command to exit the current shell"
       echo
       echo "Enabling an interactive shell with the '${app_name}' instance..."
-      in_path="$(pwd)/${CLI_SRC_PATH}/data"
-      out_path="$(pwd)/${APPS_PATH}/${app_name}/data"
+      data_path="$(pwd)/${APPS_PATH}/${app_name}/data"
       dest_path="/home/app/data/"
       docker run --rm --entrypoint="" \
-        --volume "${in_path}/setup_inputs:${dest_path}/setup_inputs:ro" \
-        --volume "${out_path}/setup_outputs:${dest_path}/setup_outputs" \
-        --volume "${in_path}/evaluate_inputs:${dest_path}/evaluate_inputs:ro" \
-        --volume "${out_path}/evaluate_outputs:${dest_path}/evaluate_outputs" \
+        --volume "${data_path}/setup_inputs:${dest_path}/setup_inputs:ro" \
+        --volume "${data_path}/setup_outputs:${dest_path}/setup_outputs" \
+        --volume "${data_path}/evaluate_inputs:${dest_path}/evaluate_inputs:ro" \
+        --volume "${data_path}/evaluate_outputs:${dest_path}/evaluate_outputs" \
         -it "${app_name}:rc-cli" ${app_sh}
       ;;
 
