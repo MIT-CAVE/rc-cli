@@ -110,6 +110,30 @@ run_test_image() {
     "${DOCKER_BUILD_RC_TESTER}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-$(date --iso-8601=seconds).log"
 }
 
+reset_action() {
+  scope=$2
+  read -r -p "Are you sure you want to continue? [y/N] " input
+  case ${input} in
+    [yY][eE][sS] | [yY])
+      echo -n "Resetting output directories... "
+      find ${APPS_PATH}/${scope}/data/*_outputs \
+        -type f \
+        -not -name 'README.md' \
+        -not -name '.gitignore' \
+        -delete
+      echo "done"
+      echo "Finished!"
+      ;;
+    [nN][oO] | [nN] | "")
+      err "$1 was canceled by the user"
+      ;;
+    *)
+      err "invalid input: The $1 was canceled"
+      exit 1
+      ;;
+  esac
+}
+
 make_logs() { # Ensure the necessary log file structure for the calling command
   mkdir -p logs/$1
 }
@@ -127,7 +151,25 @@ main() {
   # Select the command
   case $1 in
     new) # Create a new app based on a template
-      template="rc-python" # TODO: Retrieve the template option (-t, --template)
+      # TODO: Retrieve the template option (-t, --template)
+      # usage() { echo "$0 usage:" && grep " .)\ #" $0; exit 0; }
+      # options=$(getopt --name $0 --longoptions "template:" --options "t:" -- "${@:3}")
+      # eval set --op
+      # while options; do
+      #   case "${options}" in
+      #     -t | --template)
+      #       template="rc-python"
+      #       echo ${options}
+      #
+      #       template=${OPTARG}
+      #       ((s == 45 || s == 90)) || usage
+      #       ;;
+      #     *)
+      #       usage
+      #       ;;
+      #   esac
+      # done
+      template="rc-python"
       app_path="${APPS_PATH}/$2"
       template_path="${CLI_SRC_PATH}/templates/${template}"
       if [[ $# -lt 2 ]]; then
@@ -143,7 +185,7 @@ main() {
       err "the templates option is not available yet"
       echo "The 'rc-python' template is set by default"
       cp --recursive "${template_path}" "${app_path}"
-      chmod +x $(echo "${app_path}/*.sh")
+      chmod +x "$(echo "${app_path}/*.sh")"
       echo "Done."
       ;;
 
@@ -238,6 +280,25 @@ main() {
       esac
       ;;
 
+    reset) # Flush the output data in the app output directories
+      check_app "$@"
+      echo "WARNING! This will reset the output directories of '${app_name}' to a blank state"
+      reset_action $1 ${app_name}
+      ;;
+
+    reset-all) # Flush the output data in all the apps' output directories
+      if [[ $# -gt 1 ]]; then
+        err "too many arguments"
+        exit 1
+      fi
+      cat << EOF
+WARNING! This will reset all output directories to a blank state
+If you want to reset the output directories of a single app, use
+the reset command instead.
+EOF
+      reset_action $1 "*"
+      ;;
+
     debug) # Enable an interactive shell at runtime to debug the app container.
       check_app "$@"
       # Find all available shells in container and choose bash if available
@@ -251,7 +312,7 @@ main() {
       echo -e "  - \033[1mno '*.sh' script has been run yet\033[0m"
       echo "  - use the 'exit' command to exit the current shell"
       echo
-      echo "Enabling an interactive shell with the app container..."
+      echo "Enabling an interactive shell with the '${app_name}' instance..."
       in_path="$(pwd)/${CLI_SRC_PATH}/data"
       out_path="$(pwd)/${APPS_PATH}/${app_name}/data"
       dest_path="/home/app/data/"
