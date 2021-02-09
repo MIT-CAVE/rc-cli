@@ -85,7 +85,7 @@ build_image() {
   printf "Building the '$2' image... "
   docker rmi "$2:rc-cli" >& /dev/null
   docker build --file ${context}/Dockerfile --tag $2:rc-cli ${context} >& \
-    "logs/$1/$2-build-$(date --iso-8601=seconds).log"
+    "logs/$1/$2-build-$(date -u +"%Y-%m-%dT%H:%M:%SZ").log"
   printf "done\n\n"
 }
 
@@ -97,11 +97,11 @@ run_app_image() {
   src_path="$(pwd)/data"
   dest_path="/home/app/data"
   printf "${CHARS_LINE}\n"
-  printf "Running App [$2] (${1^}):\n\n"
+  printf "Running App [$2] (${1}):\n\n"
   docker run --rm --entrypoint "$1.sh" ${docker_run_opts} \
     --volume "${src_path}/$1_inputs:${dest_path}/$1_inputs:ro" \
     --volume "${src_path}/$1_outputs:${dest_path}/$1_outputs" \
-    "$2:rc-cli" 2>&1 | tee "logs/$1/$2-$(date --iso-8601=seconds).log"
+    "$2:rc-cli" 2>&1 | tee "logs/$1/$2-$(date -u +"%Y-%m-%dT%H:%M:%SZ").log"
   printf "\n${CHARS_LINE}\n"
 }
 
@@ -124,7 +124,7 @@ run_test_image() {
     --volume "${src_path}/setup_outputs:/data/setup_outputs" \
     --volume "${src_path}/evaluate_inputs:/data/evaluate_inputs:ro" \
     --volume "${src_path}/evaluate_outputs:/data/evaluate_outputs" \
-    "${DOCKER_BUILD_RC_TESTER}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-$(date --iso-8601=seconds).log"
+    "${DOCKER_BUILD_RC_TESTER}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-$(date -u +"%Y-%m-%dT%H:%M:%SZ").log"
 }
 
 make_logs() { # Ensure the necessary log file structure for the calling command
@@ -159,7 +159,7 @@ main() {
       fi
       err "the templates option is not available yet"
       echo "The 'rc-python' template is set by default"
-      cp --recursive "${template_path}" "$2"
+      cp -R "${template_path}" "$2"
       chmod +x $(echo "$2/*.sh")
       echo "Done."
       ;;
@@ -260,7 +260,7 @@ main() {
       case ${input} in
         [yY][eE][sS] | [yY])
           echo -n "Removing logs... "
-          rm --recursive --force "logs/"
+          rm -rf "logs/"
           echo "done"
 
           echo -n "Removing images... "
@@ -271,7 +271,7 @@ main() {
           echo "done"
 
           echo -n "Removing solutions... "
-          rm --force solutions/*.tar.gz
+          rm -rf solutions/*.tar.gz
           echo "done"
           echo "Finished!"
           ;;
