@@ -19,4 +19,4 @@ COPY --from=builder --chown=app:app /root/.local/ ./.local/
 COPY --chown=app:app ./src/ ./src/
 COPY --chown=app:app ./*.sh ./
 USER app
-ENTRYPOINT ["setup.sh"]
+CMD ["/bin/sh"]

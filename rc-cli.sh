@@ -4,8 +4,11 @@
 
 # Constants
 readonly CHARS_LINE="============================"
-readonly CLI_SRC_PATH="${HOME}/amzn-docker/" # FIXME
+readonly RC_CLI_PATH="${HOME}/amzn-docker/" # FIXME
 readonly DOCKER_BUILD_RC_TESTER="rc-tester"
+readonly RC_CLI_LONG_NAME="Routing Challenge CLI"
+readonly RC_CLI_SHORT_NAME="RC CLI"
+readonly RC_CLI_VERSION="v0.1.0"
 
 #######################################
 # Display an error message when the user input is invalid.
@@ -17,7 +20,7 @@ readonly DOCKER_BUILD_RC_TESTER="rc-tester"
 #   None
 #######################################
 err() {
-  echo "$0: $1" >&2
+  printf "$0: $1\n" >&2
 }
 
 # Determine if the current directory contains a valid RC app
@@ -153,7 +156,7 @@ main() {
     new) # Create a new app based on a template
       # TODO: Retrieve the template option (-t, --template)
       template="rc-python"
-      template_path="${CLI_SRC_PATH}/templates/${template}"
+      template_path="${RC_CLI_PATH}/templates/${template}"
       if [[ $# -lt 2 ]]; then
         err "missing app operand"
         exit 1
@@ -165,10 +168,10 @@ main() {
         exit 1
       fi
       err "the templates option is not available yet"
-      echo "The 'rc-python' template is set by default"
+      printf "The 'rc-python' template is set by default\n"
       cp -R "${template_path}" "$2"
       chmod +x $(echo "$2/*.sh")
-      echo "Done."
+      printf "Done.\n"
       ;;
 
     save) # Build the app image and save it to the 'solutions' directory
@@ -181,6 +184,7 @@ main() {
       get_image_name ${tmp_name}
       printf "Save Precheck Complete\n\n"
       build_image $1 ${image_name}
+      mkdir -p ""
       save_image ${image_name}
       printf "${CHARS_LINE}\n"
       ;;
@@ -198,14 +202,14 @@ main() {
       run_app_image $1 ${image_name} ${docker_run_opts}
       ;;
 
-    test)
+    test) # Run the tests with the '${DOCKER_BUILD_RC_TESTER}'
       make_logs "$@"
       check_app
       [[ -n $2 ]] && image_name=$2 || image_name=${app_name}
       check_solution ${image_name} # the app image must have been built first
       # Saving time if the '${DOCKER_BUILD_RC_TESTER}' image exists.
       if ! docker image inspect ${DOCKER_BUILD_RC_TESTER}:rc-cli >/dev/null 2>&1; then
-        build_image $1 ${DOCKER_BUILD_RC_TESTER} ${CLI_SRC_PATH}
+        build_image $1 ${DOCKER_BUILD_RC_TESTER} ${RC_CLI_PATH}
       fi
       run_test_image $1 ${image_name}
       printf "\n${CHARS_LINE}\n"
@@ -223,7 +227,7 @@ main() {
       save_image ${image_name}
       # Saving time if the '${DOCKER_BUILD_RC_TESTER}' image exists.
       if ! docker image inspect ${DOCKER_BUILD_RC_TESTER}:rc-cli >/dev/null 2>&1; then
-        build_image $1 ${DOCKER_BUILD_RC_TESTER} ${CLI_SRC_PATH}
+        build_image $1 ${DOCKER_BUILD_RC_TESTER} ${RC_CLI_PATH}
       fi
       run_test_image $1 ${image_name}
       printf "${CHARS_LINE}\n"
@@ -237,14 +241,13 @@ main() {
       valid_sh=$(docker run --rm --entrypoint="" "${image_name}:rc-cli" cat /etc/shells)
       [[ -n $(echo ${valid_sh} | grep "/bin/bash") ]] \
         && app_sh="/bin/bash" || app_sh="/bin/sh"
-      echo "Debug mode:"
-      echo "  - the default shell is ${app_sh}"
-      echo "  - find all valid login shells: cat /etc/shells"
-      echo "  - switch to a preferred shell if available, e.g. /bin/zsh"
-      echo -e "  - \033[1mno '*.sh' script has been run yet\033[0m"
-      echo "  - use the 'exit' command to exit the current shell"
-      echo
-      echo "Enabling an interactive shell with the solution container..."
+      printf "Debug mode:\n"
+      printf "  - the default shell is ${app_sh}\n"
+      printf "  - find all valid login shells: cat /etc/shells\n"
+      printf "  - switch to a preferred shell if available, e.g. /bin/zsh\n"
+      printf "  - $(tput bold)no '*.sh' script has been run yet$(tput sgr0)\n"
+      printf "  - use the 'exit' command to exit the current shell\n"
+      printf "\nEnabling an interactive shell with the solution container...\n"
       src_path="$(pwd)/data"
       dest_path="/home/app/data/"
       docker run --rm --entrypoint="" \
@@ -262,25 +265,25 @@ main() {
         exit 1
       fi
       # Prompt confirmation to delete user
-      echo "WARNING! This will remove all logs, Docker images and solutions created by $0"
+      printf "WARNING! This will remove all logs, Docker images and solutions created by ${RC_CLI_SHORT_NAME}\n"
       read -r -p "Are you sure you want to continue? [y/N] " input
       case ${input} in
         [yY][eE][sS] | [yY])
-          echo -n "Removing logs... "
+          printf "Removing logs... "
           rm -rf "logs/"
-          echo "done"
+          printf "done\n"
 
-          echo -n "Removing images... "
+          printf "Removing images... \n"
           rc_images=$(docker images --all --filter reference="*:rc-cli" --quiet)
           if [[ ${rc_images} ]]; then
             docker rmi --force ${rc_images} >& /dev/null >&2
           fi
-          echo "done"
+          printf "done\n"
 
-          echo -n "Removing solutions... "
+          printf "Removing solutions... "
           rm -rf solutions/*.tar.gz
-          echo "done"
-          echo "Finished!"
+          printf "done\n"
+          printf "Finished!\n"
           ;;
         [nN][oO] | [nN] | "")
           err "purge was canceled by the user"
@@ -292,16 +295,16 @@ main() {
       esac
       ;;
 
-    reset) # Flush the output data in the app output directories
-      printf "WARNING! This will reset the data directory to a blank state"
+    reset) # Flush the output data in the directories
+      printf "WARNING! This will reset the data directory to a blank state\n"
       read -r -p "Are you sure you want to continue? [y/N] " input
       case ${input} in
         [yY][eE][sS] | [yY])
-          echo -n "Resetting the data... "
-          rm --recursive --force data/
-          cp --recursive "${CLI_SRC_PATH}/data" data
-          echo "done"
-          echo "Finished!"
+          printf "Resetting the data... "
+          rm -rf data/
+          cp -R "${RC_CLI_PATH}/data" data
+          printf "done\n"
+          printf "Finished!\n"
           ;;
         [nN][oO] | [nN] | "")
           err "$1 was canceled by the user"
@@ -315,9 +318,35 @@ main() {
 
     update) # Run maintenance commands after breaking changes on the framework.
       make_logs "$@"
-      echo "Maintenance tasks will run now"
-      build_image $1 ${DOCKER_BUILD_RC_TESTER} ${CLI_SRC_PATH}
-      echo "Finished!"
+      printf "Maintenance tasks will run now\n"
+      build_image $1 ${DOCKER_BUILD_RC_TESTER} ${RC_CLI_PATH}
+      printf "Finished!\n"
+      ;;
+
+    help) # Display the help
+      cat 1>&2 <<EOF
+${RC_CLI_LONG_NAME}
+
+Usage:  rc-cli COMMAND [SOLUTION]
+
+Commands:
+  all                       Build, run and save a solution image and validate it with the '${DOCKER_BUILD_RC_TESTER}'
+  debug                     Enable an interactive shell at runtime to debug a solution within a Docker container
+  evaluate                  Build and run the 'evaluate.sh' script
+  help                      Print help information
+  new                       Create a new RC app within the current directory
+  purge                     Remove all the logs, images and solutions created by ${RC_CLI_SHORT_NAME}
+  reset                     Reset the data directory to the initial state
+  save                      Build the solution image and save it to the 'solutions' directory
+  setup                     Build and run the 'setup.sh' script
+  test                      Run the tests for a solution image with the '${DOCKER_BUILD_RC_TESTER}'
+  update                    Run maintenance commands after any breaking changes on the ${RC_CLI_SHORT_NAME}
+EOF
+
+      ;;
+
+    version) # Display the current version of the CLI
+      printf "${RC_CLI_LONG_NAME} ${RC_CLI_VERSION}\n"
       ;;
 
     *)

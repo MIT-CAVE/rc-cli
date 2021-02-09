@@ -30,12 +30,13 @@ main() {
     git clone "https://github.com/${GITHUB_ORG_NAME}/${GITHUB_REPO_NAME}" \
       --depth=1 \
       ${INSTALL_DIR}
+    ln -sf ${INSTALL_DIR}/${GITHUB_REPO_NAME}/rc-cli.sh ${HOME}/.local/bin/rc-cli
   fi
   #
   # export RC_CLI_PATH="${HOME}/.rc_cli"
   # [ -s "${RC_CLI_PATH}/rc-cli.sh" ] && command . "${RC_CLI_PATH}/rc-cli.sh"
 
-  printf "rc-cli has been installed successfully."
+  # printf "rc-cli has been installed successfully."
 }
 
 main "$@"

@@ -19,4 +19,4 @@ RUN groupadd --gid 1000 app \
  && rm -rf /var/lib/apt/lists/*
 COPY --chown=app:app ./*.sh ./
 USER app
-ENTRYPOINT ["setup.sh"]
+CMD ["/bin/bash"]
