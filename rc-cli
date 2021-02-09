@@ -3,7 +3,6 @@
 # A CLI for the Routing Challenge.
 
 # Constants
-readonly APPS_PATH="apps/"
 readonly CHARS_LINE="============================"
 readonly CLI_SRC_PATH="${HOME}/amzn-docker/" # FIXME
 readonly DOCKER_BUILD_RC_TESTER="rc-tester"
@@ -33,6 +32,11 @@ valid_app_dir() {
  && -d data/setup_inputs \
  && -d data/setup_outputs
  ]]
+}
+
+# Get the current date and time expressed according to ISO 8601
+get_timestamp() {
+  timestamp=$(date +"%Y-%m-%dT%H:%M:%S%:z")
 }
 
 # Check that the CLI is run from a valid app
@@ -80,12 +84,13 @@ get_image_name() {
 
 build_image() {
   context="${3:-.}" # the third argument is the Docker context
+  get_timestamp
   printf "${CHARS_LINE}\n"
   printf "Build Image [$2]:\n\n"
   printf "Building the '$2' image... "
   docker rmi "$2:rc-cli" >& /dev/null
   docker build --file ${context}/Dockerfile --tag $2:rc-cli ${context} >& \
-    "logs/$1/$2-build-$(date -u +"%Y-%m-%dT%H:%M:%SZ").log"
+    "logs/$1/$2-build-${timestamp}.log"
   printf "done\n\n"
 }
 
@@ -96,12 +101,13 @@ run_app_image() {
   docker_run_opts=${@:3}
   src_path="$(pwd)/data"
   dest_path="/home/app/data"
+  get_timestamp
   printf "${CHARS_LINE}\n"
   printf "Running App [$2] (${1}):\n\n"
   docker run --rm --entrypoint "$1.sh" ${docker_run_opts} \
     --volume "${src_path}/$1_inputs:${dest_path}/$1_inputs:ro" \
     --volume "${src_path}/$1_outputs:${dest_path}/$1_outputs" \
-    "$2:rc-cli" 2>&1 | tee "logs/$1/$2-$(date -u +"%Y-%m-%dT%H:%M:%SZ").log"
+    "$2:rc-cli" 2>&1 | tee "logs/$1/$2-${timestamp}.log"
   printf "\n${CHARS_LINE}\n"
 }
 
@@ -116,6 +122,7 @@ save_image() {
 run_test_image() {
   image_file="$2.tar.gz"
   src_path="$(pwd)/data"
+  get_timestamp
   printf "${CHARS_LINE}\n"
   printf "Preparing Test Image [$2] to Run With [${DOCKER_BUILD_RC_TESTER}]:\n\n"
   docker run --privileged --rm --env IMAGE_FILE=${image_file} \
@@ -124,7 +131,7 @@ run_test_image() {
     --volume "${src_path}/setup_outputs:/data/setup_outputs" \
     --volume "${src_path}/evaluate_inputs:/data/evaluate_inputs:ro" \
     --volume "${src_path}/evaluate_outputs:/data/evaluate_outputs" \
-    "${DOCKER_BUILD_RC_TESTER}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-$(date -u +"%Y-%m-%dT%H:%M:%SZ").log"
+    "${DOCKER_BUILD_RC_TESTER}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-${timestamp}.log"
 }
 
 make_logs() { # Ensure the necessary log file structure for the calling command
