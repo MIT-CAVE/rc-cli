@@ -5,7 +5,7 @@
 # Constants
 readonly APPS_PATH="apps/"
 readonly CHARS_LINE="============================"
-readonly CLI_SRC_PATH=".cli_src/"
+readonly CLI_SRC_PATH="${HOME}/amzn-docker/" # FIXME
 readonly DOCKER_BUILD_RC_TESTER="rc-tester"
 
 #######################################
@@ -21,56 +21,72 @@ err() {
   echo "$0: $1" >&2
 }
 
-get_app_name() { # Strips off any leading directory components
-  # Allows easy autocompletion in bash using created folder names
-  # EG: my-image/ -> my-image, path/to/my/app/ -> app
-  app_name="$(basename ${2:-''})"
+# Determine if the current directory contains a valid RC app
+valid_app_dir() {
+  [[
+    -f Dockerfile \
+ && -f evaluate.sh \
+ && -f setup.sh \
+ && -d solutions \
+ && -d data/evaluate_inputs \
+ && -d data/evaluate_outputs \
+ && -d data/setup_inputs \
+ && -d data/setup_outputs
+ ]]
 }
 
+# Check that the CLI is run from a valid app
+# directory and returns the base name directory
+check_app() {
+  if valid_app_dir; then
+    app_name=$(basename "$(pwd)")
+  else
+    err "not a valid app directory"
+    exit 1
+  fi
+  # if ! docker image inspect ${app_name}:rc-cli >/dev/null 2>&1; then
+  #   err "${app_name}: app not found"
+  #   exit 1
+  # fi
+}
+
+# Strips off any leading directory components
 get_solution_name() {
+  # Allows easy autocompletion in bash using created folder names
+  # EG: my-image/ -> my-image, path/to/my/solution/ -> solution
+  solution_name="$(basename ${1:-''})"
+}
+
+check_solution() {
+  get_solution_name $1
+  if [[ ! -f "solutions/${solution_name}.tar.gz" ]]; then
+    err "${solution_name}: solution not found"
+    exit 1
+  fi
+}
+
+# Prompts for an image_name if the solution exists
+get_image_name() {
   input=$1
   image_name=$1
   while [[ -f "solutions/${input}.tar.gz" && -n ${input} ]]; do
     # Prompt confirmation to overwrite or rename image
-    echo "Save Warning: Solution with name '${image_name}' exists"
+    printf "Save Warning: Solution with name '${image_name}' exists\n"
     read -r -p "Enter a new name or overwrite [${image_name}]: " input
     [[ -n ${input} ]] && image_name=${input}
+    printf "\n"
   done
 }
 
-check_app() {
-  get_app_name "$@" # runs get_app_name to convert $2 to app_name
-  if [[ $# -lt 2 ]]; then
-    err "missing app operand"
-    exit 1
-  elif [[ ! -d "$APPS_PATH/${app_name}" ]]; then
-    err "${app_name}: app not found"
-    exit 1
-  fi
-}
-
-check_solution() {
-  get_app_name "$@"
-  if [[ $# -lt 2 ]]; then
-    err "missing solution operand"
-    exit 1
-  elif [[ ! -f "solutions/${app_name}.tar.gz" ]]; then
-    err "${app_name}: solution not found"
-    exit 1
-  fi
-}
-
 build_image() {
-  # $1
-  # $2
   context="${3:-.}" # the third argument is the Docker context
-  printf "\n${CHARS_LINE}\n"
+  printf "${CHARS_LINE}\n"
   printf "Build Image [$2]:\n\n"
   printf "Building the '$2' image... "
   docker rmi "$2:rc-cli" >& /dev/null
   docker build --file ${context}/Dockerfile --tag $2:rc-cli ${context} >& \
     "logs/$1/$2-build-$(date --iso-8601=seconds).log"
-  printf "done\n"
+  printf "done\n\n"
 }
 
 # Args
@@ -78,60 +94,37 @@ build_image() {
 # $2: app_name
 run_app_image() {
   docker_run_opts=${@:3}
-  data_path=$(pwd)/${APPS_PATH}/$2/data
+  src_path="$(pwd)/data"
   dest_path="/home/app/data"
-  printf "\n${CHARS_LINE}\n"
+  printf "${CHARS_LINE}\n"
   printf "Running App [$2] (${1^}):\n\n"
   docker run --rm --entrypoint "$1.sh" ${docker_run_opts} \
-    --volume "${data_path}/$1_inputs:${dest_path}/$1_inputs:ro" \
-    --volume "${data_path}/$1_outputs:${dest_path}/$1_outputs" \
+    --volume "${src_path}/$1_inputs:${dest_path}/$1_inputs:ro" \
+    --volume "${src_path}/$1_outputs:${dest_path}/$1_outputs" \
     "$2:rc-cli" 2>&1 | tee "logs/$1/$2-$(date --iso-8601=seconds).log"
-  printf "${CHARS_LINE}\n"
+  printf "\n${CHARS_LINE}\n"
 }
 
 save_image() {
-  printf "\n${CHARS_LINE}\n"
+  printf "${CHARS_LINE}\n"
   printf "Save Image [$1]:\n\n"
   printf "Saving the '$1' image to 'solutions'... "
   docker save "$1:rc-cli" | gzip > "solutions/$1.tar.gz"
-  printf "done\n"
+  printf "done\n\n"
 }
 
 run_test_image() {
   image_file="$2.tar.gz"
-  data_path="$(pwd)/${APPS_PATH}/${app_name}/data"
+  src_path="$(pwd)/data"
   printf "${CHARS_LINE}\n"
   printf "Preparing Test Image [$2] to Run With [${DOCKER_BUILD_RC_TESTER}]:\n\n"
   docker run --privileged --rm --env IMAGE_FILE=${image_file} \
     --volume "$(pwd)/solutions/${image_file}:/mnt/${image_file}:ro" \
-    --volume "${data_path}/setup_inputs:/data/setup_inputs:ro" \
-    --volume "${data_path}/setup_outputs:/data/setup_outputs" \
-    --volume "${data_path}/evaluate_inputs:/data/evaluate_inputs:ro" \
-    --volume "${data_path}/evaluate_outputs:/data/evaluate_outputs" \
+    --volume "${src_path}/setup_inputs:/data/setup_inputs:ro" \
+    --volume "${src_path}/setup_outputs:/data/setup_outputs" \
+    --volume "${src_path}/evaluate_inputs:/data/evaluate_inputs:ro" \
+    --volume "${src_path}/evaluate_outputs:/data/evaluate_outputs" \
     "${DOCKER_BUILD_RC_TESTER}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-$(date --iso-8601=seconds).log"
-}
-
-reset_action() {
-  scope=$2
-  read -r -p "Are you sure you want to continue? [y/N] " input
-  case ${input} in
-    [yY][eE][sS] | [yY])
-      echo -n "Resetting output directories... "
-      rm --recursive --force ${APPS_PATH}/${scope}/data
-      find ${APPS_PATH}/${scope} -maxdepth 0 -type d \
-        -exec cp --recursive ${CLI_SRC_PATH}/data {} \;
-      echo "done"
-      echo "Finished!"
-      ;;
-
-    [nN][oO] | [nN] | "")
-      err "$1 was canceled by the user"
-      ;;
-    *)
-      err "invalid input: The $1 was canceled"
-      exit 1
-      ;;
-  esac
 }
 
 make_logs() { # Ensure the necessary log file structure for the calling command
@@ -151,35 +144,14 @@ main() {
   # Select the command
   case $1 in
     new) # Create a new app based on a template
-      # usage() { echo "$0 usage:" && grep " .)\ #" $0; exit 0; }
-      # options=$(getopt --name $0 --longoptions "template:" --options "t:" -- "${@:3}")
-      # eval set --options
-      # while ${options}; do
-      #   case "${options}" in
-      #     -t | --template)
-      #       template="rc-python"
-      #       echo ${options}
-      #       # template=${OPTARG}
-      #       # ((s == 45 || s == 90)) || usage
-      #       ;;
-      #     --)
-      #       shift
-      #       break
-      #       ;;
-      #     *)
-      #       usage
-      #       ;;
-      #   esac
-      #   shift
-      # done
+      # TODO: Retrieve the template option (-t, --template)
       template="rc-python"
-      app_path="${APPS_PATH}/$2"
       template_path="${CLI_SRC_PATH}/templates/${template}"
       if [[ $# -lt 2 ]]; then
         err "missing app operand"
         exit 1
-      elif [[ -d "${app_path}" ]]; then
-        err "$2: cannot create app: Already exists"
+      elif [[ -d "$2" ]]; then
+        err "cannot create app '$2': Already exists in the current directory"
         exit 1
       elif [[ ! -d "${template_path}" ]]; then
         err "${template}: template not found"
@@ -187,63 +159,93 @@ main() {
       fi
       err "the templates option is not available yet"
       echo "The 'rc-python' template is set by default"
-      cp --recursive "${template_path}" "${app_path}"
-      chmod +x $(echo "${app_path}/*.sh")
+      cp --recursive "${template_path}" "$2"
+      chmod +x $(echo "$2/*.sh")
       echo "Done."
-      ;;
-
-    setup | evaluate) # Build and run the '[setup,evaluate].sh' script
-      if [[ $# -lt 2 ]]; then
-        err "missing app operand"
-        exit 1
-      fi
-      make_logs "$@"
-      check_app "$@"
-      app_path="${APPS_PATH}/${app_name}"
-      build_image $1 ${app_name} ${app_path}
-      [[ $1 == "evaluate" ]] \
-        && docker_run_opts="--volume $(pwd)/${app_path}/data/setup_outputs:/home/app/data/setup_outputs:ro"
-      run_app_image $1 ${app_name} ${docker_run_opts}
       ;;
 
     save) # Build the app image and save it to the 'solutions' directory
       make_logs "$@"
-      check_app "$@" # Note: check_app runs get_app_name to convert $2 to app_name
-      app_path="${APPS_PATH}/${app_name}"
+      check_app
+      get_solution_name $2
+      [[ -z ${solution_name} ]] && tmp_name=${app_name} || tmp_name=${solution_name}
       printf "${CHARS_LINE}\n"
-      printf "Build and Save Image for App [${app_name}]:\n\n"
-      get_solution_name ${app_name} # prompts for an image_name if the solution exists
-      build_image $1 ${image_name} ${app_path}
+      printf "Save Precheck for App [${tmp_name}]:\n\n"
+      get_image_name ${tmp_name}
+      printf "Save Precheck Complete\n\n"
+      build_image $1 ${image_name}
       save_image ${image_name}
       printf "${CHARS_LINE}\n"
       ;;
 
+    setup | evaluate) # Build and run the '[setup,evaluate].sh' script
+      make_logs "$@"
+      check_app
+      if [[ -n $2 ]]; then
+        check_solution $2
+      fi
+      [[ -z ${solution_name} ]] && image_name=${app_name} || image_name=${solution_name}
+      build_image $1 ${image_name}
+      [[ $1 == "evaluate" ]] \
+        && docker_run_opts="--volume $(pwd)/data/setup_outputs:/home/app/data/setup_outputs:ro"
+      run_app_image $1 ${image_name} ${docker_run_opts}
+      ;;
+
     test)
       make_logs "$@"
-      check_solution "$@" # Note: check_solution runs get_app_name to convert $2 to app_name
+      check_app
+      [[ -n $2 ]] && image_name=$2 || image_name=${app_name}
+      check_solution ${image_name} # the app image must have been built first
       # Saving time if the '${DOCKER_BUILD_RC_TESTER}' image exists.
-      if [[ ! $(docker images --quiet ${DOCKER_BUILD_RC_TESTER}) ]]; then
+      if ! docker image inspect ${DOCKER_BUILD_RC_TESTER}:rc-cli >/dev/null 2>&1; then
         build_image $1 ${DOCKER_BUILD_RC_TESTER} ${CLI_SRC_PATH}
       fi
-      run_test_image $1 ${app_name}
+      run_test_image $1 ${image_name}
       printf "\n${CHARS_LINE}\n"
       ;;
 
     all) # Build, run and save the app image & validate it with the '${DOCKER_BUILD_RC_TESTER}'
       make_logs "$@"
-      check_app "$@"
-      app_path="${APPS_PATH}/${app_name}"
+      check_app
+      get_solution_name $2
+      [[ -z ${solution_name} ]] && tmp_name=${app_name} || tmp_name=${solution_name}
       printf "${CHARS_LINE}\n"
-      printf "Build and Save Image for [${app_name}]:\n\n"
-      get_solution_name ${app_name} # prompts for an image_name if the solution exists
-      build_image $1 ${image_name} ${app_path}
+      printf "Build and Save Image for [${tmp_name}]:\n\n"
+      get_image_name ${tmp_name}
+      build_image $1 ${image_name}
       save_image ${image_name}
       # Saving time if the '${DOCKER_BUILD_RC_TESTER}' image exists.
-      if [[ ! $(docker images --quiet ${DOCKER_BUILD_RC_TESTER}) ]]; then
+      if ! docker image inspect ${DOCKER_BUILD_RC_TESTER}:rc-cli >/dev/null 2>&1; then
         build_image $1 ${DOCKER_BUILD_RC_TESTER} ${CLI_SRC_PATH}
       fi
       run_test_image $1 ${image_name}
       printf "${CHARS_LINE}\n"
+      ;;
+
+    debug) # Enable an interactive shell at runtime to debug the app container.
+      check_app
+      [[ -n $2 ]] && image_name=$2 || image_name=${app_name}
+      check_solution ${image_name} # the app image must have been built first
+      # Find all available shells in container and choose bash if available
+      valid_sh=$(docker run --rm --entrypoint="" "${image_name}:rc-cli" cat /etc/shells)
+      [[ -n $(echo ${valid_sh} | grep "/bin/bash") ]] \
+        && app_sh="/bin/bash" || app_sh="/bin/sh"
+      echo "Debug mode:"
+      echo "  - the default shell is ${app_sh}"
+      echo "  - find all valid login shells: cat /etc/shells"
+      echo "  - switch to a preferred shell if available, e.g. /bin/zsh"
+      echo -e "  - \033[1mno '*.sh' script has been run yet\033[0m"
+      echo "  - use the 'exit' command to exit the current shell"
+      echo
+      echo "Enabling an interactive shell with the solution container..."
+      src_path="$(pwd)/data"
+      dest_path="/home/app/data/"
+      docker run --rm --entrypoint="" \
+        --volume "${src_path}/setup_inputs:${dest_path}/setup_inputs:ro" \
+        --volume "${src_path}/setup_outputs:${dest_path}/setup_outputs" \
+        --volume "${src_path}/evaluate_inputs:${dest_path}/evaluate_inputs:ro" \
+        --volume "${src_path}/evaluate_outputs:${dest_path}/evaluate_outputs" \
+        -it "${image_name}:rc-cli" ${app_sh}
       ;;
 
     purge) # Remove all the logs, images and solutions created by 'rc-cli'.
@@ -284,46 +286,24 @@ main() {
       ;;
 
     reset) # Flush the output data in the app output directories
-      check_app "$@"
-      echo "WARNING! This will reset the data of '${app_name}' to a blank state"
-      reset_action $1 ${app_name}
-      ;;
-
-    reset-all) # Flush the output data in all the apps' output directories
-      if [[ $# -gt 1 ]]; then
-        err "too many arguments"
-        exit 1
-      fi
-      cat << EOF
-WARNING! This will reset all data directories to a blank state
-If you want to reset the data of a single app, use the 'reset'
-command instead.
-EOF
-      reset_action $1 "*"
-      ;;
-
-    debug) # Enable an interactive shell at runtime to debug the app container.
-      check_app "$@"
-      # Find all available shells in container and choose bash if available
-      valid_sh=$(docker run --rm --entrypoint="" "${app_name}:rc-cli" cat /etc/shells)
-      [[ -n $(echo ${valid_sh} | grep "/bin/bash") ]] \
-        && app_sh="/bin/bash" || app_sh="/bin/sh"
-      echo "Debug mode:"
-      echo "  - the default shell is ${app_sh}"
-      echo "  - find all valid login shells: cat /etc/shells"
-      echo "  - switch to a preferred shell if available, e.g. /bin/zsh"
-      echo -e "  - \033[1mno '*.sh' script has been run yet\033[0m"
-      echo "  - use the 'exit' command to exit the current shell"
-      echo
-      echo "Enabling an interactive shell with the '${app_name}' instance..."
-      data_path="$(pwd)/${APPS_PATH}/${app_name}/data"
-      dest_path="/home/app/data/"
-      docker run --rm --entrypoint="" \
-        --volume "${data_path}/setup_inputs:${dest_path}/setup_inputs:ro" \
-        --volume "${data_path}/setup_outputs:${dest_path}/setup_outputs" \
-        --volume "${data_path}/evaluate_inputs:${dest_path}/evaluate_inputs:ro" \
-        --volume "${data_path}/evaluate_outputs:${dest_path}/evaluate_outputs" \
-        -it "${app_name}:rc-cli" ${app_sh}
+      printf "WARNING! This will reset the data directory to a blank state"
+      read -r -p "Are you sure you want to continue? [y/N] " input
+      case ${input} in
+        [yY][eE][sS] | [yY])
+          echo -n "Resetting the data... "
+          rm --recursive --force data/
+          cp --recursive "${CLI_SRC_PATH}/data" data
+          echo "done"
+          echo "Finished!"
+          ;;
+        [nN][oO] | [nN] | "")
+          err "$1 was canceled by the user"
+          ;;
+        *)
+          err "invalid input: The $1 was canceled"
+          exit 1
+          ;;
+      esac
       ;;
 
     update) # Run maintenance commands after breaking changes on the framework.
