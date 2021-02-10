@@ -20,9 +20,6 @@ if __name__ == '__main__':
     with open(path.join(OUTPUTS_DIR, '{}-out.json'.format(run_mode)), 'w') as out_file:
         dump({ run_mode: 'Hello World from the app!' }, out_file)
         print((
-            "2. A file '{0}-out.json' has been written in the directory"
-            " './{1}/data/{0}_outputs'".format(
-                run_mode,
-                path.basename(BASE_DIR)
-            )
+            "2. A file '{}-out.json' has been written in the directory"
+            " './data/{}_outputs'".format(run_mode)
         ))
