@@ -4,8 +4,8 @@
 
 # Constants
 readonly CHARS_LINE="============================"
-readonly RC_CLI_PATH="${HOME}/rc-cli/"
-readonly DOCKER_BUILD_RC_TESTER="rc-tester"
+readonly RC_CLI_PATH="${HOME}/.rc-cli/"
+readonly DOCKER_BUILD_RC_TESTER="rc-test"
 readonly RC_CLI_LONG_NAME="Routing Challenge CLI"
 readonly RC_CLI_SHORT_NAME="RC CLI"
 readonly RC_CLI_VERSION="v0.1.0"
