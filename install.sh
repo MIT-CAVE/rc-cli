@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Install the RC CLI on Linux
 
@@ -7,6 +7,7 @@ readonly CHARS_LINE="============================"
 readonly INSTALL_DIR="${HOME}"
 readonly INSTALL_NAME=".rc-cli"
 readonly CLI_NAME="rc-cli"
+readonly BIN_DIR="/usr/local/bin"
 readonly GITHUB_ORG_NAME="MIT-CAVE"
 readonly GITHUB_REPO_NAME="rc-cli"
 readonly MIN_DOCKER_VERSION="18.09.00"
@@ -89,10 +90,10 @@ install_new() { # Copy the needed files locally
 
 add_to_path() { # Add the cli to a globally accessable path
   printf "${CHARS_LINE}\n"
-  printf "Making '${CLI_NAME}' globally accessable: \nCreating link from '${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh' as '/usr/src/bin/${CLI_NAME}':\n"
-  if [ ! $(ln -sf "${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh" "/usr/local/bin/${CLI_NAME}") ]; then
-    printf "Error: Super User privledges required to complete link! Using 'sudo'.\n"
-    sudo ln -sf "${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh" "/usr/local/bin/${CLI_NAME}"
+  printf "Making '${CLI_NAME}' globally accessable: \nCreating link from '${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh' as '${BIN_DIR}/${CLI_NAME}':\n"
+  if [ ! $(ln -sf "${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh" "${BIN_DIR}/${CLI_NAME}") ]; then
+    printf "Error: Super User priviledges required to complete link! Using 'sudo'.\n"
+    sudo ln -sf "${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh" "${BIN_DIR}/${CLI_NAME}"
   fi
   printf "done\n"
 }
