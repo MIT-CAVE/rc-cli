@@ -12,7 +12,7 @@ readonly GITHUB_REPO_NAME="rc-cli"
 readonly MIN_DOCKER_VERSION="18.09.00"
 
 err() { # Display an error message
-  echo "$0: $1" >&2
+  printf "$0: $1\n" >&2
 }
 
 check_os() { # Validate that the current OS
@@ -24,23 +24,28 @@ check_os() { # Validate that the current OS
   if [ $machine = "UNKNOWN" ]; then
     printf "Error: Unknown operating system.\n"
     printf "Please run this command on one of the following:\n"
-    printf "- MacOS\n- Linux\n- Windows (With Ubuntu 20.04 on Windows Subsystem for Linux 2 - WSL2)"
+    printf "- MacOS\n- Linux\n- Windows (Using Ubuntu 20.04 on Windows Subsystem for Linux 2 - WSL2)"
     exit 1
   fi
 }
 
 check_docker() { # Validate docker is installed
-  if [ ! $(docker --version) ]; then
-    err "Docker not installed. Please install version ${MIN_DOCKER_VERSION} or greater"
+  install_docker="\nPlease install version ${MIN_DOCKER_VERSION} or greater. \nFor more information see: 'https://docs.docker.com/get-docker/'"
+  if [ "$(docker --version)" = "" ]; then
+    err "Docker is not installed. ${install_docker}"
     exit 1
   fi
   CURRENT_DOCKER_VERSION=$(docker --version | sed -e 's/Docker version \(.*\), build.*/\1/')
-  if [ $(\
-    "$(printf '%s\n' "$MIN_DOCKER_VERSION" "$CURRENT_DOCKER_VERSION" \
-    | sort -V \
-    | head -n1)" = "$MIN_DOCKER_VERSION") ]
+  if [ ! "$(printf '%s\n' "$MIN_DOCKER_VERSION" "$CURRENT_DOCKER_VERSION" | sort -V | head -n1)" = "$MIN_DOCKER_VERSION" ]
   then
-    err "Your current Docker version ($CURRENT_DOCKER_VERSION) is too old. Please install Docker version (${MIN_DOCKER_VERSION}) or greater"
+    err "Your current Docker version ($CURRENT_DOCKER_VERSION) is too old. ${install_docker}"
+    exit 1
+  fi
+}
+
+check_git() { # Validate git is installed
+  if [ "$(git --version)" = "" ]; then
+    err "'git' is not installed. Please install git. \nFor more information see: 'https://git-scm.com'"
     exit 1
   fi
 }
@@ -60,7 +65,7 @@ check_previous_installation() { # Check to make sure previous installations are 
         exit 1
         ;;
       *)
-        err "invalid input: Installation canceled"
+        err "Invalid input: Installation canceled."
         exit 1
         ;;
     esac
@@ -72,11 +77,10 @@ install_new() { # Copy the needed files locally
   mkdir -p "${INSTALL_DIR}/${INSTALL_NAME}"
   printf "done\n"
   printf "${CHARS_LINE}\n"
-  printf "Cloning in application contents from 'https://github.com/${GITHUB_ORG_NAME}/${GITHUB_REPO_NAME}':\n"
+  printf "Cloning from 'https://github.com/${GITHUB_ORG_NAME}/${GITHUB_REPO_NAME}':\n"
   git clone "git@github.com:${GITHUB_ORG_NAME}/${GITHUB_REPO_NAME}" \
     --depth=1 \
     "${INSTALL_DIR}/${INSTALL_NAME}"
-  printf "${CHARS_LINE}\n"
   if [ ! -d "${INSTALL_DIR}/${INSTALL_NAME}" ]; then
     err "Git Clone Failed. Installation Canceled"
     exit 1
@@ -84,12 +88,17 @@ install_new() { # Copy the needed files locally
 }
 
 add_to_path() { # Add the cli to a globally accessable path
-  printf "Making '${CLI_NAME}' globally accessable: \nCreating link from '${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh' as '/usr/src/bin/${CLI_NAME}'..."
-  sudo ln -sf "${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh" "/usr/local/bin/${CLI_NAME}"
+  printf "${CHARS_LINE}\n"
+  printf "Making '${CLI_NAME}' globally accessable: \nCreating link from '${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh' as '/usr/src/bin/${CLI_NAME}':\n"
+  if [ ! $(ln -sf "${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh" "/usr/local/bin/${CLI_NAME}") ]; then
+    printf "Error: Super User privledges required to complete link! Using 'sudo'.\n"
+    sudo ln -sf "${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh" "/usr/local/bin/${CLI_NAME}"
+  fi
   printf "done\n"
 }
 
 success_message() { # Send a success message to the user on successful installation
+  printf "${CHARS_LINE}\n"
   printf "${GITHUB_REPO_NAME} has been successfully installed \n"
   printf "You can verify the installation with 'rc-cli --version'\n"
   printf "To get started use 'rc-cli --help'\n"
@@ -98,7 +107,7 @@ success_message() { # Send a success message to the user on successful installat
 main() {
   check_os
   check_docker
-  # TODO check_git
+  check_git
   check_previous_installation
   install_new
   add_to_path
