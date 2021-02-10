@@ -92,7 +92,7 @@ add_to_path() { # Add the cli to a globally accessable path
   printf "${CHARS_LINE}\n"
   printf "Making '${CLI_NAME}' globally accessable: \nCreating link from '${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh' as '${BIN_DIR}/${CLI_NAME}':\n"
   if [ ! $(ln -sf "${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh" "${BIN_DIR}/${CLI_NAME}") ]; then
-    printf "Error: Super User priviledges required to complete link! Using 'sudo'.\n"
+    printf "Warning: Super User priviledges required to complete link! Using 'sudo'.\n"
     sudo ln -sf "${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh" "${BIN_DIR}/${CLI_NAME}"
   fi
   printf "done\n"
