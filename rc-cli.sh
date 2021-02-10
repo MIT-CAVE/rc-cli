@@ -330,7 +330,7 @@ main() {
       printf "Finished!\n"
       ;;
 
-    help) # Display the help
+    help | --help) # Display the help
       cat 1>&2 <<EOF
 ${RC_CLI_LONG_NAME}
 
@@ -348,10 +348,11 @@ Commands:
   setup                     Build and run the 'setup.sh' script
   test                      Run the tests for a solution image with the '${DOCKER_BUILD_RC_TESTER}'
   update                    Run maintenance commands after any breaking changes on the ${RC_CLI_SHORT_NAME}
+  version                   Display the current version
 EOF
       ;;
 
-    version) # Display the current version of the CLI
+    version | --version | -v) # Display the current version of the CLI
       printf "${RC_CLI_LONG_NAME} ${RC_CLI_VERSION}\n"
       ;;
 
