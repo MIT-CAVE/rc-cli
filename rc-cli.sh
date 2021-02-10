@@ -4,6 +4,7 @@
 
 # Constants
 readonly CHARS_LINE="============================"
+readonly RC_CLI_BIN_NAME="rc-cli"
 readonly RC_CLI_PATH="${HOME}/.rc-cli/"
 readonly DOCKER_BUILD_RC_TESTER="rc-test"
 readonly RC_CLI_LONG_NAME="Routing Challenge CLI"
@@ -20,7 +21,7 @@ readonly RC_CLI_VERSION="v0.1.0"
 #   None
 #######################################
 err() {
-  printf "$0: $1\n" >&2
+  printf "${RC_CLI_BIN_NAME}: $1\n" >&2
 }
 
 # Determine if the current directory contains a valid RC app
@@ -37,24 +38,33 @@ valid_app_dir() {
  ]]
 }
 
+# Check if the Docker daemon is running.
+check_docker() {
+  if ! docker ps >& /dev/null; then
+    err "cannot connect to the Docker daemon. Is the Docker daemon running?"
+    exit 1
+  fi
+}
+
 # Get the current date and time expressed according to ISO 8601
 get_timestamp() {
   timestamp=$(date +"%Y-%m-%dT%H:%M:%S%:z")
 }
 
 # Check that the CLI is run from a valid app
-# directory and returns the base name directory
+# directory and returns the base name directory.
 check_app() {
-  if valid_app_dir; then
-    app_name=$(basename "$(pwd)")
-  else
+  if ! valid_app_dir; then
     err "not a valid app directory"
     exit 1
   fi
-  # if ! docker image inspect ${app_name}:rc-cli >/dev/null 2>&1; then
-  #   err "${app_name}: app not found"
-  #   exit 1
-  # fi
+  app_name=$(basename "$(pwd)")
+}
+
+# Run basic checks on requirements for some commands
+basic_checks() {
+  check_app
+  check_docker
 }
 
 # Strips off any leading directory components
@@ -97,22 +107,30 @@ build_image() {
   printf "done\n\n"
 }
 
+# Get the relative path of the data directory based
+# on the existence or not of a SOLUTION argument
+get_data_context() {
+  [[ -z $1 ]] && printf "data" || printf "solutions/$1/data"
+}
+
+# Same than get_data_context but return the absolute path.
+get_data_context_abs() {
+  printf "$(pwd)/$(get_data_context)"
+}
+
 # Args
 # $1: [setup,evaluate]
 # $2: app_name
 run_app_image() {
-  docker_run_opts=${@:3}
-  [[ ! -f "solutions/$2.tar.gz" ]] \
-    && src_mnt="$(pwd)/data" \
-    || src_mnt="$(pwd)/solutions/$2/data"
+  docker_run_opts=${@:4}
   dest_mnt="/home/app/data"
   get_timestamp
   printf "${CHARS_LINE}\n"
   printf "Running App [$2] (${1}):\n\n"
   docker run --rm --entrypoint "$1.sh" ${docker_run_opts} \
-    --volume "${src_mnt}/$1_inputs:${dest_mnt}/$1_inputs:ro" \
-    --volume "${src_mnt}/$1_outputs:${dest_mnt}/$1_outputs" \
-    "$2:rc-cli" 2>&1 | tee "logs/$1/$2-${timestamp}.log"
+  --volume ${src_mnt}/$1_inputs:${dest_mnt}/$1_inputs:ro \
+  --volume ${src_mnt}/$1_outputs:${dest_mnt}/$1_outputs \
+  "$2:rc-cli" 2>&1 | tee "logs/$1/$2-${timestamp}.log"
   printf "\n${CHARS_LINE}\n"
 }
 
@@ -122,20 +140,22 @@ save_image() {
   printf "Saving the '$1' image to 'solutions'... "
   solution_path="solutions/$1"
   mkdir -p ${solution_path}
-  cp -R data/ "${solution_path}/data"
+  cp -R "${RC_CLI_PATH}/data" "${solution_path}/data"
   docker save "$1:rc-cli" | gzip > "${solution_path}/$1.tar.gz"
   printf "done\n\n"
 }
 
 run_test_image() {
   image_file="$2.tar.gz"
-  src_mnt="$(pwd)/solutions/$2/data"
+  data_path=$(get_data_context $3)
   # Retrieve a clean copy of data from the rc-cli sources
-  rm -rf "${src_mnt}"
-  cp -R "${RC_CLI_PATH}/data" "${src_mnt}"
+  rm -rf "${data_path}"
+  cp -R "${RC_CLI_PATH}/data" "${data_path}"
+  printf "WARNING! The data at '${data_path}' has been reset to the initial state\n\n"
   get_timestamp
   printf "${CHARS_LINE}\n"
   printf "Preparing Test Image [$2] to Run With [${DOCKER_BUILD_RC_TESTER}]:\n\n"
+  src_mnt="$(pwd)/${data_path}"
   docker run --privileged --rm --env IMAGE_FILE=${image_file} \
     --volume "$(pwd)/solutions/$2/${image_file}:/mnt/${image_file}:ro" \
     --volume "${src_mnt}/setup_inputs:/data/setup_inputs:ro" \
@@ -154,7 +174,7 @@ main() {
   if [[ $# -lt 1 ]]; then
     err "missing command operand"
     exit 1
-  elif [[ $# -gt 2 ]]; then
+  elif [[ $# -gt 2 && $1 != "new" ]]; then
     err "too many arguments"
     exit 1
   fi
@@ -162,8 +182,7 @@ main() {
   # Select the command
   case $1 in
     new) # Create a new app based on a template
-      # TODO: Retrieve the template option (-t, --template)
-      template="rc-python"
+      template=${3:-rc-python}
       template_path="${RC_CLI_PATH}/templates/${template}"
       if [[ $# -lt 2 ]]; then
         err "missing app operand"
@@ -175,16 +194,16 @@ main() {
         err "${template}: template not found"
         exit 1
       fi
-      err "the templates option is not available yet"
-      printf "The 'rc-python' template is set by default\n"
       cp -R "${template_path}" "$2"
+      cp "${RC_CLI_PATH}/templates/README.md" "$2"
       chmod +x $(echo "$2/*.sh")
-      printf "Done.\n"
+      [[ -z $3 ]] && optional="by default "
+      printf "the '${template}' template has been created ${optional}at '$(pwd)/$2'\n"
       ;;
 
     save) # Build the app image and save it to the 'solutions' directory
       make_logs "$@"
-      check_app
+      basic_checks
       get_solution_name $2
       [[ -z ${solution_name} ]] && tmp_name=${app_name} || tmp_name=${solution_name}
       printf "${CHARS_LINE}\n"
@@ -198,50 +217,31 @@ main() {
 
     setup | evaluate) # Build and run the '[setup,evaluate].sh' script
       make_logs "$@"
-      check_app
-      if [[ -n $2 ]]; then
-        check_solution $2
-      fi
+      basic_checks
+      [[ -n $2 ]] && check_solution $2
       [[ -z ${solution_name} ]] && image_name=${app_name} || image_name=${solution_name}
+      src_mnt=$(get_data_context_abs $2)
       build_image $1 ${image_name}
       [[ $1 == "evaluate" ]] \
-        && docker_run_opts="--volume $(pwd)/data/setup_outputs:/home/app/data/setup_outputs:ro"
-      run_app_image $1 ${image_name} ${docker_run_opts}
+        && docker_run_opts="--volume ${src_mnt}/setup_outputs:/home/app/data/setup_outputs:ro"
+      run_app_image $1 ${image_name} ${src_mnt} ${docker_run_opts}
       ;;
 
     test) # Run the tests with the '${DOCKER_BUILD_RC_TESTER}'
       make_logs "$@"
-      check_app
+      basic_checks
       [[ -n $2 ]] && image_name=$2 || image_name=${app_name}
       check_solution ${image_name} # the app image must have been built first
       # Saving time if the '${DOCKER_BUILD_RC_TESTER}' image exists.
       if ! docker image inspect ${DOCKER_BUILD_RC_TESTER}:rc-cli >/dev/null 2>&1; then
         build_image $1 ${DOCKER_BUILD_RC_TESTER} ${RC_CLI_PATH}
       fi
-      run_test_image $1 ${image_name}
+      run_test_image $1 ${image_name} $2 # FIXME: This is ugly - figure out data_path here
       printf "\n${CHARS_LINE}\n"
       ;;
 
-    all) # Build, run and save the app image & validate it with the '${DOCKER_BUILD_RC_TESTER}'
-      make_logs "$@"
-      check_app
-      get_solution_name $2
-      [[ -z ${solution_name} ]] && tmp_name=${app_name} || tmp_name=${solution_name}
-      printf "${CHARS_LINE}\n"
-      printf "Build and Save Image for [${tmp_name}]:\n\n"
-      get_image_name ${tmp_name}
-      build_image $1 ${image_name}
-      save_image ${image_name}
-      # Saving time if the '${DOCKER_BUILD_RC_TESTER}' image exists.
-      if ! docker image inspect ${DOCKER_BUILD_RC_TESTER}:rc-cli >/dev/null 2>&1; then
-        build_image $1 ${DOCKER_BUILD_RC_TESTER} ${RC_CLI_PATH}
-      fi
-      run_test_image $1 ${image_name}
-      printf "${CHARS_LINE}\n"
-      ;;
-
     debug) # Enable an interactive shell at runtime to debug the app container.
-      check_app
+      basic_checks
       [[ -n $2 ]] && image_name=$2 || image_name=${app_name}
       check_solution ${image_name} # the app image must have been built first
       # Find all available shells in container and choose bash if available
@@ -255,7 +255,7 @@ main() {
       printf "  - $(tput bold)no '*.sh' script has been run yet$(tput sgr0)\n"
       printf "  - use the 'exit' command to exit the current shell\n"
       printf "\nEnabling an interactive shell with the solution container...\n"
-      src_mnt="$(pwd)/solutions/${image_name}/data"
+      src_mnt=$(get_data_context_abs ${image_name})
       dest_mnt="/home/app/data/"
       docker run --rm --entrypoint="" \
         --volume "${src_mnt}/setup_inputs:${dest_mnt}/setup_inputs:ro" \
@@ -266,7 +266,7 @@ main() {
       ;;
 
     purge) # Remove all the logs, images and solutions created by 'rc-cli'.
-      # TODO: Do it by specifying app_name
+      data_path=$(get_data_context)
       if [[ $# -gt 1 ]]; then
         err "too many arguments"
         exit 1
@@ -303,13 +303,14 @@ main() {
       ;;
 
     reset) # Flush the output data in the directories
-      printf "WARNING! This will reset the data directory to a blank state\n"
+      data_path=$(get_data_context)
+      printf "WARNING! This will reset the data directory at '${data_path}' to a blank state\n"
       read -r -p "Are you sure you want to continue? [y/N] " input
       case ${input} in
         [yY][eE][sS] | [yY])
           printf "Resetting the data... "
-          rm -rf data/
-          cp -R ${RC_CLI_PATH}/data data
+          rm -rf "${data_path}"
+          cp -R "${RC_CLI_PATH}/data" "${data_path}"
           printf "done\n"
           printf "Finished!\n"
           ;;
@@ -325,6 +326,7 @@ main() {
 
     update) # Run maintenance commands after breaking changes on the framework.
       make_logs "$@"
+      check_docker
       printf "Maintenance tasks will run now\n"
       build_image $1 ${DOCKER_BUILD_RC_TESTER} ${RC_CLI_PATH}
       printf "Finished!\n"
@@ -337,7 +339,6 @@ ${RC_CLI_LONG_NAME}
 Usage:  rc-cli COMMAND [SOLUTION]
 
 Commands:
-  all                       Build, run and save a solution image and validate it with the '${DOCKER_BUILD_RC_TESTER}'
   debug                     Enable an interactive shell at runtime to debug a solution within a Docker container
   evaluate                  Build and run the 'evaluate.sh' script
   help                      Print help information
