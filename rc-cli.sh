@@ -66,7 +66,7 @@ get_solution_name() {
 
 check_solution() {
   get_solution_name $1
-  if [[ ! -f "solutions/${solution_name}.tar.gz" ]]; then
+  if [[ ! -f "solutions/${solution_name}/${solution_name}.tar.gz" ]]; then
     err "${solution_name}: solution not found"
     exit 1
   fi
@@ -102,14 +102,16 @@ build_image() {
 # $2: app_name
 run_app_image() {
   docker_run_opts=${@:3}
-  src_path="$(pwd)/data"
-  dest_path="/home/app/data"
+  [[ ! -f "solutions/$2.tar.gz" ]] \
+    && src_mnt="$(pwd)/data" \
+    || src_mnt="$(pwd)/solutions/$2/data"
+  dest_mnt="/home/app/data"
   get_timestamp
   printf "${CHARS_LINE}\n"
   printf "Running App [$2] (${1}):\n\n"
   docker run --rm --entrypoint "$1.sh" ${docker_run_opts} \
-    --volume "${src_path}/$1_inputs:${dest_path}/$1_inputs:ro" \
-    --volume "${src_path}/$1_outputs:${dest_path}/$1_outputs" \
+    --volume "${src_mnt}/$1_inputs:${dest_mnt}/$1_inputs:ro" \
+    --volume "${src_mnt}/$1_outputs:${dest_mnt}/$1_outputs" \
     "$2:rc-cli" 2>&1 | tee "logs/$1/$2-${timestamp}.log"
   printf "\n${CHARS_LINE}\n"
 }
@@ -118,22 +120,28 @@ save_image() {
   printf "${CHARS_LINE}\n"
   printf "Save Image [$1]:\n\n"
   printf "Saving the '$1' image to 'solutions'... "
-  docker save "$1:rc-cli" | gzip > "solutions/$1.tar.gz"
+  solution_path="solutions/$1"
+  mkdir -p ${solution_path}
+  cp -R data/ "${solution_path}/data"
+  docker save "$1:rc-cli" | gzip > "${solution_path}/$1.tar.gz"
   printf "done\n\n"
 }
 
 run_test_image() {
   image_file="$2.tar.gz"
-  src_path="$(pwd)/data"
+  src_mnt="$(pwd)/solutions/$2/data"
+  # Retrieve a clean copy of data from the rc-cli sources
+  rm -rf "${src_mnt}"
+  cp -R "${RC_CLI_PATH}/data" "${src_mnt}"
   get_timestamp
   printf "${CHARS_LINE}\n"
   printf "Preparing Test Image [$2] to Run With [${DOCKER_BUILD_RC_TESTER}]:\n\n"
   docker run --privileged --rm --env IMAGE_FILE=${image_file} \
-    --volume "$(pwd)/solutions/${image_file}:/mnt/${image_file}:ro" \
-    --volume "${src_path}/setup_inputs:/data/setup_inputs:ro" \
-    --volume "${src_path}/setup_outputs:/data/setup_outputs" \
-    --volume "${src_path}/evaluate_inputs:/data/evaluate_inputs:ro" \
-    --volume "${src_path}/evaluate_outputs:/data/evaluate_outputs" \
+    --volume "$(pwd)/solutions/$2/${image_file}:/mnt/${image_file}:ro" \
+    --volume "${src_mnt}/setup_inputs:/data/setup_inputs:ro" \
+    --volume "${src_mnt}/setup_outputs:/data/setup_outputs" \
+    --volume "${src_mnt}/evaluate_inputs:/data/evaluate_inputs:ro" \
+    --volume "${src_mnt}/evaluate_outputs:/data/evaluate_outputs" \
     "${DOCKER_BUILD_RC_TESTER}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-${timestamp}.log"
 }
 
@@ -184,7 +192,6 @@ main() {
       get_image_name ${tmp_name}
       printf "Save Precheck Complete\n\n"
       build_image $1 ${image_name}
-      mkdir -p ""
       save_image ${image_name}
       printf "${CHARS_LINE}\n"
       ;;
@@ -248,13 +255,13 @@ main() {
       printf "  - $(tput bold)no '*.sh' script has been run yet$(tput sgr0)\n"
       printf "  - use the 'exit' command to exit the current shell\n"
       printf "\nEnabling an interactive shell with the solution container...\n"
-      src_path="$(pwd)/data"
-      dest_path="/home/app/data/"
+      src_mnt="$(pwd)/solutions/${image_name}/data"
+      dest_mnt="/home/app/data/"
       docker run --rm --entrypoint="" \
-        --volume "${src_path}/setup_inputs:${dest_path}/setup_inputs:ro" \
-        --volume "${src_path}/setup_outputs:${dest_path}/setup_outputs" \
-        --volume "${src_path}/evaluate_inputs:${dest_path}/evaluate_inputs:ro" \
-        --volume "${src_path}/evaluate_outputs:${dest_path}/evaluate_outputs" \
+        --volume "${src_mnt}/setup_inputs:${dest_mnt}/setup_inputs:ro" \
+        --volume "${src_mnt}/setup_outputs:${dest_mnt}/setup_outputs" \
+        --volume "${src_mnt}/evaluate_inputs:${dest_mnt}/evaluate_inputs:ro" \
+        --volume "${src_mnt}/evaluate_outputs:${dest_mnt}/evaluate_outputs" \
         -it "${image_name}:rc-cli" ${app_sh}
       ;;
 
@@ -302,7 +309,7 @@ main() {
         [yY][eE][sS] | [yY])
           printf "Resetting the data... "
           rm -rf data/
-          cp -R "${RC_CLI_PATH}/data" data
+          cp -R ${RC_CLI_PATH}/data data
           printf "done\n"
           printf "Finished!\n"
           ;;
