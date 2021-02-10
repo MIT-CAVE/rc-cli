@@ -4,7 +4,7 @@
 
 # Constants
 readonly CHARS_LINE="============================"
-readonly RC_CLI_PATH="${HOME}/amzn-docker/" # FIXME
+readonly RC_CLI_PATH="${HOME}/rc-cli/"
 readonly DOCKER_BUILD_RC_TESTER="rc-tester"
 readonly RC_CLI_LONG_NAME="Routing Challenge CLI"
 readonly RC_CLI_SHORT_NAME="RC CLI"
@@ -342,7 +342,6 @@ Commands:
   test                      Run the tests for a solution image with the '${DOCKER_BUILD_RC_TESTER}'
   update                    Run maintenance commands after any breaking changes on the ${RC_CLI_SHORT_NAME}
 EOF
-
       ;;
 
     version) # Display the current version of the CLI
