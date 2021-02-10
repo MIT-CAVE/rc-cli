@@ -4,12 +4,12 @@
 
 # Constants
 readonly CHARS_LINE="============================"
-readonly RC_CLI_BIN_NAME="rc-cli"
 readonly RC_CLI_PATH="${HOME}/.rc-cli/"
 readonly DOCKER_BUILD_RC_TESTER="rc-test"
 readonly RC_CLI_LONG_NAME="Routing Challenge CLI"
 readonly RC_CLI_SHORT_NAME="RC CLI"
 readonly RC_CLI_VERSION="v0.1.0"
+readonly TMP_DIR="/tmp"
 
 #######################################
 # Display an error message when the user input is invalid.
@@ -21,7 +21,7 @@ readonly RC_CLI_VERSION="v0.1.0"
 #   None
 #######################################
 err() {
-  printf "${RC_CLI_BIN_NAME}: $1\n" >&2
+  printf "$(basename $0): $1\n" >&2
 }
 
 # Determine if the current directory contains a valid RC app
@@ -47,8 +47,8 @@ check_docker() {
 }
 
 # Get the current date and time expressed according to ISO 8601
-get_timestamp() {
-  timestamp=$(date +"%Y-%m-%dT%H:%M:%S%:z")
+timestamp() {
+  date +"%Y-%m-%dT%H:%M:%S%:z"
 }
 
 # Check that the CLI is run from a valid app
@@ -97,14 +97,19 @@ get_image_name() {
 
 build_image() {
   context="${3:-.}" # the third argument is the Docker context
-  get_timestamp
   printf "${CHARS_LINE}\n"
   printf "Build Image [$2]:\n\n"
   printf "Building the '$2' image... "
   docker rmi "$2:rc-cli" >& /dev/null
   docker build --file ${context}/Dockerfile --tag $2:rc-cli ${context} >& \
-    "logs/$1/$2-build-${timestamp}.log"
+    "logs/$1/$2-build-$(timestamp).log"
   printf "done\n\n"
+}
+
+# Load a previously saved Docker solution image
+load_solution() {
+  docker rmi "$1:rc-cli" >& /dev/null
+  docker load --quiet --input "solutions/$1/$1.tar.gz" >& /dev/null
 }
 
 # Get the relative path of the data directory based
@@ -121,16 +126,16 @@ get_data_context_abs() {
 # Args
 # $1: [setup,evaluate]
 # $2: app_name
+# $3: src_mnt
 run_app_image() {
   docker_run_opts=${@:4}
   dest_mnt="/home/app/data"
-  get_timestamp
   printf "${CHARS_LINE}\n"
   printf "Running App [$2] (${1}):\n\n"
   docker run --rm --entrypoint "$1.sh" ${docker_run_opts} \
-  --volume ${src_mnt}/$1_inputs:${dest_mnt}/$1_inputs:ro \
-  --volume ${src_mnt}/$1_outputs:${dest_mnt}/$1_outputs \
-  "$2:rc-cli" 2>&1 | tee "logs/$1/$2-${timestamp}.log"
+    --volume $3/$1_inputs:${dest_mnt}/$1_inputs:ro \
+    --volume $3/$1_outputs:${dest_mnt}/$1_outputs \
+  "$2:rc-cli" 2>&1 | tee "logs/$1/$2-$(timestamp).log"
   printf "\n${CHARS_LINE}\n"
 }
 
@@ -148,21 +153,23 @@ save_image() {
 run_test_image() {
   image_file="$2.tar.gz"
   data_path=$(get_data_context $3)
+  [[ -z $3 ]] \
+    && src_mnt_image="${TMP_DIR}/$2.tar.gz" \
+    || src_mnt_image="$(pwd)/solutions/$2/${image_file}" \
   # Retrieve a clean copy of data from the rc-cli sources
   rm -rf "${data_path}"
   cp -R "${RC_CLI_PATH}/data" "${data_path}"
   printf "WARNING! The data at '${data_path}' has been reset to the initial state\n\n"
-  get_timestamp
   printf "${CHARS_LINE}\n"
   printf "Preparing Test Image [$2] to Run With [${DOCKER_BUILD_RC_TESTER}]:\n\n"
   src_mnt="$(pwd)/${data_path}"
   docker run --privileged --rm --env IMAGE_FILE=${image_file} \
-    --volume "$(pwd)/solutions/$2/${image_file}:/mnt/${image_file}:ro" \
+    --volume "${src_mnt_image}:/mnt/${image_file}:ro" \
     --volume "${src_mnt}/setup_inputs:/data/setup_inputs:ro" \
     --volume "${src_mnt}/setup_outputs:/data/setup_outputs" \
     --volume "${src_mnt}/evaluate_inputs:/data/evaluate_inputs:ro" \
     --volume "${src_mnt}/evaluate_outputs:/data/evaluate_outputs" \
-    "${DOCKER_BUILD_RC_TESTER}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-${timestamp}.log"
+    "${DOCKER_BUILD_RC_TESTER}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-$(timestamp).log"
 }
 
 make_logs() { # Ensure the necessary log file structure for the calling command
@@ -218,10 +225,15 @@ main() {
     setup | evaluate) # Build and run the '[setup,evaluate].sh' script
       make_logs "$@"
       basic_checks
-      [[ -n $2 ]] && check_solution $2
-      [[ -z ${solution_name} ]] && image_name=${app_name} || image_name=${solution_name}
+      if [[ -z $2 ]]; then
+        image_name=${app_name}
+        build_image $1 ${app_name}
+      else
+        check_solution $2
+        image_name=${solution_name}
+        load_solution ${image_name}
+      fi
       src_mnt=$(get_data_context_abs $2)
-      build_image $1 ${image_name}
       [[ $1 == "evaluate" ]] \
         && docker_run_opts="--volume ${src_mnt}/setup_outputs:/home/app/data/setup_outputs:ro"
       run_app_image $1 ${image_name} ${src_mnt} ${docker_run_opts}
@@ -230,8 +242,15 @@ main() {
     test) # Run the tests with the '${DOCKER_BUILD_RC_TESTER}'
       make_logs "$@"
       basic_checks
-      [[ -n $2 ]] && image_name=$2 || image_name=${app_name}
-      check_solution ${image_name} # the app image must have been built first
+      if [[ -z $2 ]]; then
+        image_name=${app_name}
+        build_image $1 ${app_name}
+        docker save "${app_name}:rc-cli" | gzip > "${TMP_DIR}/${app_name}.tar.gz"
+      else
+        check_solution $2
+        image_name=${solution_name}
+        load_solution ${image_name}
+      fi
       # Saving time if the '${DOCKER_BUILD_RC_TESTER}' image exists.
       if ! docker image inspect ${DOCKER_BUILD_RC_TESTER}:rc-cli >/dev/null 2>&1; then
         build_image $1 ${DOCKER_BUILD_RC_TESTER} ${RC_CLI_PATH}
@@ -241,9 +260,16 @@ main() {
       ;;
 
     debug) # Enable an interactive shell at runtime to debug the app container.
+      make_logs "$@"
       basic_checks
-      [[ -n $2 ]] && image_name=$2 || image_name=${app_name}
-      check_solution ${image_name} # the app image must have been built first
+      if [[ -z $2 ]]; then
+        image_name=${app_name}
+        build_image $1 ${app_name}
+      else
+        check_solution $2
+        image_name=${solution_name}
+        load_solution ${image_name}
+      fi
       # Find all available shells in container and choose bash if available
       valid_sh=$(docker run --rm --entrypoint="" "${image_name}:rc-cli" cat /etc/shells)
       [[ -n $(echo ${valid_sh} | grep "/bin/bash") ]] \
@@ -278,7 +304,6 @@ main() {
           printf "Removing logs... "
           rm -rf "logs/"
           printf "done\n"
-
           printf "Removing images... \n"
           rc_images=$(docker images --all --filter reference="*:rc-cli" --quiet)
           if [[ ${rc_images} ]]; then
@@ -287,7 +312,7 @@ main() {
           printf "done\n"
 
           printf "Removing solutions... "
-          rm -rf solutions/*.tar.gz
+          rm -rf solutions/*/ # Remove only directories
           printf "done\n"
           printf "Finished!\n"
           ;;
