@@ -266,7 +266,6 @@ main() {
       ;;
 
     purge) # Remove all the logs, images and solutions created by 'rc-cli'.
-      data_path=$(get_data_context)
       if [[ $# -gt 1 ]]; then
         err "too many arguments"
         exit 1
@@ -303,7 +302,7 @@ main() {
       ;;
 
     reset) # Flush the output data in the directories
-      data_path=$(get_data_context)
+      data_path=$(get_data_context $2)
       printf "WARNING! This will reset the data directory at '${data_path}' to a blank state\n"
       read -r -p "Are you sure you want to continue? [y/N] " input
       case ${input} in
