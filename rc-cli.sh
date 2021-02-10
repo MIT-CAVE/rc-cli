@@ -115,7 +115,7 @@ get_data_context() {
 
 # Same than get_data_context but return the absolute path.
 get_data_context_abs() {
-  printf "$(pwd)/$(get_data_context)"
+  printf "$(pwd)/$(get_data_context $1)"
 }
 
 # Args
@@ -255,7 +255,7 @@ main() {
       printf "  - $(tput bold)no '*.sh' script has been run yet$(tput sgr0)\n"
       printf "  - use the 'exit' command to exit the current shell\n"
       printf "\nEnabling an interactive shell with the solution container...\n"
-      src_mnt=$(get_data_context_abs ${image_name})
+      src_mnt=$(get_data_context_abs $2)
       dest_mnt="/home/app/data/"
       docker run --rm --entrypoint="" \
         --volume "${src_mnt}/setup_inputs:${dest_mnt}/setup_inputs:ro" \
