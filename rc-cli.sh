@@ -3,6 +3,8 @@
 # A CLI for the Routing Challenge.
 
 # Constants
+. .env
+# TODO: Move some of these guys into .env
 readonly CHARS_LINE="============================"
 readonly RC_CLI_PATH="${HOME}/.rc-cli/"
 readonly DOCKER_BUILD_RC_TESTER="rc-test"
@@ -98,12 +100,13 @@ get_image_name() {
 
 build_image() {
   context="${3:-.}" # the third argument is the Docker context
+  build_opts=${@:4}
   printf "${CHARS_LINE}\n"
   printf "Build Image [$2]:\n\n"
   printf "Building the '$2' image... "
   docker rmi "$2:rc-cli" >& /dev/null
-  docker build --file ${context}/Dockerfile --tag $2:rc-cli ${context} >& \
-    "logs/$1/$2-build-$(timestamp).log"
+  docker build --file ${context}/Dockerfile --tag $2:rc-cli ${build_opts} \
+    ${context} >& "logs/$1/$2-build-$(timestamp).log"
   printf "done\n\n"
 }
 
@@ -129,11 +132,11 @@ get_data_context_abs() {
 # $2: app_name
 # $3: src_mnt
 run_app_image() {
-  docker_run_opts=${@:4}
+  run_opts=${@:4}
   dest_mnt="/home/app/data"
   printf "${CHARS_LINE}\n"
-  printf "Running ${image_type} [$2] (${1}):\n\n"
-  docker run --rm --entrypoint "$1.sh" ${docker_run_opts} \
+  printf "Running App [$2] (${1}):\n\n"
+  docker run --rm --entrypoint "$1.sh" ${run_opts} \
     --volume $3/$1_inputs:${dest_mnt}/$1_inputs:ro \
     --volume $3/$1_outputs:${dest_mnt}/$1_outputs \
   "$2:rc-cli" 2>&1 | tee "logs/$1/$2-$(timestamp).log"
@@ -237,9 +240,10 @@ main() {
         image_type="Solution"
       fi
       src_mnt=$(get_data_context_abs $2)
+
       [[ $1 == "evaluate" ]] \
-        && docker_run_opts="--volume ${src_mnt}/setup_outputs:/home/app/data/setup_outputs:ro"
-      run_app_image $1 ${image_name} ${src_mnt} ${docker_run_opts}
+        && run_opts="--volume ${src_mnt}/setup_outputs:/home/app/data/setup_outputs:ro"
+      run_app_image $1 ${image_name} ${src_mnt} ${run_opts}
       ;;
 
     test) # Run the tests with the '${DOCKER_BUILD_RC_TESTER}'

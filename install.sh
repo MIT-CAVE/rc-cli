@@ -3,6 +3,8 @@
 # Install the RC CLI on Linux
 
 # Constants
+. .env
+# TODO: Move some of these guys into .env
 readonly CHARS_LINE="============================"
 readonly INSTALL_DIR="${HOME}"
 readonly INSTALL_NAME=".rc-cli"
