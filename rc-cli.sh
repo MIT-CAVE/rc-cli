@@ -10,6 +10,7 @@ readonly RC_CLI_LONG_NAME="Routing Challenge CLI"
 readonly RC_CLI_SHORT_NAME="RC CLI"
 readonly RC_CLI_VERSION="v0.1.0"
 readonly TMP_DIR="/tmp"
+readonly DEFAULT_TEMPLATE="rc-python"
 
 #######################################
 # Display an error message when the user input is invalid.
@@ -131,7 +132,7 @@ run_app_image() {
   docker_run_opts=${@:4}
   dest_mnt="/home/app/data"
   printf "${CHARS_LINE}\n"
-  printf "Running App [$2] (${1}):\n\n"
+  printf "Running ${image_type} [$2] (${1}):\n\n"
   docker run --rm --entrypoint "$1.sh" ${docker_run_opts} \
     --volume $3/$1_inputs:${dest_mnt}/$1_inputs:ro \
     --volume $3/$1_outputs:${dest_mnt}/$1_outputs \
@@ -189,7 +190,7 @@ main() {
   # Select the command
   case $1 in
     new) # Create a new app based on a template
-      template=${3:-rc-python}
+      template=${3:-$DEFAULT_TEMPLATE}
       template_path="${RC_CLI_PATH}/templates/${template}"
       if [[ $# -lt 2 ]]; then
         err "missing app operand"
@@ -228,10 +229,12 @@ main() {
       if [[ -z $2 ]]; then
         image_name=${app_name}
         build_image $1 ${app_name}
+        image_type="App"
       else
         check_solution $2
         image_name=${solution_name}
         load_solution ${image_name}
+        image_type="Solution"
       fi
       src_mnt=$(get_data_context_abs $2)
       [[ $1 == "evaluate" ]] \
@@ -350,6 +353,7 @@ main() {
 
     update) # Run maintenance commands after breaking changes on the framework.
       make_logs "$@"
+      # TODO: Run Install.sh
       check_docker
       printf "Maintenance tasks will run now\n"
       build_image $1 ${DOCKER_BUILD_RC_TESTER} ${RC_CLI_PATH}
@@ -357,13 +361,14 @@ main() {
       ;;
 
     help | --help) # Display the help
+      TEMPLATES="$(ls -d $RC_CLI_PATH/templates/*/ | awk -F'/' ' {print $(NF-1)} ' | tr '\n' ',' | sed 's/.$//' | sed 's/,/\n      - /g')"
       cat 1>&2 <<EOF
 ${RC_CLI_LONG_NAME}
 
-Usage:  rc-cli COMMAND [SOLUTION]
+General Usage:  rc-cli COMMAND [SOLUTION]
 
 Commands:
-  debug                     Enable an interactive shell at runtime to debug a solution within a Docker container
+  debug                     Enable an interactive shell at runtime to debug the current app or solution in a Docker container
   evaluate                  Build and run the 'evaluate.sh' script
   help                      Print help information
   new                       Create a new RC app within the current directory
@@ -374,6 +379,102 @@ Commands:
   test                      Run the tests for a solution image with the '${DOCKER_BUILD_RC_TESTER}'
   update                    Run maintenance commands after any breaking changes on the ${RC_CLI_SHORT_NAME}
   version                   Display the current version
+
+Usage Examples:
+  debug [solution-name]
+    - Debug your current app
+      ${CHARS_LINE}
+      rc-cli debug
+      ${CHARS_LINE}
+    - Debug a saved solution
+      ${CHARS_LINE}
+      rc-cli debug my-solution
+      ${CHARS_LINE}
+
+  evaluate [solution-name]
+    - Evaluate your current app
+      ${CHARS_LINE}
+      rc-cli evaluate
+      ${CHARS_LINE}
+    - Evaluate a saved solution
+      ${CHARS_LINE}
+      rc-cli evaluate my-solution
+      ${CHARS_LINE}
+
+  help
+    - Get all cli commands
+      ${CHARS_LINE}
+      rc-cli help
+      ${CHARS_LINE}
+
+  new [app-name] [template-name]
+    - Currently, the following templates are available:
+      - ${TEMPLATES}
+    - Create a new app with the default template ${DEFAULT_TEMPLATE}
+      ${CHARS_LINE}
+      rc-cli new my-app
+      ${CHARS_LINE}
+    - Create a new app with a specified template
+      ${CHARS_LINE}
+      rc-cli new my-app ${DEFAULT_TEMPLATE}
+      ${CHARS_LINE}
+
+  purge
+    - Purge data, logs and containers created by the ${RC_CLI_SHORT_NAME}
+      - rc-cli purge
+
+  reset [solution-name]
+    - Reset my-app/data to the values that will be used for competition scoring
+      ${CHARS_LINE}
+      rc-cli reset
+      ${CHARS_LINE}
+    - Reset my-app/solutions/my-solution/data to the values that will be used for competition scoring
+      ${CHARS_LINE}
+      rc-cli reset my-solution
+      ${CHARS_LINE}
+
+  save [solution-name]
+    - Save the current app as a solution with the same name as your app
+      ${CHARS_LINE}
+      rc-cli save
+      ${CHARS_LINE}
+    - Save the current app as a solution named my-solution
+      ${CHARS_LINE}
+      rc-cli save my-solution
+      ${CHARS_LINE}
+
+  setup [solution-name]
+    - Run the setup phase for your current app
+      ${CHARS_LINE}
+      rc-cli setup
+      ${CHARS_LINE}
+    - Run the setup phase for a saved solution
+      ${CHARS_LINE}
+      rc-cli setup my-solution
+      ${CHARS_LINE}
+
+  test [solution-name]
+    - Test the scoring process on your app
+      - NOTE: This resets data, runs setup, runs evaluate, and applies the scoring algorithm
+      ${CHARS_LINE}
+      rc-cli test
+      ${CHARS_LINE}
+    - Test the scoring process on a saved solution
+      - NOTE: This resets data, runs setup, runs evaluate, and applies the scoring algorithm
+      ${CHARS_LINE}
+      rc-cli test my-solution
+      ${CHARS_LINE}
+  update
+    - Update your cli
+      ${CHARS_LINE}
+      rc-cli update
+      ${CHARS_LINE}
+
+  version
+    - Show the currently installed cli version
+      ${CHARS_LINE}
+      rc-cli version
+      ${CHARS_LINE}
 EOF
       ;;
 
