@@ -353,9 +353,12 @@ main() {
 
     update) # Run maintenance commands after breaking changes on the framework.
       make_logs "$@"
-      # TODO: Run Install.sh
+      printf "${CHARS_LINE}\n"
+      printf "Checking Installation\n"
+      $RC_CLI_PATH/install.sh
+      printf "\n${CHARS_LINE}\n"
+      printf "Running other update maintenance tasks\n"
       check_docker
-      printf "Maintenance tasks will run now\n"
       build_image $1 ${DOCKER_BUILD_RC_TESTER} ${RC_CLI_PATH}
       printf "Finished!\n"
       ;;

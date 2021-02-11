@@ -53,8 +53,16 @@ check_git() { # Validate git is installed
 
 check_previous_installation() { # Check to make sure previous installations are removed before continuing
   if [ -d "${INSTALL_DIR}/${INSTALL_NAME}" ]; then
-    printf "An existing installation of RC CLI was found \nLocation: ${INSTALL_DIR}/${INSTALL_NAME}\n"
-    read -r -p "Would you like to overwrite this installation? [y/N] " input
+    LOCAL_CLI_VERSION="$(cat ${INSTALL_DIR}/${INSTALL_NAME}/rc-cli.sh | grep 'readonly RC_CLI_VERSION' | sed -e 's/.*="\(.*\)".*/\1/')"
+    CURRENT_CLI_VERSION="v0.1.0" #TODO Get current version from remote
+    printf "An existing installation of RC CLI ($LOCAL_CLI_VERSION) was found \nLocation: ${INSTALL_DIR}/${INSTALL_NAME}\n"
+    printf "The most up to date version is RC CLI ($CURRENT_CLI_VERSION)\n"
+
+    if [ $LOCAL_CLI_VERSION = $CURRENT_CLI_VERSION ] ; then
+      read -r -p "Would you like to reinstall RC CLI ($CURRENT_CLI_VERSION)? [y/N] " input
+    else
+      read -r -p "Would you like to update to RC CLI ($CURRENT_CLI_VERSION)? [y/N] " input
+    fi
     case ${input} in
       [yY][eE][sS] | [yY])
         printf "Removing old installation... "
