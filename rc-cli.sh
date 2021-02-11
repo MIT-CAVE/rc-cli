@@ -3,16 +3,16 @@
 # A CLI for the Routing Challenge.
 
 # Constants
-. .env
-# TODO: Move some of these guys into .env
 readonly CHARS_LINE="============================"
-readonly RC_CLI_PATH="${HOME}/.rc-cli/"
-readonly DOCKER_BUILD_RC_TESTER="rc-test"
+
+readonly RC_CLI_PATH="${HOME}/.rc-cli"
 readonly RC_CLI_LONG_NAME="Routing Challenge CLI"
 readonly RC_CLI_SHORT_NAME="RC CLI"
-readonly RC_CLI_VERSION="v0.1.0"
+readonly RC_CLI_VERSION="0.1.0"
+readonly RC_CLI_TEST_IMAGE="rc-test"
+
 readonly TMP_DIR="/tmp"
-readonly DEFAULT_TEMPLATE="rc-python"
+readonly RC_CLI_DEFAULT_TEMPLATE="rc-python"
 
 #######################################
 # Display an error message when the user input is invalid.
@@ -70,6 +70,31 @@ basic_checks() {
   check_docker
 }
 
+get_templates () {
+RC_TEMPLATES="$(\
+  ls -d $RC_CLI_PATH/templates/*/ | \
+  awk -F'/' ' {print $(NF-1)} ' \
+  )"
+}
+
+get_new_template_string () {
+  get_templates
+  RC_NEW_TEMPLATE_STRING="$(\
+    printf "$RC_TEMPLATES" | \
+    tr '\n' ',' | \
+    sed 's/,/\n- /g' \
+    )"
+}
+
+get_help_template_string () {
+  get_templates
+  RC_HELP_TEMPLATE_STRING="$(\
+    printf "$RC_TEMPLATES" | \
+    tr '\n' ',' | \
+    sed 's/.$//' | \
+    sed 's/,/\n      - /g'\
+    )"
+}
 # Strips off any leading directory components
 get_solution_name() {
   # Allows easy autocompletion in bash using created folder names
@@ -91,9 +116,26 @@ get_image_name() {
   image_name=$1
   while [[ -f "solutions/${input}.tar.gz" && -n ${input} ]]; do
     # Prompt confirmation to overwrite or rename image
-    printf "Save Warning: Solution with name '${image_name}' exists\n"
+    printf "WARNING! save: Solution with name '${image_name}' exists\n"
     read -r -p "Enter a new name or overwrite [${image_name}]: " input
     [[ -n ${input} ]] && image_name=${input}
+    printf "\n"
+  done
+}
+
+select_template() {
+  get_new_template_string
+  while ! printf "$RC_TEMPLATES" | grep -w -q "$template"; do
+    # Prompt confirmation to select proper template
+    if [ "$template" = "" ]; then
+      printf "WARNING! new: A template was not provided:\n"
+    else
+      printf "WARNING! new: The supplied template (${template}) does not exist.\n"
+    fi
+    printf "The following are valid templates:\n- ${RC_NEW_TEMPLATE_STRING}\n"
+    template="$RC_CLI_DEFAULT_TEMPLATE"
+    read -r -p "Enter your selection [${template}]: " input
+    [[ -n ${input} ]] && template=${input}
     printf "\n"
   done
 }
@@ -163,9 +205,9 @@ run_test_image() {
   # Retrieve a clean copy of data from the rc-cli sources
   rm -rf "${data_path}"
   cp -R "${RC_CLI_PATH}/data" "${data_path}"
-  printf "WARNING! The data at '${data_path}' has been reset to the initial state\n\n"
+  printf "WARNING! test: The data at '${data_path}' has been reset to the initial state\n\n"
   printf "${CHARS_LINE}\n"
-  printf "Preparing Test Image [$2] to Run With [${DOCKER_BUILD_RC_TESTER}]:\n\n"
+  printf "Preparing Test Image [$2] to Run With [${RC_CLI_TEST_IMAGE}]:\n\n"
   src_mnt="$(pwd)/${data_path}"
   docker run --privileged --rm --env IMAGE_FILE=${image_file} \
     --volume "${src_mnt_image}:/mnt/${image_file}:ro" \
@@ -173,7 +215,7 @@ run_test_image() {
     --volume "${src_mnt}/setup_outputs:/data/setup_outputs" \
     --volume "${src_mnt}/evaluate_inputs:/data/evaluate_inputs:ro" \
     --volume "${src_mnt}/evaluate_outputs:/data/evaluate_outputs" \
-    "${DOCKER_BUILD_RC_TESTER}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-$(timestamp).log"
+    "${RC_CLI_TEST_IMAGE}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-$(timestamp).log"
 }
 
 make_logs() { # Ensure the necessary log file structure for the calling command
@@ -193,18 +235,18 @@ main() {
   # Select the command
   case $1 in
     new) # Create a new app based on a template
-      template=${3:-$DEFAULT_TEMPLATE}
-      template_path="${RC_CLI_PATH}/templates/${template}"
       if [[ $# -lt 2 ]]; then
-        err "missing app operand"
+        err "Missing arguments. Try using:\nrc-cli help"
         exit 1
       elif [[ -d "$2" ]]; then
-        err "cannot create app '$2': Already exists in the current directory"
-        exit 1
-      elif [[ ! -d "${template_path}" ]]; then
-        err "${template}: template not found"
+        err "Cannot create app '$2': This folder already exists in the current directory"
         exit 1
       fi
+
+      template=${3:-""}
+      select_template
+      template_path="${RC_CLI_PATH}/templates/${template}"
+
       cp -R "${template_path}" "$2"
       cp "${RC_CLI_PATH}/templates/README.md" "$2"
       chmod +x $(echo "$2/*.sh")
@@ -246,7 +288,7 @@ main() {
       run_app_image $1 ${image_name} ${src_mnt} ${run_opts}
       ;;
 
-    test) # Run the tests with the '${DOCKER_BUILD_RC_TESTER}'
+    test) # Run the tests with the '${RC_CLI_TEST_IMAGE}'
       make_logs "$@"
       basic_checks
       if [[ -z $2 ]]; then
@@ -258,9 +300,9 @@ main() {
         image_name=${solution_name}
         load_solution ${image_name}
       fi
-      # Saving time if the '${DOCKER_BUILD_RC_TESTER}' image exists.
-      if ! docker image inspect ${DOCKER_BUILD_RC_TESTER}:rc-cli >/dev/null 2>&1; then
-        build_image $1 ${DOCKER_BUILD_RC_TESTER} ${RC_CLI_PATH}
+      # Saving time if the '${RC_CLI_TEST_IMAGE}' image exists.
+      if ! docker image inspect ${RC_CLI_TEST_IMAGE}:rc-cli >/dev/null 2>&1; then
+        build_image $1 ${RC_CLI_TEST_IMAGE} ${RC_CLI_PATH}
       fi
       run_test_image $1 ${image_name} $2 # FIXME: This is ugly - figure out data_path here
       printf "\n${CHARS_LINE}\n"
@@ -304,7 +346,7 @@ main() {
         exit 1
       fi
       # Prompt confirmation to delete user
-      printf "WARNING! This will remove all logs, Docker images and solutions created by ${RC_CLI_SHORT_NAME}\n"
+      printf "WARNING! purge: This will remove all logs, Docker images and solutions created by ${RC_CLI_SHORT_NAME}\n"
       read -r -p "Are you sure you want to continue? [y/N] " input
       case ${input} in
         [yY][eE][sS] | [yY])
@@ -335,7 +377,7 @@ main() {
 
     reset) # Flush the output data in the directories
       data_path=$(get_data_context $2)
-      printf "WARNING! This will reset the data directory at '${data_path}' to a blank state\n"
+      printf "WARNING! reset: This will reset the data directory at '${data_path}' to a blank state\n"
       read -r -p "Are you sure you want to continue? [y/N] " input
       case ${input} in
         [yY][eE][sS] | [yY])
@@ -363,12 +405,12 @@ main() {
       printf "\n${CHARS_LINE}\n"
       printf "Running other update maintenance tasks\n"
       check_docker
-      build_image $1 ${DOCKER_BUILD_RC_TESTER} ${RC_CLI_PATH}
+      build_image $1 ${RC_CLI_TEST_IMAGE} ${RC_CLI_PATH}
       printf "Finished!\n"
       ;;
 
     help | --help) # Display the help
-      TEMPLATES="$(ls -d $RC_CLI_PATH/templates/*/ | awk -F'/' ' {print $(NF-1)} ' | tr '\n' ',' | sed 's/.$//' | sed 's/,/\n      - /g')"
+      get_templates
       cat 1>&2 <<EOF
 ${RC_CLI_LONG_NAME}
 
@@ -383,7 +425,7 @@ Commands:
   reset                     Reset the data directory to the initial state
   save                      Build the solution image and save it to the 'solutions' directory
   setup                     Build and run the 'setup.sh' script
-  test                      Run the tests for a solution image with the '${DOCKER_BUILD_RC_TESTER}'
+  test                      Run the tests for a solution image with the '${RC_CLI_TEST_IMAGE}'
   update                    Run maintenance commands after any breaking changes on the ${RC_CLI_SHORT_NAME}
   version                   Display the current version
 
@@ -417,13 +459,13 @@ Usage Examples:
   new [app-name] [template-name]
     - Currently, the following templates are available:
       - ${TEMPLATES}
-    - Create a new app with the default template ${DEFAULT_TEMPLATE}
+    - Create a new app with the default template ${RC_CLI_DEFAULT_TEMPLATE}
       ${CHARS_LINE}
       rc-cli new my-app
       ${CHARS_LINE}
     - Create a new app with a specified template
       ${CHARS_LINE}
-      rc-cli new my-app ${DEFAULT_TEMPLATE}
+      rc-cli new my-app ${RC_CLI_DEFAULT_TEMPLATE}
       ${CHARS_LINE}
 
   purge

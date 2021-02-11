@@ -3,15 +3,14 @@
 # Install the RC CLI on Linux
 
 # Constants
-. .env
-# TODO: Move some of these guys into .env
 readonly CHARS_LINE="============================"
-readonly INSTALL_DIR="${HOME}"
-readonly INSTALL_NAME=".rc-cli"
-readonly CLI_NAME="rc-cli"
+readonly RC_CLI_PATH="${HOME}/.rc-cli"
+readonly RC_CLI_LONG_NAME="Routing Challenge CLI"
+readonly RC_CLI_SHORT_NAME="RC CLI"
+readonly RC_CLI_COMMAND="rc-cli"
+readonly RC_CLI_VERSION="0.1.0"
 readonly BIN_DIR="/usr/local/bin"
-readonly GITHUB_ORG_NAME="MIT-CAVE"
-readonly GITHUB_REPO_NAME="rc-cli"
+readonly CLONE_URL="https://github.com/MIT-CAVE/rc-cli.git"
 readonly MIN_DOCKER_VERSION="18.09.00"
 
 err() { # Display an error message
@@ -54,21 +53,19 @@ check_git() { # Validate git is installed
 }
 
 check_previous_installation() { # Check to make sure previous installations are removed before continuing
-  if [ -d "${INSTALL_DIR}/${INSTALL_NAME}" ]; then
-    LOCAL_CLI_VERSION="$(cat ${INSTALL_DIR}/${INSTALL_NAME}/rc-cli.sh | grep 'readonly RC_CLI_VERSION' | sed -e 's/.*="\(.*\)".*/\1/')"
-    CURRENT_CLI_VERSION="v0.1.0" #TODO Get current version from remote
-    printf "An existing installation of RC CLI ($LOCAL_CLI_VERSION) was found \nLocation: ${INSTALL_DIR}/${INSTALL_NAME}\n"
-    printf "The most up to date version is RC CLI ($CURRENT_CLI_VERSION)\n"
-
-    if [ $LOCAL_CLI_VERSION = $CURRENT_CLI_VERSION ] ; then
-      read -r -p "Would you like to reinstall RC CLI ($CURRENT_CLI_VERSION)? [y/N] " input
+  if [ -d "${RC_CLI_PATH}" ]; then
+    LOCAL_CLI_VERSION="$(cat ${RC_CLI_PATH}/VERSION)"
+    printf "An existing installation of ${RC_CLI_SHORT_NAME} ($LOCAL_CLI_VERSION) was found \nLocation: ${RC_CLI_PATH}\n"
+    printf "You are installing ${RC_CLI_SHORT_NAME} ($RC_CLI_VERSION)\n"
+    if [ "$LOCAL_CLI_VERSION" = "$RC_CLI_VERSION" ] ; then
+      read -r -p "Would you like to reinstall ${RC_CLI_SHORT_NAME} ($RC_CLI_VERSION)? [y/N] " input
     else
-      read -r -p "Would you like to update to RC CLI ($CURRENT_CLI_VERSION)? [y/N] " input
+      read -r -p "Would you like to update to ${RC_CLI_SHORT_NAME} ($RC_CLI_VERSION)? [y/N] " input
     fi
     case ${input} in
       [yY][eE][sS] | [yY])
         printf "Removing old installation... "
-        rm -rf "${INSTALL_DIR}/${INSTALL_NAME}"
+        rm -rf "${RC_CLI_PATH}"
         printf "done\n"
         ;;
       [nN][oO] | [nN] | "")
@@ -84,15 +81,15 @@ check_previous_installation() { # Check to make sure previous installations are 
 }
 
 install_new() { # Copy the needed files locally
-  printf "Creating application folder at '${INSTALL_DIR}/${INSTALL_NAME}'..."
-  mkdir -p "${INSTALL_DIR}/${INSTALL_NAME}"
+  printf "Creating application folder at '${RC_CLI_PATH}'..."
+  mkdir -p "${RC_CLI_PATH}"
   printf "done\n"
   printf "${CHARS_LINE}\n"
-  printf "Cloning from 'https://github.com/${GITHUB_ORG_NAME}/${GITHUB_REPO_NAME}':\n"
-  git clone "git@github.com:${GITHUB_ORG_NAME}/${GITHUB_REPO_NAME}" \
+  printf "Cloning from '${CLONE_URL}':\n"
+  git clone "git@github.com:mit-cave/rc-cli" \
     --depth=1 \
-    "${INSTALL_DIR}/${INSTALL_NAME}"
-  if [ ! -d "${INSTALL_DIR}/${INSTALL_NAME}" ]; then
+    "${RC_CLI_PATH}"
+  if [ ! -d "${RC_CLI_PATH}" ]; then
     err "Git Clone Failed. Installation Canceled"
     exit 1
   fi
@@ -100,10 +97,10 @@ install_new() { # Copy the needed files locally
 
 add_to_path() { # Add the cli to a globally accessable path
   printf "${CHARS_LINE}\n"
-  printf "Making '${CLI_NAME}' globally accessable: \nCreating link from '${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh' as '${BIN_DIR}/${CLI_NAME}':\n"
-  if [ ! $(ln -sf "${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh" "${BIN_DIR}/${CLI_NAME}") ]; then
+  printf "Making '${RC_CLI_COMMAND}' globally accessable: \nCreating link from '${RC_CLI_PATH}/${RC_CLI_COMMAND}.sh' as '${BIN_DIR}/${RC_CLI_COMMAND}':\n"
+  if [ ! $(ln -sf "${RC_CLI_PATH}/${RC_CLI_COMMAND}.sh" "${BIN_DIR}/${RC_CLI_COMMAND}") ]; then
     printf "Warning: Super User priviledges required to complete link! Using 'sudo'.\n"
-    sudo ln -sf "${INSTALL_DIR}/${INSTALL_NAME}/${CLI_NAME}.sh" "${BIN_DIR}/${CLI_NAME}"
+    sudo ln -sf "${RC_CLI_PATH}/${RC_CLI_COMMAND}.sh" "${BIN_DIR}/${RC_CLI_COMMAND}"
   fi
   printf "done\n"
 }
