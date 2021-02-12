@@ -9,7 +9,6 @@ MAX_SCORE = 100
 def get_feedback(score):
     score_range = MAX_SCORE - MIN_SCORE
     score_norm = (score - MIN_SCORE) / score_range
-    print(score, score_norm)
     if score_norm >= 0 and score_norm <= 0.4:
         return 'Keep up the good work!'
     elif score_norm > 0.4 and score_norm <= 0.6:

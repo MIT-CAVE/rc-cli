@@ -45,7 +45,6 @@ run_app_image ${image_name} "setup" ${TIMEOUT_SETUP} ""
 run_app_image ${image_name} "evaluate" ${TIMEOUT_EVALUATE} \
   "--volume /data/setup_outputs:/home/app/data/setup_outputs:ro"
 
-# TODO: Run MLL Evaluation Script on `rc-out.json` along with the timings for `setup.sh` and `eval.sh`
 load_image "Scoring" ${SCORING_IMAGE}
 scoring_name=${SCORING_IMAGE:0:-7}
 printf "\n${CHARS_LINE}\n"
