@@ -413,7 +413,9 @@ main() {
       make_logs "$@"
       printf "${CHARS_LINE}\n"
       printf "Checking Installation\n"
+      # TODO Once public switch to most updated install.sh
       $RC_CLI_PATH/install.sh
+      # curl -o- https://github.com/MIT-CAVE/rc-cli/blob/main/install.sh | bash
       printf "\n${CHARS_LINE}\n"
       printf "Running other update maintenance tasks\n"
       check_docker
