@@ -204,24 +204,32 @@ save_image() {
 
 run_test_image() {
   image_file="$2.tar.gz"
-  data_path=$(get_data_context $3)
   [[ -z $3 ]] \
     && src_mnt_image="${TMP_DIR}/$2.tar.gz" \
     || src_mnt_image="$(pwd)/solutions/$2/${image_file}" \
   # Retrieve a clean copy of data from the rc-cli sources
+  data_path=$(get_data_context $3)
   rm -rf "${data_path}"
   cp -R "${RC_CLI_PATH}/data" "${data_path}"
   printf "WARNING! test: The data at '${data_path}' has been reset to the initial state\n\n"
   printf "${CHARS_LINE}\n"
   printf "Preparing Test Image [$2] to Run With [${RC_TEST_IMAGE}]:\n\n"
+
   src_mnt="$(pwd)/${data_path}"
-  docker run --privileged --rm --env IMAGE_FILE=${image_file} \
+  scoring_path="${RC_CLI_PATH}/scoring"
+  scoring_image="${RC_SCORING_IMAGE}.tar.gz"
+
+  docker run --privileged --rm \
+    --env IMAGE_FILE=${image_file} \
+    --env SCORING_IMAGE=${scoring_image} \
+    --volume "${scoring_path}/${scoring_image}:/mnt/${scoring_image}:ro" \
     --volume "${src_mnt_image}:/mnt/${image_file}:ro" \
     --volume "${src_mnt}/setup_inputs:/data/setup_inputs:ro" \
     --volume "${src_mnt}/setup_outputs:/data/setup_outputs" \
     --volume "${src_mnt}/evaluate_inputs:/data/evaluate_inputs:ro" \
     --volume "${src_mnt}/evaluate_outputs:/data/evaluate_outputs" \
-    --volume "$(pwd)/scoring/data/scoring_outputs:/data/scoring_outputs" \
+    --volume "${scoring_path}/data/scoring_inputs:/data/scoring_inputs:ro" \
+    --volume "${scoring_path}/data/scoring_outputs:/data/scoring_outputs" \
     "${RC_TEST_IMAGE}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-$(timestamp).log"
 }
 
@@ -315,7 +323,9 @@ main() {
       if ! is_image_built ${RC_SCORING_IMAGE}; then
         build_image $1 ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
-
+      if [[ ! -f "scoring/${RC_SCORING_IMAGE}.tar.gz" ]]; then
+        docker save "${RC_SCORING_IMAGE}:rc-cli" | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
+      fi
       run_test_image $1 ${image_name} $2 # FIXME: This is ugly - figure out data_path here
       printf "\n${CHARS_LINE}\n"
       ;;
@@ -420,6 +430,9 @@ main() {
       printf "Running other update maintenance tasks\n"
       check_docker
       build_image $1 ${RC_TEST_IMAGE} ${RC_CLI_PATH}
+      build_image $1 ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+      docker save "${RC_SCORING_IMAGE}:rc-cli" | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
+
       printf "Finished!\n"
       ;;
 
