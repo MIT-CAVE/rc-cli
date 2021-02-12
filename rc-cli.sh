@@ -9,7 +9,8 @@ readonly RC_CLI_PATH="${HOME}/.rc-cli"
 readonly RC_CLI_LONG_NAME="Routing Challenge CLI"
 readonly RC_CLI_SHORT_NAME="RC CLI"
 readonly RC_CLI_VERSION="0.1.0"
-readonly RC_CLI_TEST_IMAGE="rc-test"
+readonly RC_SCORING_IMAGE="rc-scoring"
+readonly RC_TEST_IMAGE="rc-test"
 
 readonly TMP_DIR="/tmp"
 readonly RC_CLI_DEFAULT_TEMPLATE="rc-python"
@@ -39,6 +40,10 @@ valid_app_dir() {
  && -d data/setup_inputs \
  && -d data/setup_outputs
  ]]
+}
+
+is_image_built() {
+  docker image inspect $1:rc-cli >/dev/null 2>&1
 }
 
 # Check if the Docker daemon is running.
@@ -172,15 +177,16 @@ get_data_context_abs() {
 # Args
 # $1: [setup,evaluate]
 # $2: app_name
-# $3: src_mnt
+# $3: image_type [App,Solution]
+# $4: src_mnt
 run_app_image() {
-  run_opts=${@:4}
+  run_opts=${@:5}
   dest_mnt="/home/app/data"
   printf "${CHARS_LINE}\n"
-  printf "Running App [$2] (${1}):\n\n"
+  printf "Running $3 [$2] (${1}):\n\n"
   docker run --rm --entrypoint "$1.sh" ${run_opts} \
-    --volume $3/$1_inputs:${dest_mnt}/$1_inputs:ro \
-    --volume $3/$1_outputs:${dest_mnt}/$1_outputs \
+    --volume $4/$1_inputs:${dest_mnt}/$1_inputs:ro \
+    --volume $4/$1_outputs:${dest_mnt}/$1_outputs \
   "$2:rc-cli" 2>&1 | tee "logs/$1/$2-$(timestamp).log"
   printf "\n${CHARS_LINE}\n"
 }
@@ -207,7 +213,7 @@ run_test_image() {
   cp -R "${RC_CLI_PATH}/data" "${data_path}"
   printf "WARNING! test: The data at '${data_path}' has been reset to the initial state\n\n"
   printf "${CHARS_LINE}\n"
-  printf "Preparing Test Image [$2] to Run With [${RC_CLI_TEST_IMAGE}]:\n\n"
+  printf "Preparing Test Image [$2] to Run With [${RC_TEST_IMAGE}]:\n\n"
   src_mnt="$(pwd)/${data_path}"
   docker run --privileged --rm --env IMAGE_FILE=${image_file} \
     --volume "${src_mnt_image}:/mnt/${image_file}:ro" \
@@ -215,7 +221,8 @@ run_test_image() {
     --volume "${src_mnt}/setup_outputs:/data/setup_outputs" \
     --volume "${src_mnt}/evaluate_inputs:/data/evaluate_inputs:ro" \
     --volume "${src_mnt}/evaluate_outputs:/data/evaluate_outputs" \
-    "${RC_CLI_TEST_IMAGE}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-$(timestamp).log"
+    --volume "$(pwd)/scoring/data/scoring_outputs:/data/scoring_outputs" \
+    "${RC_TEST_IMAGE}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-$(timestamp).log"
 }
 
 make_logs() { # Ensure the necessary log file structure for the calling command
@@ -285,10 +292,10 @@ main() {
 
       [[ $1 == "evaluate" ]] \
         && run_opts="--volume ${src_mnt}/setup_outputs:/home/app/data/setup_outputs:ro"
-      run_app_image $1 ${image_name} ${src_mnt} ${run_opts}
+      run_app_image $1 ${image_name} ${image_type} ${src_mnt} ${run_opts}
       ;;
 
-    test) # Run the tests with the '${RC_CLI_TEST_IMAGE}'
+    test) # Run the tests with the '${RC_TEST_IMAGE}'
       make_logs "$@"
       basic_checks
       if [[ -z $2 ]]; then
@@ -300,10 +307,15 @@ main() {
         image_name=${solution_name}
         load_solution ${image_name}
       fi
-      # Saving time if the '${RC_CLI_TEST_IMAGE}' image exists.
-      if ! docker image inspect ${RC_CLI_TEST_IMAGE}:rc-cli >/dev/null 2>&1; then
-        build_image $1 ${RC_CLI_TEST_IMAGE} ${RC_CLI_PATH}
+
+      # Saving time if the image exist.
+      if ! is_image_built ${RC_TEST_IMAGE}; then
+        build_image $1 ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       fi
+      if ! is_image_built ${RC_SCORING_IMAGE}; then
+        build_image $1 ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+      fi
+
       run_test_image $1 ${image_name} $2 # FIXME: This is ugly - figure out data_path here
       printf "\n${CHARS_LINE}\n"
       ;;
@@ -405,7 +417,7 @@ main() {
       printf "\n${CHARS_LINE}\n"
       printf "Running other update maintenance tasks\n"
       check_docker
-      build_image $1 ${RC_CLI_TEST_IMAGE} ${RC_CLI_PATH}
+      build_image $1 ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       printf "Finished!\n"
       ;;
 
@@ -425,7 +437,7 @@ Commands:
   reset                     Reset the data directory to the initial state
   save                      Build the solution image and save it to the 'solutions' directory
   setup                     Build and run the 'setup.sh' script
-  test                      Run the tests for a solution image with the '${RC_CLI_TEST_IMAGE}'
+  test                      Run the tests for a solution image with the '${RC_TEST_IMAGE}'
   update                    Run maintenance commands after any breaking changes on the ${RC_CLI_SHORT_NAME}
   version                   Display the current version
 
