@@ -107,7 +107,7 @@ add_to_path() { # Add the cli to a globally accessable path
 
 success_message() { # Send a success message to the user on successful installation
   printf "${CHARS_LINE}\n"
-  printf "${GITHUB_REPO_NAME} has been successfully installed \n"
+  printf "${RC_CLI_SHORT_NAME} (${RC_CLI_COMMAND}) has been successfully installed \n"
   printf "You can verify the installation with 'rc-cli --version'\n"
   printf "To get started use 'rc-cli --help'\n"
 }
