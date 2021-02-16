@@ -113,9 +113,10 @@ get_data() { # Copy the needed data files locally
   printf "done\n"
 
   printf "Copying scoring data down from ${SCORING_DATA_URL}\n"
-  curl -o "${RC_CLI_PATH}/scoring/data.zip" "$SCORING_DATA_URL"
-  unzip "${RC_CLI_PATH}/scoring/data.zip" -d "${RC_CLI_PATH}/scoring"
-  rm "${RC_CLI_PATH}/scoring/data.zip"
+  curl -o "${RC_CLI_PATH}/scoring/scoring_data.zip" "$SCORING_DATA_URL"
+  unzip "${RC_CLI_PATH}/scoring/scoring_data.zip" -d "${RC_CLI_PATH}/scoring"
+  rm "${RC_CLI_PATH}/scoring/scoring_data.zip"
+  mv "${RC_CLI_PATH}/scoring/scoring_data" "${RC_CLI_PATH}/scoring/data"
   if [ ! -d "${RC_CLI_PATH}/scoring/data" ]; then
     err "Unable to access data from ${SCORING_DATA_URL}. Installation Canceled"
     exit 1
@@ -130,10 +131,10 @@ get_data() { # Copy the needed data files locally
 
 check_args() {
   if [[ $# -lt 2 ]]; then
-    err "Not enough arguments to install the CLI with data. Please specify a SCORING_DATA_URL and a DATA_URL"
+    err "Not enough arguments to install the CLI with data. Please specify a SCORING_DATA_URL and a DATA_URL \nEG:\n"
     exit 1
   elif [[ $# -gt 2 && $1 != "new" ]]; then
-    err "Too many arguments for CLI installation. Please only specify a SCORING_DATA_URL and a DATA_URL"
+    err "Too many arguments for CLI installation. Please only specify a SCORING_DATA_URL and a DATA_URL\nEG:\n"
     exit 1
   fi
 }
