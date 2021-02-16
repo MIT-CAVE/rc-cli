@@ -114,7 +114,7 @@ get_data() { # Copy the needed data files locally
 
   printf "Copying scoring data down from ${SCORING_DATA_URL}\n"
   curl -o "${RC_CLI_PATH}/scoring/scoring_data.zip" "$SCORING_DATA_URL"
-  unzip "${RC_CLI_PATH}/scoring/scoring_data.zip" -d "${RC_CLI_PATH}/scoring"
+  unzip -qq "${RC_CLI_PATH}/scoring/scoring_data.zip" -d "${RC_CLI_PATH}/scoring"
   rm "${RC_CLI_PATH}/scoring/scoring_data.zip"
   mv "${RC_CLI_PATH}/scoring/scoring_data" "${RC_CLI_PATH}/scoring/data"
   if [ ! -d "${RC_CLI_PATH}/scoring/data" ]; then
@@ -122,7 +122,7 @@ get_data() { # Copy the needed data files locally
     exit 1
   fi
   printf "done\n"
-  printf "Setting Data URL locally for Future CLI Updates ${SCORING_DATA_URL}\n"
+  printf "Setting Data URL locally for Future CLI Updates\n"
   touch "${RC_CLI_PATH}/DATA_URLS"
   printf "SCORING_DATA_URL=\"${SCORING_DATA_URL}\"\nDATA_URL=\"${DATA_URL}\"" > "${RC_CLI_PATH}/DATA_URLS"
   printf "done\n"

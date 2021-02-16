@@ -24,7 +24,10 @@ Saved solutions that have been tested can be uploaded to the competition site: [
 3) Install the `rc-cli`
   - Run the following commands to install the `rc-cli`
     ```
-    curl -o- https://github.com/MIT-CAVE/rc-cli/blob/main/install.sh | bash
+    curl -o- https://github.com/MIT-CAVE/rc-cli/blob/main/install.sh | \
+    bash -s \
+    https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/scoring_data.zip \
+    https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.zip
     ```
     - Follow the prompts to finish the installation process
 4) Validate the installation was successful

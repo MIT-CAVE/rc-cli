@@ -424,8 +424,9 @@ main() {
       make_logs "$@"
       printf "${CHARS_LINE}\n"
       printf "Checking Installation\n"
+      source "${RC_CLI_PATH}/DATA_URLS"
       # TODO Once public switch to most updated install.sh
-      $RC_CLI_PATH/install.sh
+      $RC_CLI_PATH/install.sh "$SCORING_DATA_URL" "$DATA_URL"
       # curl -o- https://github.com/MIT-CAVE/rc-cli/blob/main/install.sh | bash
       printf "\n${CHARS_LINE}\n"
       printf "Running other update maintenance tasks\n"
