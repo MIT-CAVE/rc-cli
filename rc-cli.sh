@@ -264,6 +264,7 @@ main() {
 
       cp -R "${template_path}" "$2"
       cp "${RC_CLI_PATH}/templates/README.md" "$2"
+      cp -R "${RC_CLI_PATH}/data" "$2"
       chmod +x $(echo "$2/*.sh")
       [[ -z $3 ]] && optional="by default "
       printf "the '${template}' template has been created ${optional}at '$(pwd)/$2'\n"

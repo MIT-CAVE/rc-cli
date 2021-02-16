@@ -95,6 +95,49 @@ install_new() { # Copy the needed files locally
   fi
 }
 
+get_data() { # Copy the needed data files locally
+  # Takes two optional parameters (order matters)
+  # EG:
+  # get_data SCORING_DATA_URL DATA_URL
+  SCORING_DATA_URL="${1:-''}"
+  DATA_URL="${2:-''}"
+
+  printf "Copying data down from ${DATA_URL}\n"
+  curl -o "${RC_CLI_PATH}/data.zip" "$DATA_URL"
+  unzip "${RC_CLI_PATH}/data.zip" -d "${RC_CLI_PATH}"
+  rm "${RC_CLI_PATH}/data.zip"
+  if [ ! -d "${RC_CLI_PATH}/data" ]; then
+    err "Unable to access data from ${DATA_URL}. Installation Canceled"
+    exit 1
+  fi
+  printf "done\n"
+
+  printf "Copying scoring data down from ${SCORING_DATA_URL}\n"
+  curl -o "${RC_CLI_PATH}/scoring/data.zip" "$SCORING_DATA_URL"
+  unzip "${RC_CLI_PATH}/scoring/data.zip" -d "${RC_CLI_PATH}/scoring"
+  rm "${RC_CLI_PATH}/scoring/data.zip"
+  if [ ! -d "${RC_CLI_PATH}/scoring/data" ]; then
+    err "Unable to access data from ${SCORING_DATA_URL}. Installation Canceled"
+    exit 1
+  fi
+  printf "done\n"
+  printf "Setting Data URL locally for Future CLI Updates ${SCORING_DATA_URL}\n"
+  touch "${RC_CLI_PATH}/DATA_URLS"
+  printf "SCORING_DATA_URL=\"${SCORING_DATA_URL}\"\nDATA_URL=\"${DATA_URL}\"" > "${RC_CLI_PATH}/DATA_URLS"
+  printf "done\n"
+  printf "${CHARS_LINE}\n"
+}
+
+check_args() {
+  if [[ $# -lt 2 ]]; then
+    err "Not enough arguments to install the CLI with data. Please specify a SCORING_DATA_URL and a DATA_URL"
+    exit 1
+  elif [[ $# -gt 2 && $1 != "new" ]]; then
+    err "Too many arguments for CLI installation. Please only specify a SCORING_DATA_URL and a DATA_URL"
+    exit 1
+  fi
+}
+
 add_to_path() { # Add the cli to a globally accessable path
   printf "${CHARS_LINE}\n"
   printf "Making '${RC_CLI_COMMAND}' globally accessable: \nCreating link from '${RC_CLI_PATH}/${RC_CLI_COMMAND}.sh' as '${BIN_DIR}/${RC_CLI_COMMAND}':\n"
@@ -113,11 +156,13 @@ success_message() { # Send a success message to the user on successful installat
 }
 
 main() {
+  check_args "$@"
   check_os
   check_docker
   check_git
   check_previous_installation
   install_new
+  get_data "$@"
   add_to_path
   success_message
 }
