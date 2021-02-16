@@ -126,7 +126,6 @@ get_data() { # Copy the needed data files locally
   touch "${RC_CLI_PATH}/DATA_URLS"
   printf "SCORING_DATA_URL=\"${SCORING_DATA_URL}\"\nDATA_URL=\"${DATA_URL}\"" > "${RC_CLI_PATH}/DATA_URLS"
   printf "done\n"
-  printf "${CHARS_LINE}\n"
 }
 
 check_args() {
@@ -143,7 +142,7 @@ add_to_path() { # Add the cli to a globally accessable path
   printf "${CHARS_LINE}\n"
   printf "Making '${RC_CLI_COMMAND}' globally accessable: \nCreating link from '${RC_CLI_PATH}/${RC_CLI_COMMAND}.sh' as '${BIN_DIR}/${RC_CLI_COMMAND}':\n"
   if [ ! $(ln -sf "${RC_CLI_PATH}/${RC_CLI_COMMAND}.sh" "${BIN_DIR}/${RC_CLI_COMMAND}") ]; then
-    printf "Warning: Super User priviledges required to complete link! Using 'sudo'.\n"
+    printf "WARNING!: Super User priviledges required to complete link! Using 'sudo'.\n"
     sudo ln -sf "${RC_CLI_PATH}/${RC_CLI_COMMAND}.sh" "${BIN_DIR}/${RC_CLI_COMMAND}"
   fi
   printf "done\n"
