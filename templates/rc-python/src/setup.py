@@ -11,7 +11,7 @@ SETUP_OUTPUTS_DIR = path.join(DATA_DIR, 'setup_outputs')
 
 # Read input data
 print('Reading Input Data')
-with open(path.join(EVALUATE_INPUTS_DIR, 'setup-in.csv'), newline='') as setup_in:
+with open(path.join(SETUP_INPUTS_DIR, 'setup-in.csv'), newline='') as setup_in:
     setup_in = [i for i in csv.reader(evaluate_in, delimiter=',', quotechar='|')]
 
 print('Printing Input Data')
