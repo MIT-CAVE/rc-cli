@@ -103,8 +103,8 @@ get_data() { # Copy the needed data files locally
   DATA_URL="${2:-''}"
 
   printf "Copying data down from ${DATA_URL}\n"
-  curl -o "${RC_CLI_PATH}/data.zip" "$DATA_URL"
-  unzip "${RC_CLI_PATH}/data.zip" -d "${RC_CLI_PATH}"
+  curl -s -o "${RC_CLI_PATH}/data.zip" "$DATA_URL" > /dev/null
+  unzip -qq "${RC_CLI_PATH}/data.zip" -d "${RC_CLI_PATH}"
   rm "${RC_CLI_PATH}/data.zip"
   if [ ! -d "${RC_CLI_PATH}/data" ]; then
     err "Unable to access data from ${DATA_URL}. Installation Canceled"
@@ -113,7 +113,7 @@ get_data() { # Copy the needed data files locally
   printf "done\n"
 
   printf "Copying scoring data down from ${SCORING_DATA_URL}\n"
-  curl -o "${RC_CLI_PATH}/scoring/scoring_data.zip" "$SCORING_DATA_URL"
+  curl -s -o "${RC_CLI_PATH}/scoring/scoring_data.zip" "$SCORING_DATA_URL" > /dev/null
   unzip -qq "${RC_CLI_PATH}/scoring/scoring_data.zip" -d "${RC_CLI_PATH}/scoring"
   rm "${RC_CLI_PATH}/scoring/scoring_data.zip"
   mv "${RC_CLI_PATH}/scoring/scoring_data" "${RC_CLI_PATH}/scoring/data"
