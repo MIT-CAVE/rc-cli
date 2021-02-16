@@ -1,7 +1,5 @@
-from csv import reader
-from json
 from os import path
-import sys
+import sys, json, csv
 
 # Get Data Directory
 BASE_DIR = path.dirname(path.dirname(path.abspath(__file__)))
@@ -14,7 +12,7 @@ SETUP_OUTPUTS_DIR = path.join(DATA_DIR, 'setup_outputs')
 # Read input data
 print('Reading Input Data')
 with open(path.join(EVALUATE_INPUTS_DIR, 'setup-in.csv'), newline='') as setup_in:
-    setup_in = [i for i in reader(evaluate_in, delimiter=',', quotechar='|')]
+    setup_in = [i for i in csv.reader(evaluate_in, delimiter=',', quotechar='|')]
 
 print('Printing Input Data')
 print('setup_in:', setup_in)
