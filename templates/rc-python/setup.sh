@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
 
-exec python src/main.py "setup" "$@"
+exec python src/setup.py

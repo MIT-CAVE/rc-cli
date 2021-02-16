@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
 
-exec python src/main.py "evaluate" "$@"
+exec python src/evaluate.py
