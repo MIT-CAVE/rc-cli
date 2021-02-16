@@ -54,7 +54,7 @@ check_git() { # Validate git is installed
 
 check_previous_installation() { # Check to make sure previous installations are removed before continuing
   if [ -d "${RC_CLI_PATH}" ]; then
-    LOCAL_CLI_VERSION="$(cat ${RC_CLI_PATH}/VERSION)"
+    LOCAL_CLI_VERSION=$(<${RC_CLI_PATH}/VERSION)
     printf "An existing installation of ${RC_CLI_SHORT_NAME} ($LOCAL_CLI_VERSION) was found \nLocation: ${RC_CLI_PATH}\n"
     printf "You are installing ${RC_CLI_SHORT_NAME} ($RC_CLI_VERSION)\n"
     if [ "$LOCAL_CLI_VERSION" = "$RC_CLI_VERSION" ] ; then

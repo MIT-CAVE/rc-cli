@@ -3,8 +3,10 @@ from os import path
 
 from random import randrange
 
+# Constants
 MIN_SCORE = 0
 MAX_SCORE = 100
+TIME_STATS_FILENAME='time_stats.json'
 
 def get_feedback(score):
     score_range = MAX_SCORE - MIN_SCORE
@@ -21,7 +23,7 @@ def get_feedback(score):
         return 'Error in scoring algorithm:'
 
 # MLL's magic
-def generate_score(benchmark, extra):
+def generate_score(time_stats, extra):
     return randrange(MIN_SCORE, MAX_SCORE) # FIXME
 
 if __name__ == '__main__':
@@ -32,13 +34,16 @@ if __name__ == '__main__':
     SCORING_OUTPUTS_DIR = path.join(DATA_DIR, 'scoring_outputs')
 
     # Read evaluate_outputs data
-    with open(path.join(EVALUATE_OUTPUTS_DIR, 'benchmark.json'), newline='') as in_file:
-        benchmark_data = load(in_file)
+    with open(path.join(
+        EVALUATE_OUTPUTS_DIR,
+        TIME_STATS_FILENAME
+    ), newline='') as in_file:
+        time_stats = load(in_file)
     # Read scoring_inputs data
     with open(path.join(SCORING_INPUTS_DIR, 'foo.json'), newline='') as in_file:
         foo_input = load(in_file)
 
-    score = generate_score(benchmark_data, foo_input)
+    score = generate_score(time_stats, foo_input)
     # Write output data
     with open(path.join(SCORING_OUTPUTS_DIR, 'scoring-out.json'), 'w') as out_file:
         dump({ "score": score }, out_file)

@@ -1,10 +1,11 @@
 #!/bin/sh
-set -eu
+set -u
 
+readonly TIME_STATS_FILENAME="time_stats.json"
+readonly CHARS_LINE="============================"
 readonly TIMEOUT_SETUP=$((8*60*60))
 readonly TIMEOUT_EVALUATE=$((2*60*60))
-readonly BENCHMARK_FILENAME="benchmark.json"
-readonly CHARS_LINE="============================"
+readonly SIGKILL_OUTPUT="Killed"
 
 wait_for_docker() {
   while ! docker ps; do
@@ -14,29 +15,49 @@ wait_for_docker() {
 
 load_image() {
   printf "Loading the $1 Image... "
-  docker load --quiet --input "/mnt/$2" >& /dev/null
+  docker load --quiet --input "/mnt/$2" > /dev/null 2>&1
   printf "done\n"
+}
+
+get_process_status() {
+  case $1 in
+    ${SIGKILL_OUTPUT} )
+      printf "timeout"
+      ;;
+    "")
+      printf "success"
+      ;;
+    *)
+      printf "fail: $1"
+      ;;
+  esac
 }
 
 run_app_image() {
   printf "\n${CHARS_LINE}\n"
   printf "Running the Solution Image [$1] ($2):\n\n"
+
   start_time=$(date +%s)
-  timeout -s TERM $3 docker run --rm --entrypoint "$2.sh" $4 \
-    --volume "/data/$2_inputs:/home/app/data/$2_inputs:ro" \
+  timeout -s KILL $3 docker run --rm --entrypoint "$2.sh" $4 \
+    --$()volume "/data/$2_inputs:/home/app/data/$2_inputs:ro" \
     --volume "/data/$2_outputs:/home/app/data/$2_outputs" \
-    "$1:rc-cli"
+    "$1:rc-cli" 2>/var/tmp/error
   secs=$(($(date +%s) - start_time))
-  # FIXME: consider different outcomes (fail, success, timeout, ...)
-  printf "{ \"time\": ${secs}, \"status\": \"success\" }" > /data/$2_outputs/${BENCHMARK_FILENAME}
-  printf "\nBenchmark Results:\n\n"
+
+  [ -f /var/tmp/error ] \
+    && status=$(get_process_status "$(cat /var/tmp/error)") \
+    || status="success"
+  echo $status
+  printf "{ \"time\": ${secs}, \"status\": \"${status}\" }" \
+    > /data/$2_outputs/${TIME_STATS_FILENAME} # Write time stats to output file
+  printf "\nTime Statistics:\n\n"
   printf "Time Elapsed: %dh:%dm:%ds\n" \
     $((secs / 3600)) $((secs % 3600 / 60)) $((secs % 60))
 }
 
 printf "Starting the Docker daemon... "
-/usr/local/bin/dockerd-entrypoint.sh dockerd >& /dev/null &
-wait_for_docker >& /dev/null
+/usr/local/bin/dockerd-entrypoint.sh dockerd > /dev/null 2>&1 &
+wait_for_docker > /dev/null 2>&1
 printf "done\n"
 
 load_image "Solution" ${IMAGE_FILE}

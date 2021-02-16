@@ -43,12 +43,12 @@ valid_app_dir() {
 }
 
 is_image_built() {
-  docker image inspect $1:rc-cli >/dev/null 2>&1
+  docker image inspect $1:rc-cli &> /dev/null
 }
 
 # Check if the Docker daemon is running.
 check_docker() {
-  if ! docker ps >& /dev/null; then
+  if ! docker ps > /dev/null; then
     err "cannot connect to the Docker daemon. Is the Docker daemon running?"
     exit 1
   fi
@@ -151,16 +151,16 @@ build_image() {
   printf "${CHARS_LINE}\n"
   printf "Build Image [$2]:\n\n"
   printf "Building the '$2' image... "
-  docker rmi "$2:rc-cli" >& /dev/null
+  docker rmi "$2:rc-cli" &> /dev/null
   docker build --file ${context}/Dockerfile --tag $2:rc-cli ${build_opts} \
-    ${context} >& "logs/$1/$2-build-$(timestamp).log"
+    ${context} &> "logs/$1/$2-build-$(timestamp).log"
   printf "done\n\n"
 }
 
 # Load a previously saved Docker solution image
 load_solution() {
-  docker rmi "$1:rc-cli" >& /dev/null
-  docker load --quiet --input "solutions/$1/$1.tar.gz" >& /dev/null
+  docker rmi "$1:rc-cli" &> /dev/null
+  docker load --quiet --input "solutions/$1/$1.tar.gz" &> /dev/null
 }
 
 # Get the relative path of the data directory based
@@ -378,7 +378,7 @@ main() {
           printf "Removing images... \n"
           rc_images=$(docker images --all --filter reference="*:rc-cli" --quiet)
           if [[ ${rc_images} ]]; then
-            docker rmi --force ${rc_images} >& /dev/null >&2
+            docker rmi --force ${rc_images} &> /dev/null
           fi
           printf "done\n"
 
@@ -388,10 +388,10 @@ main() {
           printf "Finished!\n"
           ;;
         [nN][oO] | [nN] | "")
-          err "purge was canceled by the user"
+          printf "$1 was canceled by the user\n"
           ;;
         *)
-          err "invalid input: The purge was canceled"
+          err "invalid input: The $1 was canceled"
           exit 1
           ;;
       esac
@@ -410,7 +410,7 @@ main() {
           printf "Finished!\n"
           ;;
         [nN][oO] | [nN] | "")
-          err "$1 was canceled by the user"
+          printf "$1 was canceled by the user\n"
           ;;
         *)
           err "invalid input: The $1 was canceled"
