@@ -1,5 +1,5 @@
 from os import path
-import sys, json, csv
+import sys, json, csv, time
 
 # Get Data Directory
 BASE_DIR = path.dirname(path.dirname(path.abspath(__file__)))
@@ -25,14 +25,20 @@ with open(path.join(SETUP_OUTPUTS_DIR, 'setup-out.json')) as setup_out:
 print('Printing Input Data')
 print('model from setup_out:', setup_out)
 print('data for evaluate_in:', evaluate_in)
-
+time.sleep(1)
 # Solve for life the universe and everything
-print('{} Algorithm'.format(setup.get("Algorithm","No Provided")))
+print('{} Algorithm'.format(setup_out.get("Algorithm","No Provided")))
+time.sleep(1)
 print('Solving Dark Matter Waveforms')
+time.sleep(1)
 print('Quantum Computer is Overheating')
+time.sleep(1)
 print('Trying Alternate Measurement Cycles')
+time.sleep(1)
 print('Found a Great Solution!')
+time.sleep(1)
 print('Checking Validity')
+time.sleep(1)
 print('The Answer is 42!')
 output={
     'Message':'Hello from the evaluation script!',
