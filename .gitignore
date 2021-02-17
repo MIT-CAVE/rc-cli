@@ -1,2 +1,4 @@
 *.log
 *.tar.gz
+data/
+DATA_URLS
