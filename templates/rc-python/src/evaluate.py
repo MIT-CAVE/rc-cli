@@ -20,7 +20,7 @@ print('Reading Input Data')
 # Setup output
 setup_out = None
 try:
-    with open(SETUP_OUTPUT_FILEPATH) as in_file:
+    with open(SETUP_OUTPUT_FILEPATH, newline='') as in_file:
         setup_out = json.load(in_file)
 except FileNotFoundError:
     print("The '{}' file is missing!".format(SETUP_OUTPUT_FILEPATH))
@@ -69,7 +69,7 @@ if setup_out and evaluate_in:
     }
 
     # Write output data
-    with open(EVALUATE_OUTPUT_FILEPATH), 'w') as out_file:
+    with open(EVALUATE_OUTPUT_FILEPATH, 'w') as out_file:
         json.dump(output, out_file)
         print("Evaluate: The '{}' file has been saved".format(
             EVALUATE_OUTPUT_FILEPATH
