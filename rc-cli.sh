@@ -471,6 +471,40 @@ main() {
       printf "Finished!\n"
       ;;
 
+    uninstall)
+      if [[ $# -gt 1 ]]; then
+        err "too many arguments"
+        exit 1
+      fi
+      printf "${CHARS_LINE}\n"
+      # Prompt confirmation to delete
+      printf "WARNING! uninstall: This will remove: \
+              \n- ${RC_CLI_SHORT_NAME} (${RC_CLI_VERSION}) \
+              \n- All associated docker images.\n"
+      read -r -p "Are you sure you want to continue? [y/N] " input
+      case ${input} in
+        [yY][eE][sS] | [yY])
+          printf "Removing all Docker images..."
+          rc_images=$(docker images --all --filter reference="*:rc-cli" --quiet)
+          if [[ ${rc_images} ]]; then
+            docker rmi --force ${rc_images} &> /dev/null
+          fi
+          printf "done\n"
+
+          printf "Uninstalling ${RC_CLI_SHORT_NAME} (${RC_CLI_VERSION})\n"
+          rm -r "${RC_CLI_PATH}"
+          printf "Uninstall Complete!\n"
+          ;;
+        [nN][oO] | [nN] | "")
+          printf "$1 was canceled by the user\n"
+          ;;
+        *)
+          err "invalid input: The $1 was canceled"
+          exit 1
+          ;;
+      esac
+      ;;
+
     help | --help) # Display the help
       get_templates
       cat 1>&2 <<EOF
@@ -488,6 +522,7 @@ Commands:
   save                      Build the solution image and save it to the 'solutions' directory
   setup                     Build and run the 'setup.sh' script
   test                      Run the tests for a solution image with the '${RC_TEST_IMAGE}'
+  uninstall                 Uninstall the rc-cli and all rc-cli created docker images
   update                    Run maintenance commands after any breaking changes on the ${RC_CLI_SHORT_NAME}
   version                   Display the current version
 
@@ -575,6 +610,13 @@ Usage Examples:
       ${CHARS_LINE}
       rc-cli test my-solution
       ${CHARS_LINE}
+
+  uninstall
+    - Uninstall your cli
+      ${CHARS_LINE}
+      rc-cli uninstall
+      ${CHARS_LINE}
+
   update
     - Update your cli
       ${CHARS_LINE}
