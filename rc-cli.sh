@@ -537,15 +537,28 @@ Usage Examples:
       rc-cli debug my-solution
       ${CHARS_LINE}
 
-  evaluate [solution-name]
-    - Evaluate your current app
+  evaluate(-dev) [solution-name]
+    - Run the evaluate phase for your current app
       ${CHARS_LINE}
       rc-cli evaluate
       ${CHARS_LINE}
-    - Evaluate a saved solution
+    - - Run the evaluate phase for a saved solution
       ${CHARS_LINE}
       rc-cli evaluate my-solution
       ${CHARS_LINE}
+    - Run the evaluate phase for your current app without rebuilding the docker image
+      ${CHARS_LINE}
+      rc-cli evaluate-dev
+      ${CHARS_LINE}
+      - This will not take in solution arguments
+      - You will need to build a docker image before running this command the first time
+        - You can build the docker image using \`rc-cli setup\` or \`rc-cli evaluate\`
+      - This uses:
+        - The current state of your local filesystem at:
+          - evaluate.sh
+          - src/
+        - Everything else is pulled from the previous docker build
+          - You can rebuild the docker image using \`rc-cli setup\` or \`rc-cli evaluate\`
 
   help
     - Get all cli commands
@@ -589,7 +602,7 @@ Usage Examples:
       rc-cli save my-solution
       ${CHARS_LINE}
 
-  setup [solution-name]
+  setup(-dev) [solution-name]
     - Run the setup phase for your current app
       ${CHARS_LINE}
       rc-cli setup
@@ -598,6 +611,20 @@ Usage Examples:
       ${CHARS_LINE}
       rc-cli setup my-solution
       ${CHARS_LINE}
+    - Run the setup phase for your current app without rebuilding the docker image
+      ${CHARS_LINE}
+      rc-cli setup-dev
+      ${CHARS_LINE}
+      - This will not take in solution arguments
+      - You will need to build a docker image before running this command the first time
+        - You can build the docker image using \`rc-cli setup\` or \`rc-cli evaluate\`
+      - This uses:
+        - The current state of your local filesystem at:
+          - setup.sh
+          - src/
+        - Everything else is pulled from the previous docker build
+          - You can rebuild the docker image using \`rc-cli setup\` or \`rc-cli evaluate\`
+
 
   test [solution-name]
     - Test the scoring process on your app
