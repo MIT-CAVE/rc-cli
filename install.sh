@@ -130,10 +130,10 @@ get_data() { # Copy the needed data files locally
 
 check_args() {
   if [[ $# -lt 2 ]]; then
-    err "Not enough arguments to install the CLI with data. Please specify a SCORING_DATA_URL and a DATA_URL \nEG:\ncurl -o- https://github.com/MIT-CAVE/rc-cli/blob/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/scoring_data.zip https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.zip"
+    err "Not enough arguments to install the CLI with data. Please specify a SCORING_DATA_URL and a DATA_URL \nEG:\ncurl -o- https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/scoring_data.zip https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.zip"
     exit 1
   elif [[ $# -gt 2 && $1 != "new" ]]; then
-    err "Too many arguments for CLI installation. Please only specify a SCORING_DATA_URL and a DATA_URL\nEG:\ncurl -o- https://github.com/MIT-CAVE/rc-cli/blob/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/scoring_data.zip https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.zip"
+    err "Too many arguments for CLI installation. Please only specify a SCORING_DATA_URL and a DATA_URL\nEG:\ncurl -o- https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/scoring_data.zip https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.zip"
     exit 1
   fi
 }
