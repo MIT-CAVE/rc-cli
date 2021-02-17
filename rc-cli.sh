@@ -195,14 +195,16 @@ run_app_image() {
 run_dev_image() {
   run_opts=${@:5}
   raw_cmd=${1:0:-4}
+  script="${raw_cmd}.sh"
   dest_mnt="/home/app/data"
   printf "${CHARS_LINE}\n"
   printf "Running $3 [$2] ($1):\n\n"
   docker run --rm --entrypoint "" ${run_opts} \
     --volume "$(pwd)/src:/home/app/src" \
+    --volume "$(pwd)/${script}:/home/app/${script}" \
     --volume $4/${raw_cmd}_inputs:${dest_mnt}/${raw_cmd}_inputs:ro \
     --volume $4/${raw_cmd}_outputs:${dest_mnt}/${raw_cmd}_outputs \
-    -it "$2:rc-cli" ${raw_cmd}.sh 2>&1 | tee "logs/$1/$2-$(timestamp).log" sh
+    -it "$2:rc-cli" ${script} 2>&1 | tee "logs/$1/$2-$(timestamp).log" sh
   printf "\n${CHARS_LINE}\n"
 }
 

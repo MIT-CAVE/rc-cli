@@ -17,7 +17,7 @@ Regardless of the programming language(s) or libraries you use for your applicat
 │   │   └── <setup-input-file(s)>
 │   └── setup_outputs
 ├── src
-│   └── <your-source-code>
+│   └── <source-code-file(s)-or-dir(s)>
 ├── Dockerfile
 ├── evaluate.sh
 └── setup.sh
