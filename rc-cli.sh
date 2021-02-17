@@ -460,9 +460,7 @@ main() {
       printf "${CHARS_LINE}\n"
       printf "Checking Installation\n"
       source "${RC_CLI_PATH}/DATA_URLS"
-      # TODO Once public switch to most updated install.sh
-      $RC_CLI_PATH/install.sh "$SCORING_DATA_URL" "$DATA_URL"
-      # curl -o- https://github.com/MIT-CAVE/rc-cli/blob/main/install.sh | bash
+      bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh")  "$SCORING_DATA_URL" "$DATA_URL"
       printf "\n${CHARS_LINE}\n"
       printf "Running other update maintenance tasks\n"
       check_docker
