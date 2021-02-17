@@ -131,6 +131,8 @@ get_image_name() {
 
 select_template() {
   get_new_template_string
+  echo $RC_TEMPLATES
+  echo $template
   while ! printf "$RC_TEMPLATES" | grep -w -q "$template"; do
     # Prompt confirmation to select proper template
     if [ "$template" = "" ]; then
