@@ -132,7 +132,6 @@ get_image_name() {
 select_template() {
   get_new_template_string
   while ! printf "$RC_TEMPLATES" | grep -w -q "$template"; do
-    echo "here"
     # Prompt confirmation to select proper template
     if [ "$template" = "" ]; then
       printf "WARNING! new: A template was not provided:\n"
@@ -275,7 +274,7 @@ main() {
         err "Cannot create app '$2': This folder already exists in the current directory"
         exit 1
       fi
-      template=${3:-""}
+      template=${3:-"None Provided"}
       select_template
       template_path="${RC_CLI_PATH}/templates/${template}"
 
