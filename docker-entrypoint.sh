@@ -5,7 +5,6 @@ readonly TIME_STATS_FILENAME="time_stats.json"
 readonly CHARS_LINE="============================"
 readonly TIMEOUT_SETUP=$((8*60*60))
 readonly TIMEOUT_EVALUATE=$((2*60*60))
-readonly SIGKILL_OUTPUT="Killed"
 
 wait_for_docker() {
   while ! docker ps; do
@@ -19,20 +18,6 @@ load_image() {
   printf "done\n"
 }
 
-get_process_status() {
-  case $1 in
-    ${SIGKILL_OUTPUT} )
-      printf "timeout"
-      ;;
-    "")
-      printf "success"
-      ;;
-    *)
-      printf "fail: $1"
-      ;;
-  esac
-}
-
 run_app_image() {
   printf "\n${CHARS_LINE}\n"
   printf "Running the Solution Image [$1] ($2):\n\n"
@@ -44,9 +29,21 @@ run_app_image() {
     "$1:rc-cli" 2>/var/tmp/error
   secs=$(($(date +%s) - start_time))
 
-  [ -f /var/tmp/error ] \
-    && status=$(get_process_status "$(cat /var/tmp/error)") \
-    || status="success"
+  [ -f /var/tmp/error ] && error=$(cat /var/tmp/error) || error=""
+  # Provide feedback for the user.
+  case ${error} in
+    Killed)
+      status="timeout"
+      printf "\nWARNING! test: Timeout has occurred when running '$2'\n\n"
+      ;;
+    "")
+      status="success"
+      ;;
+    *)
+      status="fail: ${error}"
+      printf "\n${error}\n\n"
+      ;;
+  esac
 
   printf "{ \"time\": ${secs}, \"status\": \"${status}\" }" \
     > /data/$2_outputs/${TIME_STATS_FILENAME} # Write time stats to output file

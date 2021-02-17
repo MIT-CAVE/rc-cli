@@ -1,4 +1,4 @@
-from json import dump, load
+from json import dump, load, JSONDecodeError
 from os import path
 
 from random import randrange
@@ -29,12 +29,17 @@ def generate_score(time_stats, extra):
 
 # Read JSON data from the given filepath
 def read_json_data(filepath):
-    with open(filepath, newline = '') as in_file:
-        try:
+    try:
+        with open(filepath, newline = '') as in_file:
             return load(in_file)
-        except:
-            print("The '{}' file is missing!".format(filepath))
-            return None
+    except FileNotFoundError:
+        print("The '{}' file is missing!".format(filepath))
+    except JSONDecodeError:
+        print("Error in the '{}' JSON data!".format(filepath))
+    except Exception as e:
+        print("Error when reading the '{}' file!".format(filepath))
+        print(e)
+    return None
 
 if __name__ == '__main__':
     BASE_DIR = path.dirname(path.abspath(__file__))
