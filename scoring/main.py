@@ -6,7 +6,8 @@ from random import randrange
 # Constants
 MIN_SCORE = 0
 MAX_SCORE = 100
-TIME_STATS_FILENAME='time_stats.json'
+TIME_STATS_FILENAME = 'time_stats.json'
+SCORING_INPUT_FILENAME = 'foo.json'
 
 def get_feedback(score):
     score_range = MAX_SCORE - MIN_SCORE
@@ -26,6 +27,15 @@ def get_feedback(score):
 def generate_score(time_stats, extra):
     return randrange(MIN_SCORE, MAX_SCORE) # FIXME
 
+# Read JSON data from the given filepath
+def read_json_data(filepath):
+    with open(filepath, newline = '') as in_file:
+        try:
+            return load(in_file)
+        except:
+            print("The '{}' file is missing!".format(filepath))
+            return None
+
 if __name__ == '__main__':
     BASE_DIR = path.dirname(path.abspath(__file__))
     DATA_DIR = path.join(BASE_DIR, 'data')
@@ -33,22 +43,25 @@ if __name__ == '__main__':
     SCORING_INPUTS_DIR = path.join(DATA_DIR, 'scoring_inputs')
     SCORING_OUTPUTS_DIR = path.join(DATA_DIR, 'scoring_outputs')
 
-    # Read evaluate_outputs data
-    with open(path.join(
+    # Read JSON input data
+    time_stats = read_json_data(path.join(
         EVALUATE_OUTPUTS_DIR,
         TIME_STATS_FILENAME
-    ), newline='') as in_file:
-        time_stats = load(in_file)
-    # Read scoring_inputs data
-    with open(path.join(SCORING_INPUTS_DIR, 'foo.json'), newline='') as in_file:
-        foo_input = load(in_file)
-
-    score = generate_score(time_stats, foo_input)
-    # Write output data
-    with open(path.join(SCORING_OUTPUTS_DIR, 'scoring-out.json'), 'w') as out_file:
-        dump({ "score": score }, out_file)
-        print('{0} Your score is: {1} of {2}'.format(
-            get_feedback(score),
-            score,
-            MAX_SCORE
-        ))
+    ))
+    score_inputs = read_json_data(path.join(
+        SCORING_INPUTS_DIR,
+        SCORING_INPUT_FILENAME
+    ))
+    if time_stats and foo_input:
+        score = generate_score(time_stats, foo_input)
+        # Write output data
+        with open(path.join(
+            SCORING_OUTPUTS_DIR,
+            'scoring-out.json'
+        ), 'w') as out_file:
+            dump({ "score": score }, out_file)
+            print('{0} Your score is: {1} of {2}'.format(
+                get_feedback(score),
+                score,
+                MAX_SCORE
+            ))
