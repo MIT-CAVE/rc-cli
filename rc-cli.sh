@@ -194,6 +194,7 @@ run_app_image() {
 
 run_dev_image() {
   run_opts=${@:5}
+  #TODO Not Wokring on Mac with -4
   raw_cmd=${1:0:-4}
   script="${raw_cmd}.sh"
   dest_mnt="/home/app/data"
@@ -339,6 +340,7 @@ main() {
       ;;
 
     test) # Run the tests with the '${RC_TEST_IMAGE}'
+      #TODO Ask before resetting data every time
       make_logs "$@"
       basic_checks
       if [[ -z $2 ]]; then
@@ -389,6 +391,7 @@ main() {
       printf "\nEnabling an interactive shell with the solution container...\n"
       src_mnt=$(get_data_context_abs $2)
       dest_mnt="/home/app/data/"
+      #TDOD: How to allow users to get into root mode while in IT?
       docker run --rm --entrypoint="" \
         --volume "${src_mnt}/setup_inputs:${dest_mnt}/setup_inputs:ro" \
         --volume "${src_mnt}/setup_outputs:${dest_mnt}/setup_outputs" \
