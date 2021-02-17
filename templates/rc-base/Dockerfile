@@ -17,6 +17,7 @@ RUN groupadd --gid 1000 app \
     build-essential \
     # other pkgs...
  && rm -rf /var/lib/apt/lists/*
+COPY --chown=app:app ./src/ ./src/
 COPY --chown=app:app ./*.sh ./
 USER app
 CMD ["/bin/bash"]

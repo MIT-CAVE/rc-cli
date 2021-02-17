@@ -34,6 +34,7 @@ valid_app_dir() {
     -f Dockerfile \
  && -f evaluate.sh \
  && -f setup.sh \
+ && -d src \
  && -d solutions \
  && -d data/evaluate_inputs \
  && -d data/evaluate_outputs \
@@ -183,7 +184,7 @@ run_app_image() {
   run_opts=${@:5}
   dest_mnt="/home/app/data"
   printf "${CHARS_LINE}\n"
-  printf "Running $3 [$2] (${1}):\n\n"
+  printf "Running $3 [$2] ($1):\n\n"
   docker run --rm --entrypoint "$1.sh" ${run_opts} \
     --volume $4/$1_inputs:${dest_mnt}/$1_inputs:ro \
     --volume $4/$1_outputs:${dest_mnt}/$1_outputs \
@@ -191,16 +192,17 @@ run_app_image() {
   printf "\n${CHARS_LINE}\n"
 }
 
-run_live_image() {
+run_dev_image() {
   run_opts=${@:5}
+  raw_cmd=${1:0:-4}
   dest_mnt="/home/app/data"
   printf "${CHARS_LINE}\n"
-  printf "Running $3 [$2] (${1}):\n\n"
+  printf "Running $3 [$2] ($1):\n\n"
   docker run --rm --entrypoint "" ${run_opts} \
-    --volume "$(pwd):/home/app" \
-    --volume $4/$1_inputs:${dest_mnt}/$1_inputs:ro \
-    --volume $4/$1_outputs:${dest_mnt}/$1_outputs \
-  "$2:rc-cli" ${1:0:-4}.sh 2>&1 | tee "logs/$1/$2-$(timestamp).log"
+    --volume "$(pwd)/src:/home/app/src" \
+    --volume $4/${raw_cmd}_inputs:${dest_mnt}/${raw_cmd}_inputs:ro \
+    --volume $4/${raw_cmd}_outputs:${dest_mnt}/${raw_cmd}_outputs \
+    -it "$2:rc-cli" ${raw_cmd}.sh 2>&1 | tee "logs/$1/$2-$(timestamp).log" sh
   printf "\n${CHARS_LINE}\n"
 }
 
@@ -328,11 +330,11 @@ main() {
       if ! is_image_built ${app_name}; then
         build_image $1 ${app_name}
       fi
-      image_type="Dev"
+      image_type="App"
       src_mnt="$(pwd)/data"
       [[ $1 == "evaluate" ]] \
         && run_opts="--volume ${src_mnt}/setup_outputs:/home/app/data/setup_outputs:ro"
-      run_live_image $1 ${image_name} ${image_type} ${src_mnt} ${run_opts}
+      run_dev_image $1 ${image_name} ${image_type} ${src_mnt} ${run_opts}
       ;;
 
     test) # Run the tests with the '${RC_TEST_IMAGE}'
