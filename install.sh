@@ -87,7 +87,7 @@ install_new() { # Copy the needed files locally
   printf "${CHARS_LINE}\n"
   printf "Cloning from '${CLONE_URL}':\n"
   [[ $3 != "--dev" ]] && clone_opts="--depth=1"
-  git clone "git@github.com:mit-cave/rc-cli" \
+  git clone "${CLONE_URL}" \
     ${clone_opts} \
     "${RC_CLI_PATH}"
   if [ ! -d "${RC_CLI_PATH}" ]; then
