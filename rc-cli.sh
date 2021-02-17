@@ -8,7 +8,7 @@ readonly CHARS_LINE="============================"
 readonly RC_CLI_PATH="${HOME}/.rc-cli"
 readonly RC_CLI_LONG_NAME="Routing Challenge CLI"
 readonly RC_CLI_SHORT_NAME="RC CLI"
-readonly RC_CLI_VERSION="0.1.0"
+readonly RC_CLI_VERSION=$(<${RC_CLI_PATH}/VERSION)
 readonly RC_SCORING_IMAGE="rc-scoring"
 readonly RC_TEST_IMAGE="rc-test"
 
@@ -193,8 +193,7 @@ run_app_image() {
 
 run_dev_image() {
   run_opts=${@:5}
-  #TODO Not Wokring on Mac with -4
-  raw_cmd=${1:0:-4}
+  raw_cmd=$(printf $1 | grep -o '^[^\-]*')
   script="${raw_cmd}.sh"
   dest_mnt="/home/app/data"
   printf "${CHARS_LINE}\n"
