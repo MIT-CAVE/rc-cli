@@ -191,6 +191,19 @@ run_app_image() {
   printf "\n${CHARS_LINE}\n"
 }
 
+run_live_image() {
+  run_opts=${@:5}
+  dest_mnt="/home/app/data"
+  printf "${CHARS_LINE}\n"
+  printf "Running $3 [$2] (${1}):\n\n"
+  docker run --rm --entrypoint "" ${run_opts} \
+    --volume "$(pwd):/home/app" \
+    --volume $4/$1_inputs:${dest_mnt}/$1_inputs:ro \
+    --volume $4/$1_outputs:${dest_mnt}/$1_outputs \
+  "$2:rc-cli" ${1:0:-4}.sh 2>&1 | tee "logs/$1/$2-$(timestamp).log"
+  printf "\n${CHARS_LINE}\n"
+}
+
 save_image() {
   printf "${CHARS_LINE}\n"
   printf "Save Image [$1]:\n\n"
@@ -302,6 +315,24 @@ main() {
       [[ $1 == "evaluate" ]] \
         && run_opts="--volume ${src_mnt}/setup_outputs:/home/app/data/setup_outputs:ro"
       run_app_image $1 ${image_name} ${image_type} ${src_mnt} ${run_opts}
+      ;;
+
+    setup-dev | evaluate-dev) # Build (only when the image doesn't exist) and run the '[setup,evaluate].sh' script
+      if [[ $# -gt 1 ]]; then
+        err "too many arguments"
+        exit 1
+      fi
+      make_logs "$@"
+      basic_checks
+      image_name=${app_name}
+      if ! is_image_built ${app_name}; then
+        build_image $1 ${app_name}
+      fi
+      image_type="Dev"
+      src_mnt="$(pwd)/data"
+      [[ $1 == "evaluate" ]] \
+        && run_opts="--volume ${src_mnt}/setup_outputs:/home/app/data/setup_outputs:ro"
+      run_live_image $1 ${image_name} ${image_type} ${src_mnt} ${run_opts}
       ;;
 
     test) # Run the tests with the '${RC_TEST_IMAGE}'
