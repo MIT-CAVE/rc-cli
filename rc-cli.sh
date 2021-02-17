@@ -334,7 +334,7 @@ main() {
       fi
       image_type="App"
       src_mnt="$(pwd)/data"
-      [[ $1 == "evaluate" ]] \
+      [[ $1 == "evaluate-dev" ]] \
         && run_opts="--volume ${src_mnt}/setup_outputs:/home/app/data/setup_outputs:ro"
       run_dev_image $1 ${image_name} ${image_type} ${src_mnt} ${run_opts}
       ;;
