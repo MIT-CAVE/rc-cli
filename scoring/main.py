@@ -52,8 +52,8 @@ if __name__ == '__main__':
         SCORING_INPUTS_DIR,
         SCORING_INPUT_FILENAME
     ))
-    if time_stats and foo_input:
-        score = generate_score(time_stats, foo_input)
+    if time_stats and score_inputs:
+        score = generate_score(time_stats, score_inputs)
         # Write output data
         with open(path.join(
             SCORING_OUTPUTS_DIR,
