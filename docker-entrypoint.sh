@@ -47,7 +47,7 @@ run_app_image() {
   [ -f /var/tmp/error ] \
     && status=$(get_process_status "$(cat /var/tmp/error)") \
     || status="success"
-  echo $status
+
   printf "{ \"time\": ${secs}, \"status\": \"${status}\" }" \
     > /data/$2_outputs/${TIME_STATS_FILENAME} # Write time stats to output file
   printf "\nTime Statistics:\n\n"
