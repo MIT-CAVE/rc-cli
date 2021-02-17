@@ -97,7 +97,6 @@ get_help_template_string () {
   RC_HELP_TEMPLATE_STRING="$(\
     printf "$RC_TEMPLATES" | \
     tr '\n' ',' | \
-    sed 's/.$//' | \
     sed 's/,/\n      - /g'\
     )"
 }
@@ -508,7 +507,7 @@ main() {
       ;;
 
     help | --help) # Display the help
-      get_new_template_string
+      get_help_template_string
       cat 1>&2 <<EOF
 ${RC_CLI_LONG_NAME}
 
@@ -568,7 +567,7 @@ Usage Examples:
 
   new [app-name] [template-name]
     - Currently, the following templates are available:
-      - ${RC_NEW_TEMPLATE_STRING}
+      - ${RC_HELP_TEMPLATE_STRING}
     - Create a new app with the default template ${RC_CLI_DEFAULT_TEMPLATE}
       ${CHARS_LINE}
       rc-cli new my-app
