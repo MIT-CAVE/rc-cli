@@ -12,8 +12,8 @@ EVALUATE_OUTPUTS_DIR = path.join(DATA_DIR, 'evaluate_outputs')
 
 # I/O Files
 SETUP_OUTPUT_FILEPATH = path.join(SETUP_OUTPUTS_DIR, 'setup-out.json')
-EVALUATE_INPUT_FILENAME = path.join(EVALUATE_INPUTS_DIR, 'evaluate-in.csv')
-EVALUATE_OUTPUT_FILENAME = path.join(EVALUATE_OUTPUTS_DIR, 'predicted_routes.json')
+EVALUATE_INPUT_FILEPATH = path.join(EVALUATE_INPUTS_DIR, 'evaluate-in.csv')
+EVALUATE_OUTPUT_FILEPATH = path.join(EVALUATE_OUTPUTS_DIR, 'predicted_routes.json')
 
 # Read input data
 print('Reading Input Data')
@@ -32,16 +32,16 @@ except Exception as e:
 # Evaluate input
 evaluate_in = None
 try:
-    with open(EVALUATE_INPUT_FILENAME, newline='') as in_file:
+    with open(EVALUATE_INPUT_FILEPATH, newline='') as in_file:
         evaluate_in = [
             i for i in csv.reader(in_file, delimiter=',', quotechar='|')
         ]
 except FileNotFoundError:
-    print("The '{}' file is missing!".format(EVALUATE_INPUT_FILENAME))
+    print("The '{}' file is missing!".format(EVALUATE_INPUT_FILEPATH))
 except csv.Error:
-    print("Error in the '{}' CSV data!".format(EVALUATE_INPUT_FILENAME))
+    print("Error in the '{}' CSV data!".format(EVALUATE_INPUT_FILEPATH))
 except Exception as e:
-    print("Error when reading the '{}' file!".format(EVALUATE_INPUT_FILENAME))
+    print("Error when reading the '{}' file!".format(EVALUATE_INPUT_FILEPATH))
     print(e)
 
 if setup_out and evaluate_in:
@@ -69,12 +69,8 @@ if setup_out and evaluate_in:
     }
 
     # Write output data
-    with open(path.join(
-        EVALUATE_OUTPUTS_DIR,
-        EVALUATE_OUTPUT_FILENAME
-    ), 'w') as out_file:
+    with open(EVALUATE_OUTPUT_FILEPATH), 'w') as out_file:
         json.dump(output, out_file)
-        print("Evaluate: A file, {0}, has been saved in {1}".format(
-            EVALUATE_OUTPUT_FILENAME,
-            EVALUATE_OUTPUTS_DIR
+        print("Evaluate: The '{}' file has been saved".format(
+            EVALUATE_OUTPUT_FILEPATH
         ))
