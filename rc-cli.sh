@@ -218,20 +218,39 @@ save_image() {
   printf "done\n\n"
 }
 
+reset_data_prompt() {
+  printf "WARNING! $1: This will reset the data directory at '$2' to a blank state\n"
+  read -r -p "Are you sure you want to continue? [y/N] " input
+  case ${input} in
+    [yY][eE][sS] | [yY])
+      printf "Resetting the data... "
+      rm -rf "$2"
+      cp -R "${RC_CLI_PATH}/data" "$2"
+      printf "done\n"
+      ;;
+    [nN][oO] | [nN] | "")
+      printf "$1 was canceled by the user\n"
+      exit 0
+      ;;
+    *)
+      err "invalid input: The $1 was canceled"
+      exit 1
+      ;;
+  esac
+}
+
 run_test_image() {
   image_file="$2.tar.gz"
-  [[ -z $3 ]] \
+  # Check if the solution argument was not specified,
+  # i.e. "get_data_context $2" in 'test' returned 'data'.
+  [[ $3 == 'data' ]] \
     && src_mnt_image="${TMP_DIR}/$2.tar.gz" \
     || src_mnt_image="$(pwd)/solutions/$2/${image_file}" \
-  # Retrieve a clean copy of data from the rc-cli sources
-  data_path=$(get_data_context $3)
-  rm -rf "${data_path}"
-  cp -R "${RC_CLI_PATH}/data" "${data_path}"
-  printf "WARNING! test: The data at '${data_path}' has been reset to the initial state\n\n"
+  printf "test: The data at '$3' has been reset to the initial state\n\n"
   printf "${CHARS_LINE}\n"
   printf "Preparing Test Image [$2] to Run With [${RC_TEST_IMAGE}]:\n\n"
 
-  src_mnt="$(pwd)/${data_path}"
+  src_mnt="$(pwd)/$3"
   scoring_path="${RC_CLI_PATH}/scoring"
   scoring_image="${RC_SCORING_IMAGE}.tar.gz"
 
@@ -338,15 +357,19 @@ main() {
       ;;
 
     test) # Run the tests with the '${RC_TEST_IMAGE}'
-      #TODO Ask before resetting data every time
-      make_logs "$@"
       basic_checks
+      # Retrieve a clean copy of data from the rc-cli sources
+      [[ -n $2 ]] && check_solution $2 # Sanity check before doing anything else
+      data_path=$(get_data_context $2)
+      reset_data_prompt $1 ${data_path}
+      printf '\n' # Improve formatting
+      make_logs "$@"
+
       if [[ -z $2 ]]; then
         image_name=${app_name}
         build_image $1 ${app_name}
         docker save "${app_name}:rc-cli" | gzip > "${TMP_DIR}/${app_name}.tar.gz"
       else
-        check_solution $2
         image_name=${solution_name}
         load_solution ${image_name}
       fi
@@ -361,7 +384,7 @@ main() {
       if [[ ! -f "scoring/${RC_SCORING_IMAGE}.tar.gz" ]]; then
         docker save "${RC_SCORING_IMAGE}:rc-cli" | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
       fi
-      run_test_image $1 ${image_name} $2 # FIXME: This is ugly - figure out data_path here
+      run_test_image $1 ${image_name} ${data_path}
       printf "\n${CHARS_LINE}\n"
       ;;
 
@@ -435,24 +458,7 @@ main() {
 
     reset) # Flush the output data in the directories
       data_path=$(get_data_context $2)
-      printf "WARNING! reset: This will reset the data directory at '${data_path}' to a blank state\n"
-      read -r -p "Are you sure you want to continue? [y/N] " input
-      case ${input} in
-        [yY][eE][sS] | [yY])
-          printf "Resetting the data... "
-          rm -rf "${data_path}"
-          cp -R "${RC_CLI_PATH}/data" "${data_path}"
-          printf "done\n"
-          printf "Finished!\n"
-          ;;
-        [nN][oO] | [nN] | "")
-          printf "$1 was canceled by the user\n"
-          ;;
-        *)
-          err "invalid input: The $1 was canceled"
-          exit 1
-          ;;
-      esac
+      reset_data_prompt $1 ${data_path}
       ;;
 
     update) # Run maintenance commands after breaking changes on the framework.
