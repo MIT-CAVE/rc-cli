@@ -86,8 +86,9 @@ install_new() { # Copy the needed files locally
   printf "done\n"
   printf "${CHARS_LINE}\n"
   printf "Cloning from '${CLONE_URL}':\n"
+  [[ $3 != "--dev" ]] && clone_opts="--depth=1"
   git clone "git@github.com:mit-cave/rc-cli" \
-    --depth=1 \
+    ${clone_opts} \
     "${RC_CLI_PATH}"
   if [ ! -d "${RC_CLI_PATH}" ]; then
     err "Git Clone Failed. Installation Canceled"
@@ -132,7 +133,7 @@ check_args() {
   if [[ $# -lt 2 ]]; then
     err "Not enough arguments to install the CLI with data. Please specify a SCORING_DATA_URL and a DATA_URL \nEG:\ncurl -o- https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/scoring_data.zip https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.zip"
     exit 1
-  elif [[ $# -gt 2 && $1 != "new" ]]; then
+  elif [[ $# -gt 2 && $3 != "--dev" ]]; then
     err "Too many arguments for CLI installation. Please only specify a SCORING_DATA_URL and a DATA_URL\nEG:\ncurl -o- https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/scoring_data.zip https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.zip"
     exit 1
   fi
@@ -161,7 +162,7 @@ main() {
   check_docker
   check_git
   check_previous_installation
-  install_new
+  install_new "$@"
   get_data "$@"
   add_to_path
   success_message
