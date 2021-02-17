@@ -551,8 +551,6 @@ Usage Examples:
       rc-cli evaluate-dev
       ${CHARS_LINE}
       - This will not take in solution arguments
-      - You will need to build a docker image before running this command the first time
-        - You can build the docker image using \`rc-cli setup\` or \`rc-cli evaluate\`
       - This uses:
         - The current state of your local filesystem at:
           - evaluate.sh
@@ -616,8 +614,6 @@ Usage Examples:
       rc-cli setup-dev
       ${CHARS_LINE}
       - This will not take in solution arguments
-      - You will need to build a docker image before running this command the first time
-        - You can build the docker image using \`rc-cli setup\` or \`rc-cli evaluate\`
       - This uses:
         - The current state of your local filesystem at:
           - setup.sh
