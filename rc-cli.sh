@@ -411,7 +411,7 @@ main() {
           printf "Removing logs... "
           rm -rf "logs/"
           printf "done\n"
-          printf "Removing images... \n"
+          printf "Removing images... "
           rc_images=$(docker images --all --filter reference="*:rc-cli" --quiet)
           if [[ ${rc_images} ]]; then
             docker rmi --force ${rc_images} &> /dev/null
@@ -492,7 +492,7 @@ main() {
           printf "done\n"
 
           printf "Uninstalling ${RC_CLI_SHORT_NAME} (${RC_CLI_VERSION})\n"
-          rm -r "${RC_CLI_PATH}"
+          rm -rf s"${RC_CLI_PATH}"
           printf "Uninstall Complete!\n"
           ;;
         [nN][oO] | [nN] | "")
