@@ -96,6 +96,29 @@ install_new() { # Copy the needed files locally
   fi
 }
 
+copy_zip_data_down() { # Copy the needed data files locally
+  # Takes two optional parameters (order matters)
+  # EG:
+  # copy_zip_data_down URL LOCAL_PATH NEW_DIR_NAME
+  zip_file_name="$(basename $1)"
+  zip_folder_name=${zip_file_name%.*}
+  zip_file_path="${2}/${zip_file_name}"
+  new_dir_name="${3:-$zip_folder_name}"
+  printf "Copying data down from $1... "
+  curl -s -o "${zip_file_path}" "$1" > /dev/null
+  unzip -qq "${zip_file_path}" -d "$2"
+  rm "${zip_file_path}"
+  if [[ ! "${2}/${zip_folder_name}" = "${2}/${new_dir_name}" ]]; then
+    mv "${2}/${zip_folder_name}" "${2}/${new_dir_name}"
+  fi
+  if [ ! -d "${2}/${new_dir_name}" ]; then
+    err "Unable to access zipped data from ${1}. Installation Canceled"
+    exit 1
+  fi
+  printf "done\n"
+
+}
+
 get_data() { # Copy the needed data files locally
   # Takes two optional parameters (order matters)
   # EG:
@@ -103,27 +126,10 @@ get_data() { # Copy the needed data files locally
   SCORING_DATA_URL="${1:-''}"
   DATA_URL="${2:-''}"
 
-  printf "Copying data down from ${DATA_URL}\n"
-  curl -s -o "${RC_CLI_PATH}/data.zip" "$DATA_URL" > /dev/null
-  unzip -qq "${RC_CLI_PATH}/data.zip" -d "${RC_CLI_PATH}"
-  rm "${RC_CLI_PATH}/data.zip"
-  if [ ! -d "${RC_CLI_PATH}/data" ]; then
-    err "Unable to access data from ${DATA_URL}. Installation Canceled"
-    exit 1
-  fi
-  printf "done\n"
+  copy_zip_data_down "$DATA_URL" "${RC_CLI_PATH}" "data"
+  copy_zip_data_down "$SCORING_DATA_URL" "${RC_CLI_PATH}/scoring/" "data"
 
-  printf "Copying scoring data down from ${SCORING_DATA_URL}\n"
-  curl -s -o "${RC_CLI_PATH}/scoring/scoring_data.zip" "$SCORING_DATA_URL" > /dev/null
-  unzip -qq "${RC_CLI_PATH}/scoring/scoring_data.zip" -d "${RC_CLI_PATH}/scoring"
-  rm "${RC_CLI_PATH}/scoring/scoring_data.zip"
-  mv "${RC_CLI_PATH}/scoring/scoring_data" "${RC_CLI_PATH}/scoring/data"
-  if [ ! -d "${RC_CLI_PATH}/scoring/data" ]; then
-    err "Unable to access data from ${SCORING_DATA_URL}. Installation Canceled"
-    exit 1
-  fi
-  printf "done\n"
-  printf "Setting data URL locally for future CLI Updates\n"
+  printf "Setting data URL locally for future CLI Updates... "
   touch "${RC_CLI_PATH}/DATA_URLS"
   printf "SCORING_DATA_URL=\"${SCORING_DATA_URL}\"\nDATA_URL=\"${DATA_URL}\"" > "${RC_CLI_PATH}/DATA_URLS"
   printf "done\n"
@@ -152,8 +158,8 @@ add_to_path() { # Add the cli to a globally accessable path
 success_message() { # Send a success message to the user on successful installation
   printf "${CHARS_LINE}\n"
   printf "${RC_CLI_SHORT_NAME} (${RC_CLI_COMMAND}) has been successfully installed \n"
-  printf "You can verify the installation with 'rc-cli --version'\n"
-  printf "To get started use 'rc-cli --help'\n"
+  printf "You can verify the installation with 'rc-cli version'\n"
+  printf "To get started use 'rc-cli help'\n"
 }
 
 main() {
