@@ -32,7 +32,7 @@ Saved solutions that have been tested can be uploaded to the competition site: [
 4) Validate the installation was successful
   - Run the following command:
     ```
-    rc-cli --version
+    rc-cli version
     ```
 5) Continue to the `Bootstrap your Project` section below the Windows 10 setup section
 
@@ -82,20 +82,22 @@ Saved solutions that have been tested can be uploaded to the competition site: [
 7) Install the `rc-cli` in the `Ubuntu 20.04` app
   - Run the following commands to install the `rc-cli`
     ```
-    curl -o- https://github.com/MIT-CAVE/rc-cli/blob/main/install.sh | bash
+    bash <(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh) \
+    https://cave-competition-app-data.s3.amazonaws.com/test/public/scoring_data.zip \
+    https://cave-competition-app-data.s3.amazonaws.com/test/public/data.zip
     ```
     - Follow the prompts to finish the installation process
 8) Validate the installation was successful in the `Ubuntu 20.04` app
   - Run the following command:
     ```
-    rc-cli --version
+    rc-cli version
     ```
 9) Continue to the `Bootstrap your Project` section below
 
 ## Bootstrap your Project
 1) Get available commands
   ```
-  rc-cli --help
+  rc-cli help
   ```
 2) Bootstrap a project in your current directory
   - Note: Feel free to change `my-app` to any name you want
@@ -121,7 +123,7 @@ Saved solutions that have been tested can be uploaded to the competition site: [
       ```
       echo $PWD
       ```
-  - On Windows 10 (Ubuntu 20.04)
+  - On Windows 10 (using WSL Ubuntu 20.04)
     - Open explorer from your current directory
       ```
       explorer.exe
