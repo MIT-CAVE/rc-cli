@@ -152,8 +152,13 @@ build_image() {
   printf "Build Image [$2]:\n\n"
   printf "Building the '$2' image... "
   docker rmi "$2:rc-cli" &> /dev/null
+  if [[ -d "logs/$1" ]]; then
+    logfile="logs/$1/$2-build-$(timestamp).log"
+  else
+    logfile="/dev/null"
+  fi
   docker build --file ${context}/Dockerfile --tag $2:rc-cli ${build_opts} \
-    ${context} &> "logs/$1/$2-build-$(timestamp).log"
+    ${context} &> "${logfile}"
   printf "done\n\n"
 }
 
@@ -457,7 +462,6 @@ main() {
       ;;
 
     update) # Run maintenance commands after breaking changes on the framework.
-      make_logs "$@"
       printf "${CHARS_LINE}\n"
       printf "Checking Installation\n"
       source "${RC_CLI_PATH}/DATA_URLS"
