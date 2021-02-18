@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Install the RC CLI on Linux
+# Install the RC CLI on Unix Systems
 
 # Constants
 readonly CHARS_LINE="============================"
