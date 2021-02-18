@@ -34,21 +34,20 @@ run_app_image() {
   case ${error} in
     Killed)
       status="timeout"
-      printf "\nWARNING! test: Timeout has occurred when running '$2'\n\n"
+      printf "\nWARNING! test: Timeout has occurred when running '$2'\n"
       ;;
     "")
       status="success"
       ;;
     *)
       status="fail: ${error}"
-      printf "\n${error}\n\n"
+      printf "\n${error}\n"
       ;;
   esac
 
   printf "{ \"time\": ${secs}, \"status\": \"${status}\" }" \
     > /data/$2_outputs/${TIME_STATS_FILENAME} # Write time stats to output file
-  printf "\nTime Statistics:\n\n"
-  printf "Time Elapsed: %dh:%dm:%ds\n" \
+  printf "\nTime Elapsed: %dh:%dm:%ds\n" \
     $((secs / 3600)) $((secs % 3600 / 60)) $((secs % 60))
 }
 
@@ -63,6 +62,7 @@ run_app_image ${image_name} "setup" ${TIMEOUT_SETUP} ""
 run_app_image ${image_name} "evaluate" ${TIMEOUT_EVALUATE} \
   "--volume /data/setup_outputs:/home/app/data/setup_outputs:ro"
 
+printf "\n"
 load_image "Scoring" ${SCORING_IMAGE}
 scoring_name=${SCORING_IMAGE:0:-7}
 printf "\n${CHARS_LINE}\n"
