@@ -6,7 +6,7 @@ from random import randrange
 # Constants
 MIN_SCORE = 0
 MAX_SCORE = 100
-TIME_STATS_FILENAME = 'time_stats.json'
+TIME_STATS_FILENAME = 'time.json'
 SCORING_INPUT_FILENAME = 'foo.json'
 
 def get_feedback(score):
@@ -44,15 +44,14 @@ def read_json_data(filepath):
 if __name__ == '__main__':
     BASE_DIR = path.dirname(path.abspath(__file__))
     DATA_DIR = path.join(BASE_DIR, 'data')
+    TIME_STATS_DIR = path.join(DATA_DIR, 'time_stats')
     EVALUATE_OUTPUTS_DIR = path.join(DATA_DIR, 'evaluate_outputs')
     SCORING_INPUTS_DIR = path.join(DATA_DIR, 'scoring_inputs')
     SCORING_OUTPUTS_DIR = path.join(DATA_DIR, 'scoring_outputs')
 
     # Read JSON input data
-    time_stats = read_json_data(path.join(
-        EVALUATE_OUTPUTS_DIR,
-        TIME_STATS_FILENAME
-    ))
+    time_stats_filepath = path.join(TIME_STATS_DIR, TIME_STATS_FILENAME)
+    time_stats = read_json_data(time_stats_filepath)
     score_inputs = read_json_data(path.join(
         SCORING_INPUTS_DIR,
         SCORING_INPUT_FILENAME

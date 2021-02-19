@@ -5,6 +5,7 @@
 # Constants
 readonly CHARS_LINE="============================"
 
+readonly RC_CLI_DEFAULT_TEMPLATE="rc-python"
 readonly RC_CLI_PATH="${HOME}/.rc-cli"
 readonly RC_CLI_LONG_NAME="Routing Challenge CLI"
 readonly RC_CLI_SHORT_NAME="RC CLI"
@@ -13,7 +14,8 @@ readonly RC_SCORING_IMAGE="rc-scoring"
 readonly RC_TEST_IMAGE="rc-test"
 
 readonly TMP_DIR="/tmp"
-readonly RC_CLI_DEFAULT_TEMPLATE="rc-python"
+readonly TIME_STATS_FILENAME="time.json"
+readonly DEFAULT_TIME_STATS_FILENAME="time_default.json"
 
 #######################################
 # Display an error message when the user input is invalid.
@@ -179,6 +181,38 @@ get_data_context_abs() {
   printf "$(pwd)/$(get_data_context $1)"
 }
 
+save_image() {
+  printf "${CHARS_LINE}\n"
+  printf "Save Image [$1]:\n\n"
+  printf "Saving the '$1' image to 'solutions'... "
+  solution_path="solutions/$1"
+  mkdir -p ${solution_path}
+  cp -R "${RC_CLI_PATH}/data" "${solution_path}/data"
+  docker save "$1:rc-cli" | gzip > "${solution_path}/$1.tar.gz"
+  printf "done\n\n"
+}
+
+reset_data_prompt() {
+  printf "WARNING! $1: This will reset the data directory at '$2' to a blank state\n"
+  read -r -p "Are you sure you want to continue? [y/N] " input
+  case ${input} in
+    [yY][eE][sS] | [yY])
+      printf "Resetting the data... "
+      rm -rf "$2"
+      cp -R "${RC_CLI_PATH}/data" "$2"
+      printf "done\n"
+      ;;
+    [nN][oO] | [nN] | "")
+      printf "$1 was canceled by the user\n"
+      exit 0
+      ;;
+    *)
+      err "invalid input: The $1 was canceled"
+      exit 1
+      ;;
+  esac
+}
+
 # Args
 # $1: [setup,evaluate]
 # $2: app_name
@@ -212,38 +246,6 @@ run_dev_image() {
   printf "\n${CHARS_LINE}\n"
 }
 
-save_image() {
-  printf "${CHARS_LINE}\n"
-  printf "Save Image [$1]:\n\n"
-  printf "Saving the '$1' image to 'solutions'... "
-  solution_path="solutions/$1"
-  mkdir -p ${solution_path}
-  cp -R "${RC_CLI_PATH}/data" "${solution_path}/data"
-  docker save "$1:rc-cli" | gzip > "${solution_path}/$1.tar.gz"
-  printf "done\n\n"
-}
-
-reset_data_prompt() {
-  printf "WARNING! $1: This will reset the data directory at '$2' to a blank state\n"
-  read -r -p "Are you sure you want to continue? [y/N] " input
-  case ${input} in
-    [yY][eE][sS] | [yY])
-      printf "Resetting the data... "
-      rm -rf "$2"
-      cp -R "${RC_CLI_PATH}/data" "$2"
-      printf "done\n"
-      ;;
-    [nN][oO] | [nN] | "")
-      printf "$1 was canceled by the user\n"
-      exit 0
-      ;;
-    *)
-      err "invalid input: The $1 was canceled"
-      exit 1
-      ;;
-  esac
-}
-
 run_test_image() {
   image_file="$2.tar.gz"
   # Check if the solution argument was not specified,
@@ -271,6 +273,21 @@ run_test_image() {
     --volume "${scoring_path}/data/scoring_inputs:/data/scoring_inputs:ro" \
     --volume "${scoring_path}/data/scoring_outputs:/data/scoring_outputs" \
     "${RC_TEST_IMAGE}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-$(timestamp).log"
+}
+
+run_scoring_image() {
+  scoring_mnt="${RC_CLI_PATH}/scoring/data"
+  dest_mnt="/home/scoring/data"
+  printf "${CHARS_LINE}\n"
+  printf "Enabling the $3 [$2] to Run With [${RC_SCORING_IMAGE}]:\n\n"
+  # The time stats file is mounted in a different directory
+  docker run --rm \
+    --volume "$4/evaluate_outputs:${dest_mnt}/evaluate_outputs:ro" \
+    --volume "$4/evaluate_outputs/${DEFAULT_TIME_STATS_FILENAME}:${dest_mnt}/time_stats/${TIME_STATS_FILENAME}:ro" \
+    --volume "${scoring_mnt}/scoring_inputs:${dest_mnt}/scoring_inputs:ro" \
+    --volume "${scoring_mnt}/scoring_outputs:${dest_mnt}/scoring_outputs" \
+    "${RC_SCORING_IMAGE}:rc-cli" 2>&1 | tee "logs/$1/$2-$(timestamp).log"
+  printf "\n${CHARS_LINE}\n"
 }
 
 make_logs() { # Ensure the necessary log file structure for the calling command
@@ -363,9 +380,9 @@ main() {
 
     test) # Run the tests with the '${RC_TEST_IMAGE}'
       basic_checks
-      # Retrieve a clean copy of data from the rc-cli sources
       [[ -n $2 ]] && check_solution $2 # Sanity check before doing anything else
       data_path=$(get_data_context $2)
+      # Retrieve a clean copy of 'data' from the rc-cli sources
       reset_data_prompt $1 ${data_path}
       printf '\n' # Improve formatting
       make_logs "$@"
@@ -393,6 +410,40 @@ main() {
       printf "\n${CHARS_LINE}\n"
       ;;
 
+    score) # Calculate the score for the app or the specified solution.
+      basic_checks
+      # The 'setup' and 'evaluate' output data must exist,
+      # as well as the 'scoring_inputs' data
+      src_mnt=$(get_data_context_abs $2)
+      if [[ ! -d "${src_mnt}/setup_outputs" ]]; then
+        err "'${src_mnt}/setup_outputs': data not found"
+        exit 1
+      elif [[ ! -f "${src_mnt}/evaluate_outputs/${DEFAULT_TIME_STATS_FILENAME}" ]]; then
+        err "'${src_mnt}/evaluate_outputs/${DEFAULT_TIME_STATS_FILENAME}': file not found"
+        exit 1
+      elif [[ ! -d "${RC_CLI_PATH}/scoring/data/scoring_inputs" ]]; then
+        err "'${RC_CLI_PATH}/scoring/data/scoring_inputs': data not found"
+        exit 1
+      fi
+      make_logs "$@"
+
+      if [[ -z $2 ]]; then
+        image_name=${app_name}
+        image_type="App"
+        build_image $1 ${app_name}
+      else
+        check_solution $2
+        image_name=${solution_name}
+        image_type="Solution"
+        load_solution ${image_name}
+      fi
+
+      if ! is_image_built ${RC_SCORING_IMAGE}; then
+        build_image $1 ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+      fi
+      run_scoring_image $1 ${image_name} ${image_type} ${src_mnt}
+      ;;
+
     debug) # Enable an interactive shell at runtime to debug the app container.
       make_logs "$@"
       basic_checks
@@ -417,8 +468,7 @@ main() {
       printf "\nEnabling an interactive shell with the solution container...\n"
       src_mnt=$(get_data_context_abs $2)
       dest_mnt="/home/app/data/"
-      #TDOD: How to allow users to get into root mode while in IT?
-      docker run --rm --entrypoint="" \
+      docker run --rm --entrypoint="" --user root \
         --volume "${src_mnt}/setup_inputs:${dest_mnt}/setup_inputs:ro" \
         --volume "${src_mnt}/setup_outputs:${dest_mnt}/setup_outputs" \
         --volume "${src_mnt}/evaluate_inputs:${dest_mnt}/evaluate_inputs:ro" \

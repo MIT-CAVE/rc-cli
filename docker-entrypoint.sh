@@ -1,7 +1,7 @@
 #!/bin/sh
 set -u
 
-readonly TIME_STATS_FILENAME="time_stats.json"
+readonly TIME_STATS_FILENAME="time.json"
 readonly CHARS_LINE="============================"
 readonly TIMEOUT_SETUP=$((8*60*60))
 readonly TIMEOUT_EVALUATE=$((2*60*60))
@@ -65,12 +65,15 @@ run_app_image ${image_name} "evaluate" ${TIMEOUT_EVALUATE} \
 printf "\n"
 load_image "Scoring" ${SCORING_IMAGE}
 scoring_name=${SCORING_IMAGE:0:-7}
+scoring_mnt="/home/scoring/data/"
 printf "\n${CHARS_LINE}\n"
 printf "Running the Scoring Image [${scoring_name}]:\n\n"
+# The time stats file is mounted in a different directory
 docker run --rm \
-  --volume "/data/evaluate_outputs:/home/scoring/data/evaluate_outputs:ro" \
-  --volume "/data/scoring_inputs:/home/scoring/data/scoring_inputs:ro" \
-  --volume "/data/scoring_outputs:/home/scoring/data/scoring_outputs" \
+  --volume "/data/evaluate_outputs:${scoring_mnt}/evaluate_outputs:ro" \
+  --volume "/data/evaluate_outputs/${TIME_STATS_FILENAME}:${scoring_mnt}/time_stats/${TIME_STATS_FILENAME}:ro" \
+  --volume "/data/scoring_inputs:${scoring_mnt}/scoring_inputs:ro" \
+  --volume "/data/scoring_outputs:${scoring_mnt}/scoring_outputs" \
   "${scoring_name}:rc-cli"
 
 exec "$@"
