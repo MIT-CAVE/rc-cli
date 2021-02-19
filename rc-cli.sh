@@ -253,7 +253,7 @@ run_test_image() {
   [[ $3 == 'data' ]] \
     && src_mnt_image="${TMP_DIR}/$2.tar.gz" \
     || src_mnt_image="$(pwd)/solutions/$2/${image_file}" \
-  printf "test: The data at '$3' has been reset to the initial state\n\n"
+  printf "$1: The data at '$3' has been reset to the initial state\n\n"
   printf "${CHARS_LINE}\n"
   printf "Preparing Test Image [$2] to Run With [${RC_TEST_IMAGE}]:\n\n"
 
@@ -415,17 +415,21 @@ main() {
       # The 'setup' and 'evaluate' output data must exist,
       # as well as the 'scoring_inputs' data
       src_mnt=$(get_data_context_abs $2)
+      default_time_path="${src_mnt}/evaluate_outputs/${DEFAULT_TIME_STATS_FILENAME}"
       if [[ ! -d "${src_mnt}/setup_outputs" ]]; then
         err "'${src_mnt}/setup_outputs': data not found"
         exit 1
-      elif [[ ! -f "${src_mnt}/evaluate_outputs/${DEFAULT_TIME_STATS_FILENAME}" ]]; then
-        err "'${src_mnt}/evaluate_outputs/${DEFAULT_TIME_STATS_FILENAME}': file not found"
+      elif [[ ! -f "${default_time_path}" ]]; then
+        err "'${default_time_path}': file not found"
         exit 1
       elif [[ ! -d "${RC_CLI_PATH}/scoring/data/scoring_inputs" ]]; then
         err "'${RC_CLI_PATH}/scoring/data/scoring_inputs': data not found"
         exit 1
       fi
       make_logs "$@"
+
+      printf "WARNING! $1: The default time at '${default_time_path}' will be used.\n"
+      printf "Please run 'test' for actual time stats.\n\n"
 
       if [[ -z $2 ]]; then
         image_name=${app_name}

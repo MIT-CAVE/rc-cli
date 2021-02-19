@@ -50,8 +50,7 @@ if __name__ == '__main__':
     SCORING_OUTPUTS_DIR = path.join(DATA_DIR, 'scoring_outputs')
 
     # Read JSON input data
-    time_stats_filepath = path.join(TIME_STATS_DIR, TIME_STATS_FILENAME)
-    time_stats = read_json_data(time_stats_filepath)
+    time_stats = read_json_data(path.join(TIME_STATS_DIR, TIME_STATS_FILENAME))
     score_inputs = read_json_data(path.join(
         SCORING_INPUTS_DIR,
         SCORING_INPUT_FILENAME
