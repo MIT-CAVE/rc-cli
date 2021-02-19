@@ -252,7 +252,7 @@ run_test_image() {
   # i.e. "get_data_context $2" in 'test' returned 'data'.
   [[ $3 == 'data' ]] \
     && src_mnt_image="${TMP_DIR}/$2.tar.gz" \
-    || src_mnt_image="$(pwd)/solutions/$2/${image_file}" \
+    || src_mnt_image="$(pwd)/solutions/$2/${image_file}"
   printf "$1: The data at '$3' has been reset to the initial state\n\n"
   printf "${CHARS_LINE}\n"
   printf "Preparing Test Image [$2] to Run With [${RC_TEST_IMAGE}]:\n\n"
