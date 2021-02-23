@@ -25,8 +25,8 @@ Saved solutions that have been tested can be uploaded to the competition site: [
   - Run the following commands to install the `rc-cli`
     ```
     bash <(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh) \
-    https://cave-competition-app-data.s3.amazonaws.com/test/public/scoring_data.zip \
-    https://cave-competition-app-data.s3.amazonaws.com/test/public/data.zip
+    https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/scoring_data.zip \
+    https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.zip
     ```
     - Follow the prompts to finish the installation process
 4) Validate the installation was successful
@@ -83,8 +83,8 @@ Saved solutions that have been tested can be uploaded to the competition site: [
   - Run the following commands to install the `rc-cli`
     ```
     bash <(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh) \
-    https://cave-competition-app-data.s3.amazonaws.com/test/public/scoring_data.zip \
-    https://cave-competition-app-data.s3.amazonaws.com/test/public/data.zip
+    https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/scoring_data.zip \
+    https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.zip
     ```
     - Follow the prompts to finish the installation process
 8) Validate the installation was successful in the `Ubuntu 20.04` app
