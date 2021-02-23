@@ -121,7 +121,7 @@ check_solution() {
 get_image_name() {
   input=$1
   image_name=$1
-  while [[ -f "solutions/${input}.tar.gz" && -n ${input} ]]; do
+  while [[ -f "solutions/${input}/${input}.tar.gz" && -n ${input} ]]; do
     # Prompt confirmation to overwrite or rename image
     printf "WARNING! save: Solution with name '${image_name}' exists\n"
     read -r -p "Enter a new name or overwrite [${image_name}]: " input
