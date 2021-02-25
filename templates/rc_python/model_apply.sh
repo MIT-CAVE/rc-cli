@@ -2,4 +2,4 @@
 set -eu
 
 export PYTHONUNBUFFERED=1
-exec python src/setup.py
+exec python src/model_apply.py

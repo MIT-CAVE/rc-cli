@@ -16,4 +16,4 @@ echo "{
       'Message':'Hello from the setup.py script!',
       'Algorithm':\"Initialize Gizmo\",
       'Algorithm_Parameter': 32
-  }" > data/setup_outputs/setup-out.json
+  }" > data/setup_outputs/setup_out.json

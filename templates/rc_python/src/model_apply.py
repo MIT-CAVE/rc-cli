@@ -11,8 +11,8 @@ EVALUATE_INPUTS_DIR = path.join(DATA_DIR, 'evaluate_inputs')
 EVALUATE_OUTPUTS_DIR = path.join(DATA_DIR, 'evaluate_outputs')
 
 # I/O Files
-SETUP_OUTPUT_FILEPATH = path.join(SETUP_OUTPUTS_DIR, 'setup-out.json')
-EVALUATE_INPUT_FILEPATH = path.join(EVALUATE_INPUTS_DIR, 'evaluate-in.csv')
+SETUP_OUTPUT_FILEPATH = path.join(SETUP_OUTPUTS_DIR, 'setup_out.json')
+EVALUATE_INPUT_FILEPATH = path.join(EVALUATE_INPUTS_DIR, 'evaluate_in.csv')
 EVALUATE_OUTPUT_FILEPATH = path.join(EVALUATE_OUTPUTS_DIR, 'predicted_routes.json')
 
 # Read input data

@@ -2,4 +2,4 @@
 set -eu
 
 export PYTHONUNBUFFERED=1
-exec python src/evaluate.py
+exec python src/model_build.py

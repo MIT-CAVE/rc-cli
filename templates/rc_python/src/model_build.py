@@ -10,8 +10,8 @@ SETUP_INPUTS_DIR = path.join(DATA_DIR, 'setup_inputs')
 SETUP_OUTPUTS_DIR = path.join(DATA_DIR, 'setup_outputs')
 
 # I/O Files
-SETUP_INPUT_FILEPATH = path.join(SETUP_INPUTS_DIR, 'setup-in.csv')
-SETUP_OUTPUT_FILEPATH = path.join(SETUP_OUTPUTS_DIR, 'setup-out.json')
+SETUP_INPUT_FILEPATH = path.join(SETUP_INPUTS_DIR, 'setup_in.csv')
+SETUP_OUTPUT_FILEPATH = path.join(SETUP_OUTPUTS_DIR, 'setup_out.json')
 
 # Read input data
 print('Reading Input Data')

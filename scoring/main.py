@@ -6,8 +6,8 @@ from random import randrange
 # Constants
 MIN_SCORE = 0
 MAX_SCORE = 100
-TIME_STATS_FILENAME = 'time.json'
-SCORING_INPUT_FILENAME = 'foo.json'
+MODEL_SCORE_IN_FILENAME = 'foo.json'
+MODEL_SCORE_OUT_FILENAME = 'score-out.json'
 
 def get_feedback(score):
     score_range = MAX_SCORE - MIN_SCORE
@@ -24,7 +24,7 @@ def get_feedback(score):
         return 'Error in scoring algorithm:'
 
 # MLL's magic
-def generate_score(time_stats, extra):
+def generate_score(model_build_time, model_apply_time, extra):
     return randrange(MIN_SCORE, MAX_SCORE) # FIXME
 
 # Read JSON data from the given filepath
@@ -44,23 +44,30 @@ def read_json_data(filepath):
 if __name__ == '__main__':
     BASE_DIR = path.dirname(path.abspath(__file__))
     DATA_DIR = path.join(BASE_DIR, 'data')
-    TIME_STATS_DIR = path.join(DATA_DIR, 'time_stats')
-    EVALUATE_OUTPUTS_DIR = path.join(DATA_DIR, 'evaluate_outputs')
-    SCORING_INPUTS_DIR = path.join(DATA_DIR, 'scoring_inputs')
-    SCORING_OUTPUTS_DIR = path.join(DATA_DIR, 'scoring_outputs')
+    MODEL_APPLY_OUTPUTS_DIR = path.join(DATA_DIR, 'model_apply_outputs')
+    MODEL_SCORE_TIMINGS_DIR = path.join(DATA_DIR, 'model_score_timings')
+    MODEL_SCORE_INPUTS_DIR = path.join(DATA_DIR, 'model_score_inputs')
+    MODEL_SCORE_OUTPUTS_DIR = path.join(DATA_DIR, 'model_score_outputs')
 
     # Read JSON input data
-    time_stats = read_json_data(path.join(TIME_STATS_DIR, TIME_STATS_FILENAME))
-    score_inputs = read_json_data(path.join(
-        SCORING_INPUTS_DIR,
-        SCORING_INPUT_FILENAME
+    model_build_time = read_json_data(path.join(
+        MODEL_SCORE_TIMINGS_DIR,
+        'model_build_time.json'
     ))
-    if time_stats and score_inputs:
-        score = generate_score(time_stats, score_inputs)
+    model_apply_time = read_json_data(path.join(
+        MODEL_SCORE_TIMINGS_DIR,
+        'model_apply_time.json'
+    ))
+    score_inputs = read_json_data(path.join(
+        MODEL_SCORE_INPUTS_DIR,
+        MODEL_SCORE_IN_FILENAME
+    ))
+    if model_build_time and model_apply_time and score_inputs:
+        score = generate_score(model_build_time, model_apply_time, score_inputs)
         # Write output data
         with open(path.join(
-            SCORING_OUTPUTS_DIR,
-            'scoring-out.json'
+            MODEL_SCORE_OUTPUTS_DIR,
+            MODEL_SCORE_OUT_FILENAME
         ), 'w') as out_file:
             dump({ "score": score }, out_file)
             print('{0} Your score is: {1} of {2}'.format(

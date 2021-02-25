@@ -5,17 +5,18 @@
 # Constants
 readonly CHARS_LINE="============================"
 
-readonly RC_CLI_DEFAULT_TEMPLATE="rc-python"
+readonly RC_CLI_DEFAULT_TEMPLATE="rc_python"
 readonly RC_CLI_PATH="${HOME}/.rc-cli"
 readonly RC_CLI_LONG_NAME="Routing Challenge CLI"
 readonly RC_CLI_SHORT_NAME="RC CLI"
 readonly RC_CLI_VERSION=$(<${RC_CLI_PATH}/VERSION)
+readonly RC_IMAGE_TAG="rc-cli"
 readonly RC_SCORING_IMAGE="rc-scoring"
 readonly RC_TEST_IMAGE="rc-test"
 
+readonly APP_DEST_MNT="/home/app/data"
+readonly SCORING_DEST_MNT="/home/scoring/data"
 readonly TMP_DIR="/tmp"
-readonly TIME_STATS_FILENAME="time.json"
-readonly DEFAULT_TIME_STATS_FILENAME="time_default.json"
 
 #######################################
 # Display an error message when the user input is invalid.
@@ -30,23 +31,31 @@ err() {
   printf "$(basename $0): $1\n" >&2
 }
 
+# Convert string from kebab case to snake case.
+kebab_to_snake() {
+  printf $1 | sed s/-/_/
+}
+
 # Determine if the current directory contains a valid RC app
 valid_app_dir() {
   [[
     -f Dockerfile \
- && -f evaluate.sh \
- && -f setup.sh \
+ && -f model_apply.sh \
+ && -f model_build.sh \
  && -d src \
- && -d solutions \
- && -d data/evaluate_inputs \
- && -d data/evaluate_outputs \
- && -d data/setup_inputs \
- && -d data/setup_outputs
+ && -d snapshots \
+ && -d data/model_apply_inputs \
+ && -d data/model_apply_outputs \
+ && -d data/model_build_inputs \
+ && -d data/model_build_outputs
+ && -d data/model_score_inputs \
+ && -d data/model_score_outputs \
+ && -d data/model_score_timings
  ]]
 }
 
 is_image_built() {
-  docker image inspect $1:rc-cli &> /dev/null
+  docker image inspect $1:${RC_IMAGE_TAG} &> /dev/null
 }
 
 # Check if the Docker daemon is running.
@@ -57,9 +66,14 @@ check_docker() {
   fi
 }
 
-# Get the current date and time expressed according to ISO 8601
+# Get the current date and time expressed according to ISO 8601.
 timestamp() {
   date +"%Y-%m-%dT%H:%M:%S%:z"
+}
+
+# Convert a number of seconds to the ISO 8601 standard.
+secs_to_iso_8601() {
+  printf "%dh:%dm:%ds" $(($1 / 3600)) $(($1 % 3600 / 60)) $(($1 % 60))
 }
 
 # Check that the CLI is run from a valid app
@@ -72,7 +86,7 @@ check_app() {
   app_name=$(basename "$(pwd)")
 }
 
-# Run basic checks on requirements for some commands
+# Run basic checks on requirements for some commands.
 basic_checks() {
   check_app
   check_docker
@@ -102,39 +116,47 @@ get_help_template_string () {
     sed 's/,/\n      - /g'\
     )"
 }
-# Strips off any leading directory components
-get_solution_name() {
+
+# Strips off any leading directory components.
+get_snapshot() {
   # Allows easy autocompletion in bash using created folder names
-  # EG: my-image/ -> my-image, path/to/my/solution/ -> solution
-  solution_name="$(basename ${1:-''})"
+  # Example: my-image/ -> my-image, path/to/snapshot
+  printf "$(basename ${1:-''})"
 }
 
-check_solution() {
-  get_solution_name $1
-  if [[ ! -f "solutions/${solution_name}/${solution_name}.tar.gz" ]]; then
-    err "${solution_name}: solution not found"
+check_snapshot() {
+  local snapshot=$1
+
+  local f_name
+  f_name="$(get_snapshot ${snapshot})"
+  if [[ ! -f "snapshots/${f_name}/${f_name}.tar.gz" ]]; then
+    err "${f_name}: snapshot not found"
     exit 1
   fi
+  printf ${f_name}
 }
 
-# Prompts for an image_name if the solution exists
+# Prompts for a 'snapshot' name if the given snapshot exists
 get_image_name() {
-  input=$1
-  image_name=$1
-  while [[ -f "solutions/${input}/${input}.tar.gz" && -n ${input} ]]; do
+  local src_cmd=$1
+  local snapshot=$2
+
+  local input=${snapshot}
+  while [[ -f "snapshots/${input}/${input}.tar.gz" && -n ${input} ]]; do
     # Prompt confirmation to overwrite or rename image
-    printf "WARNING! save: Solution with name '${image_name}' exists\n"
-    read -r -p "Enter a new name or overwrite [${image_name}]: " input
-    [[ -n ${input} ]] && image_name=${input}
-    printf "\n"
+    printf "WARNING! ${src_cmd}: Snapshot with name '${snapshot}' exists\n" >&2
+    read -r -p "Enter a new name or overwrite [${snapshot}]: " input
+    [[ -n ${input} ]] && snapshot=${input}
+    printf "\n" >& 2
   done
+  printf ${input}
 }
 
 select_template() {
   get_new_template_string
   while ! printf "$RC_TEMPLATES" | grep -w -q "$template"; do
     # Prompt confirmation to select proper template
-    if [ "$template" = "" ]; then
+    if [[ -z ${template} ]]; then
       printf "WARNING! new: A template was not provided:\n"
     else
       printf "WARNING! new: The supplied template (${template}) does not exist.\n"
@@ -147,151 +169,282 @@ select_template() {
   done
 }
 
+#######################################
+# Build a Docker image based on the given arguments.
+# Globals:
+#   None
+# Arguments:
+#   src_cmd, image_name, context, build_opts
+# Returns:
+#   None
+#######################################
 build_image() {
-  context="${3:-.}" # the third argument is the Docker context
-  build_opts=${@:4}
+  local src_cmd=$1
+  local image_name=$2
+  local context="${3:-.}"
+  local build_opts=${@:4} # FIXME
+
+  local f_name
+  local out_file
+  f_name="$(kebab_to_snake ${src_cmd})"
   printf "${CHARS_LINE}\n"
-  printf "Build Image [$2]:\n\n"
-  printf "Building the '$2' image... "
-  docker rmi "$2:rc-cli" &> /dev/null
-  if [[ -d "logs/$1" ]]; then
-    logfile="logs/$1/$2-build-$(timestamp).log"
-  else
-    logfile="/dev/null"
-  fi
-  docker build --file ${context}/Dockerfile --tag $2:rc-cli ${build_opts} \
-    ${context} &> "${logfile}"
+  printf "Build Image [${image_name}]:\n\n"
+  printf "Building the '${image_name}' image... "
+  docker rmi ${image_name}:${RC_IMAGE_TAG} &> /dev/null
+  [[ -d "logs/${f_name}" ]] \
+    && out_file="logs/${f_name}/${image_name}_build_$(timestamp).log" \
+    || out_file="/dev/null"
+  docker build --file ${context}/Dockerfile --tag ${image_name}:${RC_IMAGE_TAG} \
+    ${build_opts} ${context} &> ${out_file}
   printf "done\n\n"
 }
 
-# Load a previously saved Docker solution image
-load_solution() {
-  docker rmi "$1:rc-cli" &> /dev/null
-  docker load --quiet --input "solutions/$1/$1.tar.gz" &> /dev/null
+# Load the Docker image for a given snapshot name.
+load_snapshot() {
+  local snapshot=$1
+
+  local f_name
+  f_name="$(kebab_to_snake ${snapshot})"
+  docker rmi ${snapshot}:${RC_IMAGE_TAG} &> /dev/null
+  docker load --quiet --input "snapshots/${f_name}/${f_name}.tar.gz" &> /dev/null
 }
 
 # Get the relative path of the data directory based
-# on the existence or not of a SOLUTION argument
+# on the existence or not of a given 'snapshot' arg.
 get_data_context() {
-  [[ -z $1 ]] && printf "data" || printf "solutions/$1/data"
+  local snapshot=$1
+
+  [[ -z ${snapshot} ]] \
+    && printf "data" \
+    || printf "snapshots/$(kebab_to_snake ${snapshot})/data"
 }
 
-# Same than get_data_context but return the absolute path.
+# Same than 'get_data_context' but return the absolute path.
 get_data_context_abs() {
   printf "$(pwd)/$(get_data_context $1)"
 }
 
+# Save a Docker image to the 'snapshots' directory.
 save_image() {
+  local image_name=$1
+
+  local f_name
+  f_name="$(kebab_to_snake ${image_name})"
   printf "${CHARS_LINE}\n"
-  printf "Save Image [$1]:\n\n"
-  printf "Saving the '$1' image to 'solutions'... "
-  solution_path="solutions/$1"
-  mkdir -p ${solution_path}
-  cp -R "${RC_CLI_PATH}/data" "${solution_path}/data"
-  docker save "$1:rc-cli" | gzip > "${solution_path}/$1.tar.gz"
+  printf "Save Image [${image_name}]:\n\n"
+  printf "Saving the '${image_name}' image to 'snapshots'... "
+  snapshot_path="snapshots/${f_name}"
+  mkdir -p ${snapshot_path}
+  cp -R "${RC_CLI_PATH}/data" "${snapshot_path}/data"
+  docker save ${image_name}:${RC_IMAGE_TAG} \
+    | gzip > "${snapshot_path}/${f_name}.tar.gz"
   printf "done\n\n"
 }
 
+#######################################
+# Retrieve a clean copy of 'data' from the 'rc-cli' sources.
+# Globals:
+#   None
+# Arguments:
+#   src_cmd, data_path
+# Returns:
+#   None
+#######################################
 reset_data_prompt() {
-  printf "WARNING! $1: This will reset the data directory at '$2' to a blank state\n"
+  local src_cmd=$1
+  local data_path=$2
+
+  local f_name
+  f_name="$(kebab_to_snake ${src_cmd})"
+  printf "WARNING! ${src_cmd}: This will reset the data directory at '${data_path}' to a blank state\n"
   read -r -p "Are you sure you want to continue? [y/N] " input
   case ${input} in
     [yY][eE][sS] | [yY])
       printf "Resetting the data... "
-      rm -rf "$2"
-      cp -R "${RC_CLI_PATH}/data" "$2"
+      rm -rf "${data_path}"
+      cp -R "${RC_CLI_PATH}/data" "${data_path}"
       printf "done\n"
       ;;
     [nN][oO] | [nN] | "")
-      printf "$1 was canceled by the user\n"
+      printf "${src_cmd} was canceled by the user\n"
       exit 0
       ;;
     *)
-      err "invalid input: The $1 was canceled"
+      err "invalid input: The ${src_cmd} was canceled"
       exit 1
       ;;
   esac
 }
 
-# Args
-# $1: [setup,evaluate]
-# $2: app_name
-# $3: image_type [App,Solution]
-# $4: src_mnt
+get_status() {
+  [[ -z $1 ]] \
+    && printf "success" \
+    || printf "fail" # : $(printf $1 | sed s/\"/\"/)" # TODO: handle newlines
+}
+
+#######################################
+# Send the output and time stats of the running app container
+# to the standard output and a given output file.
+# Globals:
+#   None
+# Arguments:
+#   secs, error, out_file
+# Returns:
+#   None
+#######################################
+print_stdout_stats() {
+  local secs=$1
+  local error=$2
+  local out_file=$3
+  printf "{ \"time\": ${secs}, \"status\": \"$(get_status ${error})\" }" > ${out_file}
+  printf "\nTime Elapsed: $(secs_to_iso_8601 ${secs})\n"
+  printf "\n${CHARS_LINE}\n"
+}
+
+#######################################
+# Run a Docker image for the specified 'model-*' command
+# Globals:
+#   None
+# Arguments:
+#   src_cmd, image_type, image_name, src_mnt, run_opts
+# Returns:
+#   None
+#######################################
 run_app_image() {
-  run_opts=${@:5}
-  dest_mnt="/home/app/data"
+  local src_cmd=$1
+  local image_type=$2
+  local image_name=$3
+  local src_mnt=$4
+  local run_opts=${@:5}
+
+  local f_name
+  f_name="$(kebab_to_snake ${src_cmd})"
+
   printf "${CHARS_LINE}\n"
-  printf "Running $3 [$2] ($1):\n\n"
-  docker run --rm --entrypoint "$1.sh" ${run_opts} \
-    --volume $4/$1_inputs:${dest_mnt}/$1_inputs:ro \
-    --volume $4/$1_outputs:${dest_mnt}/$1_outputs \
-  "$2:rc-cli" 2>&1 | tee "logs/$1/$2-$(timestamp).log"
-  printf "\n${CHARS_LINE}\n"
+  printf "Running ${image_type} [${image_name}] (${src_cmd}):\n\n"
+  start_time=$(date +%s)
+  { error=$(docker run --rm --entrypoint "${f_name}.sh" ${run_opts} \
+    --volume ${src_mnt}/${f_name}_inputs:${APP_DEST_MNT}/${f_name}_inputs:ro \
+    --volume ${src_mnt}/${f_name}_outputs:${APP_DEST_MNT}/${f_name}_outputs \
+    ${image_name}:${RC_IMAGE_TAG} 2>&1 >&3 3>&-); } 3>&1; echo ${error} \
+    | tee "logs/${f_name}/${image_name}_$(timestamp).log"
+  secs=$(($(date +%s) - start_time))
+
+  print_stdout_stats ${secs} ${error} \
+    "${src_mnt}/model_score_timings/${f_name}_time.json"
 }
 
+#######################################
+# Run a Docker image for the specified 'model-*' command
+# Globals:
+#   None
+# Arguments:
+#   src_cmd, image_type, image_name, src_mnt, run_opts
+# Returns:
+#   None
+#######################################
 run_dev_image() {
-  run_opts=${@:5}
-  raw_cmd=$(printf $1 | grep -o '^[^\-]*')
-  script="${raw_cmd}.sh"
-  dest_mnt="/home/app/data"
+  local src_cmd=$1
+  local image_type=$2
+  local image_name=$3
+  local src_mnt=$4
+  local run_opts=${@:5}
+
+  local f_name
+  # Remove '-dev' and convert to snake_case:
+  # 'model-build-dev' => 'model_build'
+  f_name=$(printf ${src_cmd} | sed s/-dev// | kebab_to_snake)
+
   printf "${CHARS_LINE}\n"
-  printf "Running $3 [$2] ($1):\n\n"
-  docker run --rm --entrypoint "" ${run_opts} \
+  printf "Running ${image_type} [${image_name}] (${src_cmd}):\n\n"
+  start_time=$(date +%s)
+  { error=$(docker run --rm --entrypoint "" ${run_opts} \
     --volume "$(pwd)/src:/home/app/src" \
-    --volume "$(pwd)/${script}:/home/app/${script}" \
-    --volume $4/${raw_cmd}_inputs:${dest_mnt}/${raw_cmd}_inputs:ro \
-    --volume $4/${raw_cmd}_outputs:${dest_mnt}/${raw_cmd}_outputs \
-    -it "$2:rc-cli" ${script} 2>&1 | tee "logs/$1/$2-$(timestamp).log" sh
-  printf "\n${CHARS_LINE}\n"
+    --volume "$(pwd)/${f_name}.sh:/home/app/${f_name}.sh" \
+    --volume $4/${f_name}_inputs:${APP_DEST_MNT}/${f_name}_inputs:ro \
+    --volume $4/${f_name}_outputs:${APP_DEST_MNT}/${f_name}_outputs \
+    --interactive --tty ${image_name}:${RC_IMAGE_TAG} ${f_name}.sh 2>&1 >&3 3>&-); } \
+    3>&1; echo ${error} | tee "logs/${f_name}/${image_name}_$(timestamp).log" sh
+  secs=$(($(date +%s) - start_time))
+
+  print_stdout_stats ${secs} ${error} \
+    "${src_mnt}/model_score_timings/${f_name}_time.json"
 }
 
+#######################################
+# Run a production test with the '${RC_TEST_IMAGE}'
+# Globals:
+#   None
+# Arguments:
+#   src_cmd, image_name, data_path
+# Returns:
+#   None
+#######################################
 run_test_image() {
-  image_file="$2.tar.gz"
-  # Check if the solution argument was not specified,
-  # i.e. "get_data_context $2" in 'test' returned 'data'.
-  [[ $3 == 'data' ]] \
-    && src_mnt_image="${TMP_DIR}/$2.tar.gz" \
-    || src_mnt_image="$(pwd)/solutions/$2/${image_file}"
-  printf "$1: The data at '$3' has been reset to the initial state\n\n"
-  printf "${CHARS_LINE}\n"
-  printf "Preparing Test Image [$2] to Run With [${RC_TEST_IMAGE}]:\n\n"
+  local src_cmd=$1
+  local image_name=$2
+  local data_path=$3
 
-  src_mnt="$(pwd)/$3"
-  scoring_path="${RC_CLI_PATH}/scoring"
-  scoring_image="${RC_SCORING_IMAGE}.tar.gz"
+  local src_mnt
+  local src_mnt_image
+  local image_file="$2.tar.gz"
+  local scoring_image="${RC_SCORING_IMAGE}.tar.gz"
+  src_mnt="$(pwd)/${data_path}"
+
+  # Check if the 'snapshot' argument was not specified, i.e.
+  # "get_data_context $2" in 'production-test' returned 'data'.
+  [[ ${data_path} == 'data' ]] \
+    && src_mnt_image="${TMP_DIR}/${image_file}" \
+    || src_mnt_image="$(pwd)/snapshots/${image_name}/${image_file}"
+  printf "${src_cmd}: The data at '${data_path}' has been reset to the initial state\n\n"
+  printf "${CHARS_LINE}\n"
+  printf "Preparing Test Image [${image_name}] to Run With [${RC_TEST_IMAGE}]:\n\n"
 
   docker run --privileged --rm \
     --env IMAGE_FILE=${image_file} \
     --env SCORING_IMAGE=${scoring_image} \
-    --volume "${scoring_path}/${scoring_image}:/mnt/${scoring_image}:ro" \
+    --volume "${RC_CLI_PATH}/scoring/${scoring_image}:/mnt/${scoring_image}:ro" \
     --volume "${src_mnt_image}:/mnt/${image_file}:ro" \
-    --volume "${src_mnt}/setup_inputs:/data/setup_inputs:ro" \
-    --volume "${src_mnt}/setup_outputs:/data/setup_outputs" \
-    --volume "${src_mnt}/evaluate_inputs:/data/evaluate_inputs:ro" \
-    --volume "${src_mnt}/evaluate_outputs:/data/evaluate_outputs" \
-    --volume "${scoring_path}/data/scoring_inputs:/data/scoring_inputs:ro" \
-    --volume "${scoring_path}/data/scoring_outputs:/data/scoring_outputs" \
-    "${RC_TEST_IMAGE}:rc-cli" 2>&1 | tee "./logs/$1/$2-run-$(timestamp).log"
+    --volume "${src_mnt}/model_build_inputs:/data/model_build_inputs:ro" \
+    --volume "${src_mnt}/model_build_outputs:/data/model_build_outputs" \
+    --volume "${src_mnt}/model_apply_inputs:/data/model_apply_inputs:ro" \
+    --volume "${src_mnt}/model_apply_outputs:/data/model_apply_outputs" \
+    --volume "${src_mnt}/model_score_inputs:/data/model_score_inputs:ro" \
+    --volume "${src_mnt}/model_score_outputs:/data/model_score_outputs" \
+    --volume "${src_mnt}/model_score_timings:/data/model_score_timings" \
+    ${RC_TEST_IMAGE}:${RC_IMAGE_TAG} 2>&1 \
+    | tee "logs/$(kebab_to_snake ${src_cmd})/${image_name}_run_$(timestamp).log"
 }
 
+#######################################
+# Run the scoring Docker image for the model.
+# Globals:
+#   None
+# Arguments:
+#   src_cmd, image_name, data_path
+# Returns:
+#   None
+#######################################
 run_scoring_image() {
-  scoring_mnt="${RC_CLI_PATH}/scoring/data"
-  dest_mnt="/home/scoring/data"
+  local src_cmd=$1
+  local image_type=$2
+  local image_name=$3
+  local src_mnt=$4
+
   printf "${CHARS_LINE}\n"
-  printf "Enabling the $3 [$2] to Run With [${RC_SCORING_IMAGE}]:\n\n"
-  # The time stats file is mounted in a different directory
+  printf "Enabling the ${image_type} [${image_name}] to Run With [${RC_SCORING_IMAGE}]:\n\n"
   docker run --rm \
-    --volume "$4/evaluate_outputs:${dest_mnt}/evaluate_outputs:ro" \
-    --volume "$4/evaluate_outputs/${DEFAULT_TIME_STATS_FILENAME}:${dest_mnt}/time_stats/${TIME_STATS_FILENAME}:ro" \
-    --volume "${scoring_mnt}/scoring_inputs:${dest_mnt}/scoring_inputs:ro" \
-    --volume "${scoring_mnt}/scoring_outputs:${dest_mnt}/scoring_outputs" \
-    "${RC_SCORING_IMAGE}:rc-cli" 2>&1 | tee "logs/$1/$2-$(timestamp).log"
+    --volume "${src_mnt}/model_apply_outputs:${SCORING_DEST_MNT}/model_apply_outputs:ro" \
+    --volume "${src_mnt}/model_score_inputs:${SCORING_DEST_MNT}/model_score_inputs:ro" \
+    --volume "${src_mnt}/model_score_timings:${SCORING_DEST_MNT}/model_score_timings:ro" \
+    --volume "${src_mnt}/model_score_outputs:${SCORING_DEST_MNT}/model_score_outputs" \
+    ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} 2>&1 \
+    | tee "logs/$(kebab_to_snake ${src_cmd})/${image_name}_$(timestamp).log"
   printf "\n${CHARS_LINE}\n"
 }
 
 make_logs() { # Ensure the necessary log file structure for the calling command
-  mkdir -p logs/$1
+  mkdir -p "logs/$(kebab_to_snake $1)"
 }
 
 # Single main function
@@ -299,14 +452,15 @@ main() {
   if [[ $# -lt 1 ]]; then
     err "missing command operand"
     exit 1
-  elif [[ $# -gt 2 && $1 != "new" ]]; then
+  elif [[ $# -gt 2 && $1 != "new-model" && $1 != "new" && $1 != "nm" ]]; then
     err "too many arguments"
     exit 1
   fi
 
   # Select the command
   case $1 in
-    new) # Create a new app based on a template
+    new-model | new | nm)
+      # Create a new app based on a template
       if [[ $# -lt 2 ]]; then
         err "Missing arguments. Try using:\nrc-cli help"
         exit 1
@@ -317,7 +471,6 @@ main() {
       template=${3:-"None Provided"}
       select_template
       template_path="${RC_CLI_PATH}/templates/${template}"
-
       cp -R "${template_path}" "$2"
       cp "${RC_CLI_PATH}/templates/README.md" "$2"
       cp -R "${RC_CLI_PATH}/data" "$2"
@@ -326,141 +479,163 @@ main() {
       printf "the '${template}' template has been created ${optional}at '$(pwd)/$2'\n"
       ;;
 
-    save) # Build the app image and save it to the 'solutions' directory
-      make_logs "$@"
+    save-snapshot | save | ss)
+      # Build the app image and save it to the 'snapshots' directory
+      cmd="save-snapshot"
+      make_logs ${cmd}
       basic_checks
-      get_solution_name $2
-      [[ -z ${solution_name} ]] && tmp_name=${app_name} || tmp_name=${solution_name}
+      snapshot="$(basename ${2:-''})"
+      [[ -z ${snapshot} ]] && tmp_name=${app_name} || tmp_name=${snapshot}
       printf "${CHARS_LINE}\n"
       printf "Save Precheck for App [${tmp_name}]:\n\n"
-      get_image_name ${tmp_name}
+      get_image_name ${cmd} ${tmp_name}
       printf "Save Precheck Complete\n\n"
-      build_image $1 ${image_name}
+      build_image ${cmd} ${image_name}
       save_image ${image_name}
       printf "${CHARS_LINE}\n"
       ;;
 
-    setup | evaluate) # Build and run the '[setup,evaluate].sh' script
-      make_logs "$@"
+    model-build | build | mb | model-apply | apply | ma)
+      # Build and run the 'model-[build,apply].sh' script
+      [[ $1 == "model-build" || $1 == "build" || $1 == "mb" ]] \
+        && cmd="model-build" \
+        || cmd="model-apply"
+      make_logs ${cmd}
       basic_checks
       if [[ -z $2 ]]; then
         image_name=${app_name}
-        build_image $1 ${app_name}
+        build_image ${cmd} ${app_name}
         image_type="App"
       else
-        check_solution $2
-        image_name=${solution_name}
-        load_solution ${image_name}
-        image_type="Solution"
+        check_snapshot $2
+        image_name=$(get_snapshot $2)
+        load_snapshot ${image_name}
+        image_type="Snapshot"
       fi
-      src_mnt=$(get_data_context_abs $2)
 
-      [[ $1 == "evaluate" ]] \
-        && run_opts="--volume ${src_mnt}/setup_outputs:/home/app/data/setup_outputs:ro"
-      run_app_image $1 ${image_name} ${image_type} ${src_mnt} ${run_opts}
+      src_mnt=$(get_data_context_abs $2)
+      [[ ${cmd} == "model-apply" ]] \
+        && run_opts="--volume ${src_mnt}/model_build_outputs:${APP_DEST_MNT}/model_build_outputs:ro"
+      run_app_image ${cmd} ${image_type} ${image_name} ${src_mnt} ${run_opts}
       ;;
 
-    setup-dev | evaluate-dev) # Build (only when the image doesn't exist) and run the '[setup,evaluate].sh' script
+    model-build-dev | build-dev | mb-dev | model-apply-dev | apply-dev | ma-dev)
+      # Build a Docker image (if it doesn't exist) and run the 'model-*.sh' script
       if [[ $# -gt 1 ]]; then
         err "too many arguments"
         exit 1
       fi
-      make_logs "$@"
+      [[ $1 == "model-build-dev" || $1 == "build-dev" || $1 == "mb-dev" ]] \
+        && cmd="model-build-dev" || cmd="model-apply-dev"
+      make_logs ${cmd}
       basic_checks
       image_name=${app_name}
       if ! is_image_built ${app_name}; then
-        build_image $1 ${app_name}
+        build_image ${cmd} ${app_name}
       fi
       image_type="App"
+
       src_mnt="$(pwd)/data"
-      [[ $1 == "evaluate-dev" ]] \
-        && run_opts="--volume ${src_mnt}/setup_outputs:/home/app/data/setup_outputs:ro"
-      run_dev_image $1 ${image_name} ${image_type} ${src_mnt} ${run_opts}
+      [[ ${cmd} == "model-apply-dev" ]] \
+        && run_opts="--volume ${src_mnt}/model_build_outputs:${APP_DEST_MNT}/model_build_outputs:ro"
+      run_dev_image ${cmd} ${image_type} ${image_name} ${src_mnt} ${run_opts}
       ;;
 
-    test) # Run the tests with the '${RC_TEST_IMAGE}'
+    production-test | test | pt)
+      # Run the tests with the '${RC_TEST_IMAGE}'
       basic_checks
-      [[ -n $2 ]] && check_solution $2 # Sanity check before doing anything else
+      [[ -n $2 ]] && check_snapshot $2 # Sanity check
+
+      cmd="production-test"
       data_path=$(get_data_context $2)
-      # Retrieve a clean copy of 'data' from the rc-cli sources
-      reset_data_prompt $1 ${data_path}
+      reset_data_prompt ${cmd} ${data_path}
       printf '\n' # Improve formatting
-      make_logs "$@"
+
+      make_logs ${cmd}
 
       if [[ -z $2 ]]; then
         image_name=${app_name}
-        build_image $1 ${app_name}
-        docker save "${app_name}:rc-cli" | gzip > "${TMP_DIR}/${app_name}.tar.gz"
+        build_image ${cmd} ${image_name}
+        docker save ${image_name}:${RC_IMAGE_TAG} | gzip > "${TMP_DIR}/${image_name}.tar.gz"
       else
-        image_name=${solution_name}
-        load_solution ${image_name}
+        image_name=$(get_snapshot $2)
+        load_snapshot ${image_name}
       fi
 
-      # Saving time if the image exist.
+      # Saving time if some images exist.
       if ! is_image_built ${RC_TEST_IMAGE}; then
-        build_image $1 ${RC_TEST_IMAGE} ${RC_CLI_PATH}
+        build_image ${cmd} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       fi
       if ! is_image_built ${RC_SCORING_IMAGE}; then
-        build_image $1 ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+        build_image ${cmd} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
       if [[ ! -f "scoring/${RC_SCORING_IMAGE}.tar.gz" ]]; then
-        docker save "${RC_SCORING_IMAGE}:rc-cli" | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
+        docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} \
+          | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
       fi
-      run_test_image $1 ${image_name} ${data_path}
+      run_test_image ${cmd} ${image_name} ${data_path}
       printf "\n${CHARS_LINE}\n"
       ;;
 
-    score) # Calculate the score for the app or the specified solution.
+    model-score | score | ms)
+      # Calculate the score for the app or the specified snapshot.
       basic_checks
-      # The 'setup' and 'evaluate' output data must exist,
-      # as well as the 'scoring_inputs' data
+      # 'model_build_outputs' and 'model_apply_outputs' must exist,
+      # as well as 'model_score_outputs' and 'model_score_timings'
       src_mnt=$(get_data_context_abs $2)
-      default_time_path="${src_mnt}/evaluate_outputs/${DEFAULT_TIME_STATS_FILENAME}"
+      model_build_time="${src_mnt}/model_score_timings/model_build_time.json"
+      model_apply_time="${src_mnt}/model_score_timings/model_apply_time.json"
       if [[ ! -d "${src_mnt}/setup_outputs" ]]; then
         err "'${src_mnt}/setup_outputs': data not found"
         exit 1
-      elif [[ ! -f "${default_time_path}" ]]; then
-        err "'${default_time_path}': file not found"
+      elif [[ ! -d "${RC_CLI_PATH}/data/model_score_inputs" ]]; then
+        err "'${RC_CLI_PATH}/data/model_score_inputs': data not found"
         exit 1
-      elif [[ ! -d "${RC_CLI_PATH}/scoring/data/scoring_inputs" ]]; then
-        err "'${RC_CLI_PATH}/scoring/data/scoring_inputs': data not found"
+      elif [[ ! -d "${RC_CLI_PATH}/data/model_score_timings" ]]; then
+        err "'${RC_CLI_PATH}/data/model_score_timings': data not found"
+        exit 1
+      elif [[ ! -f "${model_build_time}" ]]; then
+        err "'${model_build_time}': file not found"
+        exit 1
+      elif [[ ! -f "${model_apply_time}" ]]; then
+        err "'${model_apply_time}': file not found"
         exit 1
       fi
-      make_logs "$@"
-
-      printf "WARNING! $1: The default time at '${default_time_path}' will be used.\n"
-      printf "Please run 'test' for actual time stats.\n\n"
+      cmd="model-score"
+      make_logs ${cmd}
 
       if [[ -z $2 ]]; then
         image_name=${app_name}
         image_type="App"
-        build_image $1 ${app_name}
+        build_image ${cmd} ${app_name}
       else
-        check_solution $2
-        image_name=${solution_name}
-        image_type="Solution"
-        load_solution ${image_name}
+        check_snapshot $2
+        image_name=$(get_snapshot $2)
+        image_type="Snapshot"
+        load_snapshot ${image_name}
       fi
 
       if ! is_image_built ${RC_SCORING_IMAGE}; then
-        build_image $1 ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+        build_image ${cmd} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
-      run_scoring_image $1 ${image_name} ${image_type} ${src_mnt}
+      run_scoring_image ${cmd} ${image_type} ${image_name} ${src_mnt}
       ;;
 
-    debug) # Enable an interactive shell at runtime to debug the app container.
-      make_logs "$@"
+    model-debug | debug | md)
+      # Enable an interactive shell at runtime to debug the app container.
+      cmd="model-debug"
+      make_logs ${cmd}
       basic_checks
       if [[ -z $2 ]]; then
         image_name=${app_name}
-        build_image $1 ${app_name}
+        build_image ${cmd} ${app_name}
       else
-        check_solution $2
-        image_name=${solution_name}
-        load_solution ${image_name}
+        check_snapshot $2
+        image_name=$(get_snapshot $2)
+        load_snapshot ${image_name}
       fi
       # Find all available shells in container and choose bash if available
-      valid_sh=$(docker run --rm --entrypoint="" "${image_name}:rc-cli" cat /etc/shells)
+      valid_sh=$(docker run --rm --entrypoint="" ${image_name}:${RC_IMAGE_TAG} cat /etc/shells)
       [[ -n $(echo ${valid_sh} | grep "/bin/bash") ]] \
         && app_sh="/bin/bash" || app_sh="/bin/sh"
       printf "Debug mode:\n"
@@ -469,24 +644,23 @@ main() {
       printf "  - switch to a preferred shell if available, e.g. /bin/zsh\n"
       printf "  - $(tput bold)no '*.sh' script has been run yet$(tput sgr0)\n"
       printf "  - use the 'exit' command to exit the current shell\n"
-      printf "\nEnabling an interactive shell with the solution container...\n"
+      printf "\nEnabling an interactive shell with the snapshot container...\n"
       src_mnt=$(get_data_context_abs $2)
-      dest_mnt="/home/app/data/"
       docker run --rm --entrypoint="" --user root \
-        --volume "${src_mnt}/setup_inputs:${dest_mnt}/setup_inputs:ro" \
-        --volume "${src_mnt}/setup_outputs:${dest_mnt}/setup_outputs" \
-        --volume "${src_mnt}/evaluate_inputs:${dest_mnt}/evaluate_inputs:ro" \
-        --volume "${src_mnt}/evaluate_outputs:${dest_mnt}/evaluate_outputs" \
-        -it "${image_name}:rc-cli" ${app_sh}
+        --volume "${src_mnt}/setup_inputs:${APP_DEST_MNT}/setup_inputs:ro" \
+        --volume "${src_mnt}/setup_outputs:${APP_DEST_MNT}/setup_outputs" \
+        --volume "${src_mnt}/evaluate_inputs:${APP_DEST_MNT}/evaluate_inputs:ro" \
+        --volume "${src_mnt}/evaluate_outputs:${APP_DEST_MNT}/evaluate_outputs" \
+        --interactive --tty ${image_name}:${RC_IMAGE_TAG} ${app_sh}
       ;;
 
-    purge) # Remove all the logs, images and solutions created by 'rc-cli'.
+    purge) # Remove all the logs, images and snapshots created by 'rc-cli'.
       if [[ $# -gt 1 ]]; then
         err "too many arguments"
         exit 1
       fi
       # Prompt confirmation to delete user
-      printf "WARNING! purge: This will remove all logs, Docker images and solutions created by ${RC_CLI_SHORT_NAME}\n"
+      printf "WARNING! purge: This will remove all logs, Docker images and snapshots created by ${RC_CLI_SHORT_NAME}\n"
       read -r -p "Are you sure you want to continue? [y/N] " input
       case ${input} in
         [yY][eE][sS] | [yY])
@@ -494,14 +668,14 @@ main() {
           rm -rf "logs/"
           printf "done\n"
           printf "Removing images... "
-          rc_images=$(docker images --all --filter reference="*:rc-cli" --quiet)
+          rc_images=$(docker images --all --filter reference="*:${RC_IMAGE_TAG}" --quiet)
           if [[ ${rc_images} ]]; then
             docker rmi --force ${rc_images} &> /dev/null
           fi
           printf "done\n"
 
-          printf "Removing solutions... "
-          rm -rf solutions/*/ # Remove only directories
+          printf "Removing snapshots... "
+          rm -rf snapshots/*/ # Remove only directories
           printf "done\n"
           printf "Finished!\n"
           ;;
@@ -530,7 +704,7 @@ main() {
       check_docker
       build_image $1 ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       build_image $1 ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
-      docker save "${RC_SCORING_IMAGE}:rc-cli" | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
+      docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
 
       printf "Finished!\n"
       ;;
@@ -549,7 +723,7 @@ main() {
       case ${input} in
         [yY][eE][sS] | [yY])
           printf "Removing all Docker images..."
-          rc_images=$(docker images --all --filter reference="*:rc-cli" --quiet)
+          rc_images=$(docker images --all --filter reference="*:${RC_IMAGE_TAG}" --quiet)
           if [[ ${rc_images} ]]; then
             docker rmi --force ${rc_images} &> /dev/null
           fi
@@ -574,47 +748,47 @@ main() {
       cat 1>&2 <<EOF
 ${RC_CLI_LONG_NAME}
 
-General Usage:  rc-cli COMMAND [SOLUTION]
+General Usage:  rc-cli COMMAND [SNAPSHOT]
 
 Commands:
-  debug                     Enable an interactive shell at runtime to debug the current app or solution in a Docker container
+  debug                     Enable an interactive shell at runtime to debug the current app or snapshot in a Docker container
   evaluate                  Build and run the 'evaluate.sh' script
   help                      Print help information
   new                       Create a new RC app within the current directory
-  purge                     Remove all the logs, images and solutions created by ${RC_CLI_SHORT_NAME}
+  purge                     Remove all the logs, images and snapshots created by ${RC_CLI_SHORT_NAME}
   reset                     Reset the data directory to the initial state
-  save                      Build the solution image and save it to the 'solutions' directory
+  save                      Build the snapshot image and save it to the 'snapshots' directory
   setup                     Build and run the 'setup.sh' script
-  test                      Run the tests for a solution image with the '${RC_TEST_IMAGE}'
+  test                      Run the tests for a snapshot image with the '${RC_TEST_IMAGE}'
   uninstall                 Uninstall the rc-cli and all rc-cli created docker images
   update                    Run maintenance commands after any breaking changes on the ${RC_CLI_SHORT_NAME}
   version                   Display the current version
 
 Usage Examples:
-  debug [solution-name]
+  debug [snapshot-name]
     - Debug your current app
       ${CHARS_LINE}
       rc-cli debug
       ${CHARS_LINE}
-    - Debug a saved solution
+    - Debug a snapshot
       ${CHARS_LINE}
-      rc-cli debug my-solution
+      rc-cli debug my-snapshot
       ${CHARS_LINE}
 
-  evaluate(-dev) [solution-name]
+  evaluate(-dev) [snapshot-name]
     - Run the evaluate phase for your current app
       ${CHARS_LINE}
       rc-cli evaluate
       ${CHARS_LINE}
-    - - Run the evaluate phase for a saved solution
+    - Run the evaluate phase for a snapshot
       ${CHARS_LINE}
-      rc-cli evaluate my-solution
+      rc-cli evaluate my-snapshot
       ${CHARS_LINE}
     - Run the evaluate phase for your current app without rebuilding the docker image
       ${CHARS_LINE}
       rc-cli evaluate-dev
       ${CHARS_LINE}
-      - This will not take in solution arguments
+      - This will not take in snapshot arguments
       - This uses:
         - The current state of your local filesystem at:
           - evaluate.sh
@@ -644,40 +818,40 @@ Usage Examples:
     - Purge data, logs and containers created by the ${RC_CLI_SHORT_NAME}
       - rc-cli purge
 
-  reset [solution-name]
+  reset [snapshot-name]
     - Reset my-app/data to the values that will be used for competition scoring
       ${CHARS_LINE}
       rc-cli reset
       ${CHARS_LINE}
-    - Reset my-app/solutions/my-solution/data to the values that will be used for competition scoring
+    - Reset my-app/snapshots/my-snapshot/data to the values that will be used for competition scoring
       ${CHARS_LINE}
-      rc-cli reset my-solution
+      rc-cli reset my-snapshot
       ${CHARS_LINE}
 
-  save [solution-name]
-    - Save the current app as a solution with the same name as your app
+  save [snapshot-name]
+    - Save the current app as a snapshot with the same name as your app
       ${CHARS_LINE}
       rc-cli save
       ${CHARS_LINE}
-    - Save the current app as a solution named my-solution
+    - Save the current app as a snapshot named my-snapshot
       ${CHARS_LINE}
-      rc-cli save my-solution
+      rc-cli save my-snapshot
       ${CHARS_LINE}
 
-  setup(-dev) [solution-name]
+  setup(-dev) [snapshot-name]
     - Run the setup phase for your current app
       ${CHARS_LINE}
       rc-cli setup
       ${CHARS_LINE}
-    - Run the setup phase for a saved solution
+    - Run the setup phase for a saved snapshot
       ${CHARS_LINE}
-      rc-cli setup my-solution
+      rc-cli setup my-snapshot
       ${CHARS_LINE}
     - Run the setup phase for your current app without rebuilding the docker image
       ${CHARS_LINE}
       rc-cli setup-dev
       ${CHARS_LINE}
-      - This will not take in solution arguments
+      - This will not take in snapshot arguments
       - This uses:
         - The current state of your local filesystem at:
           - setup.sh
@@ -686,16 +860,16 @@ Usage Examples:
           - You can rebuild the docker image using \`rc-cli setup\` or \`rc-cli evaluate\`
 
 
-  test [solution-name]
+  test [snapshot-name]
     - Test the scoring process on your app
       - NOTE: This resets data, runs setup, runs evaluate, and applies the scoring algorithm
       ${CHARS_LINE}
       rc-cli test
       ${CHARS_LINE}
-    - Test the scoring process on a saved solution
+    - Test the scoring process on a saved snapshot
       - NOTE: This resets data, runs setup, runs evaluate, and applies the scoring algorithm
       ${CHARS_LINE}
-      rc-cli test my-solution
+      rc-cli test my-snapshot
       ${CHARS_LINE}
 
   uninstall
