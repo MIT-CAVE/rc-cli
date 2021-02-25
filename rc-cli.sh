@@ -128,14 +128,12 @@ get_snapshot() {
 
 check_snapshot() {
   local snapshot=$1
-
   local f_name
   f_name="$(get_snapshot ${snapshot})"
   if [[ ! -f "snapshots/${f_name}/${f_name}.tar.gz" ]]; then
     err "${f_name}: snapshot not found"
     exit 1
   fi
-  printf ${f_name}
 }
 
 # Prompts for a 'snapshot' name if the given snapshot exists
@@ -190,8 +188,8 @@ build_image() {
   local out_file
   f_name="$(kebab_to_snake ${src_cmd})"
   printf "${CHARS_LINE}\n"
-  printf "Build Image [${image_name}]:\n\n"
-  printf "Building the '${image_name}' image... "
+  printf "Configure Image [${image_name}]:\n\n"
+  printf "Configuring the '${image_name}' image... "
   docker rmi ${image_name}:${RC_IMAGE_TAG} &> /dev/null
   [[ -d "logs/${f_name}" ]] \
     && out_file="logs/${f_name}/${image_name}_build_$(timestamp).log" \
@@ -241,6 +239,15 @@ save_image() {
   docker save ${image_name}:${RC_IMAGE_TAG} \
     | gzip > "${snapshot_path}/${f_name}.tar.gz"
   printf "done\n\n"
+}
+
+build_if_missing() { # Build the image if it is missing under the model configure terminology
+  if ! is_image_built ${1}; then
+    printf "${CHARS_LINE}\n"
+    printf "No prebuilt image exists yet. Configuring Image with 'model-configure'\n\n"
+    make_logs "model-configure"
+    build_image "model-configure" ${1}
+  fi
 }
 
 #######################################
@@ -503,42 +510,35 @@ main() {
       make_logs ${cmd}
       basic_checks
       if [[ -z $2 ]]; then
-        image_name=${app_name}
-        build_image ${cmd} ${app_name}
+        build_if_missing "${app_name}"
         image_type="App"
+        src_mnt="$(pwd)/data"
+        [[ ${cmd} == "model-apply" ]] \
+          && run_opts="--volume ${src_mnt}/model_build_outputs:${APP_DEST_MNT}/model_build_outputs:ro"
+        run_dev_image ${cmd} ${image_type} ${app_name} ${src_mnt} ${run_opts}
       else
         check_snapshot $2
         image_name=$(get_snapshot $2)
         load_snapshot ${image_name}
         image_type="Snapshot"
+        src_mnt=$(get_data_context_abs $2)
+        [[ ${cmd} == "model-apply" ]] \
+          && run_opts="--volume ${src_mnt}/model_build_outputs:${APP_DEST_MNT}/model_build_outputs:ro"
+        run_app_image ${cmd} ${image_type} ${image_name} ${src_mnt} ${run_opts}
       fi
-
-      src_mnt=$(get_data_context_abs $2)
-      [[ ${cmd} == "model-apply" ]] \
-        && run_opts="--volume ${src_mnt}/model_build_outputs:${APP_DEST_MNT}/model_build_outputs:ro"
-      run_app_image ${cmd} ${image_type} ${image_name} ${src_mnt} ${run_opts}
       ;;
 
-    model-build-dev | build-dev | mb-dev | model-apply-dev | apply-dev | ma-dev)
-      # Build a Docker image (if it doesn't exist) and run the 'model-*.sh' script
+    model-configure | configure | mc)
+      # Rebuild a Docker image for the current app
       if [[ $# -gt 1 ]]; then
-        err "too many arguments"
+        err "Too many arguments"
         exit 1
       fi
-      [[ $1 == "model-build-dev" || $1 == "build-dev" || $1 == "mb-dev" ]] \
-        && cmd="model-build-dev" || cmd="model-apply-dev"
+      cmd="model-configure"
       make_logs ${cmd}
       basic_checks
-      image_name=${app_name}
-      if ! is_image_built ${app_name}; then
-        build_image ${cmd} ${app_name}
-      fi
-      image_type="App"
-
-      src_mnt="$(pwd)/data"
-      [[ ${cmd} == "model-apply-dev" ]] \
-        && run_opts="--volume ${src_mnt}/model_build_outputs:${APP_DEST_MNT}/model_build_outputs:ro"
-      run_dev_image ${cmd} ${image_type} ${image_name} ${src_mnt} ${run_opts}
+      build_image ${cmd} ${app_name}
+      printf "${CHARS_LINE}\n"
       ;;
 
     production-test | test | pt)
@@ -580,8 +580,7 @@ main() {
     model-score | score | ms)
       # Calculate the score for the app or the specified snapshot.
       basic_checks
-      # 'model_build_outputs' and 'model_apply_outputs' must exist,
-      # as well as 'model_score_outputs' and 'model_score_timings'
+      # Validate that build and apply have happend by checking for timings.
       src_mnt=$(get_data_context_abs $2)
       model_build_time="${src_mnt}/model_score_timings/model_build_time.json"
       model_apply_time="${src_mnt}/model_score_timings/model_apply_time.json"
@@ -607,8 +606,8 @@ main() {
       make_logs ${cmd}
       basic_checks
       if [[ -z $2 ]]; then
-        image_name=${app_name}
-        build_image ${cmd} ${app_name}
+        build_if_missing "${app_name}"
+        image_name="${app_name}"
       else
         check_snapshot $2
         image_name=$(get_snapshot $2)
@@ -618,6 +617,7 @@ main() {
       valid_sh=$(docker run --rm --entrypoint="" ${image_name}:${RC_IMAGE_TAG} cat /etc/shells)
       [[ -n $(echo ${valid_sh} | grep "/bin/bash") ]] \
         && app_sh="/bin/bash" || app_sh="/bin/sh"
+      printf "${CHARS_LINE}\n"
       printf "Debug mode:\n"
       printf "  - the default shell is ${app_sh}\n"
       printf "  - find all valid login shells: cat /etc/shells\n"
@@ -627,11 +627,12 @@ main() {
       printf "\nEnabling an interactive shell with the snapshot container...\n"
       src_mnt=$(get_data_context_abs $2)
       docker run --rm --entrypoint="" --user root \
-        --volume "${src_mnt}/setup_inputs:${APP_DEST_MNT}/setup_inputs:ro" \
-        --volume "${src_mnt}/setup_outputs:${APP_DEST_MNT}/setup_outputs" \
-        --volume "${src_mnt}/evaluate_inputs:${APP_DEST_MNT}/evaluate_inputs:ro" \
-        --volume "${src_mnt}/evaluate_outputs:${APP_DEST_MNT}/evaluate_outputs" \
+        --volume "${src_mnt}/model_build_inputs:${APP_DEST_MNT}/model_build_inputs:ro" \
+        --volume "${src_mnt}/model_build_outputs:${APP_DEST_MNT}/model_build_outputs" \
+        --volume "${src_mnt}/model_apply_inputs:${APP_DEST_MNT}/model_apply_inputs:ro" \
+        --volume "${src_mnt}/model_apply_outputs:${APP_DEST_MNT}/model_apply_outputs" \
         --interactive --tty ${image_name}:${RC_IMAGE_TAG} ${app_sh}
+      printf "${CHARS_LINE}\n"
       ;;
 
     purge) # Remove all the logs, images and snapshots created by 'rc-cli'.
@@ -640,6 +641,7 @@ main() {
         exit 1
       fi
       # Prompt confirmation to delete user
+      printf "${CHARS_LINE}\n"
       printf "WARNING! purge: This will remove all logs, Docker images and snapshots created by ${RC_CLI_SHORT_NAME}\n"
       read -r -p "Are you sure you want to continue? [y/N] " input
       case ${input} in
@@ -667,6 +669,7 @@ main() {
           exit 1
           ;;
       esac
+      printf "${CHARS_LINE}\n"
       ;;
 
     reset) # Flush the output data in the directories
