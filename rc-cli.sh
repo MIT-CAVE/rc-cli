@@ -697,7 +697,7 @@ main() {
     update) # Run maintenance commands after breaking changes on the framework.
       printf "${CHARS_LINE}\n"
       printf "Checking Installation\n"
-      source "${RC_CLI_PATH}/DATA_URLS"s
+      source "${RC_CLI_PATH}/DATA_URLS"
       bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") "$DATA_URL"
       printf "\n${CHARS_LINE}\n"
       printf "Running other update maintenance tasks\n"
