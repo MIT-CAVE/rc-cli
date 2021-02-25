@@ -1,37 +1,35 @@
 from os import path
-import sys, json, csv, time
+import sys, json, time
 
 # Get Data Directory
 BASE_DIR = path.dirname(path.dirname(path.abspath(__file__)))
 DATA_DIR = path.join(BASE_DIR, 'data')
 
 # Get various input and output directories
-SETUP_INPUTS_DIR = path.join(DATA_DIR, 'setup_inputs')
-SETUP_OUTPUTS_DIR = path.join(DATA_DIR, 'setup_outputs')
+MODEL_BUILD_INPUTS_DIR = path.join(DATA_DIR, 'model_build_inputs')
+MODEL_BUILD_OUTPUTS_DIR = path.join(DATA_DIR, 'model_build_outputs')
 
 # I/O Files
-SETUP_INPUT_FILEPATH = path.join(SETUP_INPUTS_DIR, 'setup_in.csv')
-SETUP_OUTPUT_FILEPATH = path.join(SETUP_OUTPUTS_DIR, 'setup_out.json')
+ACTUAL_ROUTES_FILEPATH = path.join(MODEL_BUILD_INPUTS_DIR, 'actual_routes.json')
+MODEL_BUILD_OUTPUT_FILEPATH = path.join(MODEL_BUILD_OUTPUTS_DIR, 'build_output.json')
 
 # Read input data
 print('Reading Input Data')
-setup_in = None
+actual_routes = None
 try:
-    with open(SETUP_INPUT_FILEPATH, newline='') as in_file:
-        setup_in = [
-            i for i in csv.reader(in_file, delimiter=',', quotechar='|')
-        ]
+    with open(ACTUAL_ROUTES_FILEPATH, newline='') as in_file:
+        actual_routes = json.load(in_file)
 except FileNotFoundError:
-    print("The '{}' file is missing!".format(SETUP_INPUT_FILEPATH))
-except csv.Error:
-    print("Error in the '{}' CSV data!".format(SETUP_INPUT_FILEPATH))
+    print("The '{}' file is missing!".format(ACTUAL_ROUTES_FILEPATH))
+except JSONDecodeError:
+    print("Error in the '{}' JSON data!".format(ACTUAL_ROUTES_FILEPATH))
 except Exception as e:
-    print("Error when reading the '{}' file!".format(SETUP_INPUT_FILEPATH))
+    print("Error when reading the '{}' file!".format(ACTUAL_ROUTES_FILEPATH))
     print(e)
 
-if setup_in:
+if actual_routes:
     print('Printing Input Data')
-    print('setup_in:', setup_in)
+    print('actual_routes:', actual_routes)
 
     # Solve for life the universe and everything
     print('Initializing Quark Reducer')
@@ -55,6 +53,6 @@ if setup_in:
     }
 
     # Write output data
-    with open(SETUP_OUTPUT_FILEPATH, 'w') as out_file:
+    with open(MODEL_BUILD_OUTPUT_FILEPATH, 'w') as out_file:
         json.dump(output, out_file)
-        print("Setup: The '{}' file has been saved".format(SETUP_OUTPUT_FILEPATH))
+        print("Setup: The '{}' file has been saved".format(MODEL_BUILD_OUTPUT_FILEPATH))
