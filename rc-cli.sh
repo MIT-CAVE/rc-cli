@@ -265,7 +265,7 @@ reset_data_prompt() {
 
   local f_name
   f_name="$(kebab_to_snake ${src_cmd})"
-  printf "WARNING! ${src_cmd}: This will reset the data directory at '${data_path}' to a blank state\n"
+  printf "WARNING! ${src_cmd}: This will reset the data directory at '${data_path}' to the initial data state\n"
   read -r -p "Are you sure you want to continue? [y/N] " input
   case ${input} in
     [yY][eE][sS] | [yY])
@@ -466,7 +466,7 @@ main() {
 
   # Select the command
   case $1 in
-    new-model | new | nm)
+    new-app | new | na)
       # Create a new app based on a template
       if [[ $# -lt 2 ]]; then
         err "Missing arguments. Try using:\nrc-cli help"
@@ -622,7 +622,9 @@ main() {
       printf "  - You are in the equvalent of your current app directory inside of a docker container\n"
       printf "  - You can test your code directly in this environment\n"
       printf "    - EG: try running:\n"
+      printf "      ${CHARS_LINE}\n"
       printf "      ./model_build.sh'\n"
+      printf "      ${CHARS_LINE}\n"
       printf "  - use the 'exit' command to exit the current shell\n"
       printf "\nEnabling an interactive shell with the snapshot container...\n"
       src_mnt=$(get_data_context_abs $2)
@@ -672,7 +674,7 @@ main() {
       printf "${CHARS_LINE}\n"
       ;;
 
-    reset) # Flush the output data in the directories
+    data-reset | reset | dr) # Flush the output data in the directories
       data_path=$(get_data_context $2)
       reset_data_prompt $1 ${data_path}
       ;;
@@ -731,87 +733,112 @@ main() {
       cat 1>&2 <<EOF
 ${RC_CLI_LONG_NAME}
 
-General Usage:  rc-cli COMMAND [SNAPSHOT]
+General Usage:  rc-cli COMMAND [options]
 
-Commands:
-  debug                     Enable an interactive shell at runtime to debug the current app or snapshot in a Docker container
-  evaluate                  Build and run the 'evaluate.sh' script
-  help                      Print help information
-  new                       Create a new RC app within the current directory
-  purge                     Remove all the logs, images and snapshots created by ${RC_CLI_SHORT_NAME}
-  reset                     Reset the data directory to the initial state
-  save                      Build the snapshot image and save it to the 'snapshots' directory
-  setup                     Build and run the 'setup.sh' script
-  test                      Run the tests for a snapshot image with the '${RC_TEST_IMAGE}'
-  uninstall                 Uninstall the rc-cli and all rc-cli created docker images
-  update                    Run maintenance commands after any breaking changes on the ${RC_CLI_SHORT_NAME}
-  version                   Display the current version
+Core Commands:
+  data-reset (dr)           Reset the current app data directory to the initial state.
+  model-apply (ma)          Execute the model_apply.sh script inside of your app's Docker image.
+  model-build (mb)          Execute the model_build.sh script inside of your app's Docker image.
+  model-configure (mc)      Configure your app's Docker image using your local Dockerfile.
+                            - This overwrites previous image giving you an updated image.
+                            - Every time you update your project root (shell scripts or Dockerfile),
+                              you should run model-configure again.
+  model-debug (md)          Launch an interactive terminal into your app's Docker image.
+  model-score (ms)          Apply the scoring algorithm against your app's current data.
+  new-app (na)              Create a new application directory within your current directory.
+  production-test (pt)      Run your app phases end to end exactly as it will be run during your official scoring phase.
+  save-snapshot (ss)        Configure your app's Docker image and save it as a snapshot in the snapshots folder.
+
+Utility Commands:
+  help                      Print help information for the ${RC_CLI_SHORT_NAME}.
+  purge                     Remove all the logs and snapshots created by ${RC_CLI_SHORT_NAME} in the current.
+                            app directory. This also removes all ${RC_CLI_SHORT_NAME} Docker images.
+  uninstall                 Uninstall the ${RC_CLI_SHORT_NAME} and all ${RC_CLI_SHORT_NAME} created docker images.
+  update                    Update to the most recent ${RC_CLI_SHORT_NAME}.
+  version                   Display the current ${RC_CLI_SHORT_NAME} version.
 
 Usage Examples:
-  debug [snapshot-name]
-    - Debug your current app
-      ${CHARS_LINE}
-      rc-cli debug
-      ${CHARS_LINE}
-    - Debug a snapshot
-      ${CHARS_LINE}
-      rc-cli debug my-snapshot
-      ${CHARS_LINE}
-
-  evaluate(-dev) [snapshot-name]
-    - Run the evaluate phase for your current app
-      ${CHARS_LINE}
-      rc-cli evaluate
-      ${CHARS_LINE}
-    - Run the evaluate phase for a snapshot
-      ${CHARS_LINE}
-      rc-cli evaluate my-snapshot
-      ${CHARS_LINE}
-    - Run the evaluate phase for your current app without rebuilding the docker image
-      ${CHARS_LINE}
-      rc-cli evaluate-dev
-      ${CHARS_LINE}
-      - This will not take in snapshot arguments
-      - This uses:
-        - The current state of your local filesystem at:
-          - evaluate.sh
-          - src/
-        - Everything else is pulled from the previous docker build
-          - You can rebuild the docker image using \`rc-cli setup\` or \`rc-cli evaluate\`
-
-  help
-    - Get all cli commands
-      ${CHARS_LINE}
-      rc-cli help
-      ${CHARS_LINE}
-
-  new [app-name] [template-name]
-    - Currently, the following templates are available:
-      - ${RC_HELP_TEMPLATE_STRING}
-    - Create a new app with the default template ${RC_CLI_DEFAULT_TEMPLATE}
-      ${CHARS_LINE}
-      rc-cli new my-app
-      ${CHARS_LINE}
-    - Create a new app with a specified template
-      ${CHARS_LINE}
-      rc-cli new my-app ${RC_CLI_DEFAULT_TEMPLATE}
-      ${CHARS_LINE}
-
-  purge
-    - Purge data, logs and containers created by the ${RC_CLI_SHORT_NAME}
-      - rc-cli purge
-
-  reset [snapshot-name]
+  data-reset [snapshot-name]
     - Reset my-app/data to the values that will be used for competition scoring
       ${CHARS_LINE}
-      rc-cli reset
+      rc-cli data-reset
       ${CHARS_LINE}
     - Reset my-app/snapshots/my-snapshot/data to the values that will be used for competition scoring
       ${CHARS_LINE}
-      rc-cli reset my-snapshot
+      rc-cli data-reset my-snapshot
       ${CHARS_LINE}
 
-  save [snapshot-name]
+  model-apply [snapshot-name]
+    - Run the model-apply phase for your current app (after having run model-build)
+      ${CHARS_LINE}
+      rc-cli model-apply
+      ${CHARS_LINE}
+    - Run the evaluate phase for a snapshot (after having run model-build)
+      ${CHARS_LINE}
+      rc-cli model-apply my-snapshot
+      ${CHARS_LINE}
+
+  model-build [snapshot-name]
+    - Run the model-build phase for your current app
+      ${CHARS_LINE}
+      rc-cli model-build
+      ${CHARS_LINE}
+    - Run the evaluate phase for a snapshot
+      ${CHARS_LINE}
+      rc-cli model-build my-snapshot
+      ${CHARS_LINE}
+
+  model-configure
+    - Configure your app's current Docker image
+      ${CHARS_LINE}
+      rc-cli model-configure
+      ${CHARS_LINE}
+
+  model-debug [snapshot-name]
+    - Debug your current app
+      ${CHARS_LINE}
+      rc-cli model-debug
+      ${CHARS_LINE}
+    - Debug a snapshot
+      ${CHARS_LINE}
+      rc-cli model-debug my-snapshot
+      ${CHARS_LINE}
+
+  model-score [snapshot-name]
+    - Generate the score for your current app (after having run model-build and model-apply)
+      ${CHARS_LINE}
+      rc-cli model-score
+      ${CHARS_LINE}
+    - Generate the score for a snapshot (after having run model-build and model-apply)
+      ${CHARS_LINE}
+      rc-cli model-score my-snapshot
+      ${CHARS_LINE}
+
+  new-app [app-name] [template-name]
+    - The following templates are available:
+      - ${RC_HELP_TEMPLATE_STRING}
+    - Create a new app with the default template ${RC_CLI_DEFAULT_TEMPLATE}
+      ${CHARS_LINE}
+      rc-cli new-app my-app
+      ${CHARS_LINE}
+    - Create a new app with a specified template
+      ${CHARS_LINE}
+      rc-cli new-app my-app ${RC_CLI_DEFAULT_TEMPLATE}
+      ${CHARS_LINE}
+
+  produciton-test [snapshot-name]
+    - Test the scoring process on your app
+      - NOTE: This resets data, runs setup, runs evaluate, and applies the scoring algorithm
+      ${CHARS_LINE}
+      rc-cli production-test
+      ${CHARS_LINE}
+    - Test the scoring process on a saved snapshot
+      - NOTE: This resets data, runs setup, runs evaluate, and applies the scoring algorithm
+      ${CHARS_LINE}
+      rc-cli production-test my-snapshot
+      ${CHARS_LINE}
+
+  save-snapshot [snapshot-name]
     - Save the current app as a snapshot with the same name as your app
       ${CHARS_LINE}
       rc-cli save
@@ -821,54 +848,32 @@ Usage Examples:
       rc-cli save my-snapshot
       ${CHARS_LINE}
 
-  setup(-dev) [snapshot-name]
-    - Run the setup phase for your current app
+  help
+    - Get all cli commands
       ${CHARS_LINE}
-      rc-cli setup
+      rc-cli help
       ${CHARS_LINE}
-    - Run the setup phase for a saved snapshot
-      ${CHARS_LINE}
-      rc-cli setup my-snapshot
-      ${CHARS_LINE}
-    - Run the setup phase for your current app without rebuilding the docker image
-      ${CHARS_LINE}
-      rc-cli setup-dev
-      ${CHARS_LINE}
-      - This will not take in snapshot arguments
-      - This uses:
-        - The current state of your local filesystem at:
-          - setup.sh
-          - src/
-        - Everything else is pulled from the previous docker build
-          - You can rebuild the docker image using \`rc-cli setup\` or \`rc-cli evaluate\`
 
-
-  test [snapshot-name]
-    - Test the scoring process on your app
-      - NOTE: This resets data, runs setup, runs evaluate, and applies the scoring algorithm
+  purge
+    - Purge data, logs and containers created by the ${RC_CLI_SHORT_NAME}
       ${CHARS_LINE}
-      rc-cli test
-      ${CHARS_LINE}
-    - Test the scoring process on a saved snapshot
-      - NOTE: This resets data, runs setup, runs evaluate, and applies the scoring algorithm
-      ${CHARS_LINE}
-      rc-cli test my-snapshot
+      rc-cli purge
       ${CHARS_LINE}
 
   uninstall
-    - Uninstall your cli
+    - Uninstall this cli
       ${CHARS_LINE}
       rc-cli uninstall
       ${CHARS_LINE}
 
   update
-    - Update your cli
+    - Update this cli
       ${CHARS_LINE}
       rc-cli update
       ${CHARS_LINE}
 
   version
-    - Show the currently installed cli version
+    - Show the version of this cli
       ${CHARS_LINE}
       rc-cli version
       ${CHARS_LINE}
