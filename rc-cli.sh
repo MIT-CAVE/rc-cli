@@ -427,19 +427,19 @@ run_test_image() {
 #######################################
 run_scoring_image() {
   local src_cmd=$1
-  local image_type=$2
-  local image_name=$3
-  local src_mnt=$4
+  local app_name=$2
+  local src_mnt=$3
 
   printf "${CHARS_LINE}\n"
-  printf "Enabling the ${image_type} [${image_name}] to Run With [${RC_SCORING_IMAGE}]:\n\n"
+  printf "Running the Scoring Image [${RC_SCORING_IMAGE}]:\n\n"
   docker run --rm \
+    --volume "${src_mnt}/model_apply_inputs:${SCORING_DEST_MNT}/model_apply_inputs:ro" \
     --volume "${src_mnt}/model_apply_outputs:${SCORING_DEST_MNT}/model_apply_outputs:ro" \
     --volume "${src_mnt}/model_score_inputs:${SCORING_DEST_MNT}/model_score_inputs:ro" \
     --volume "${src_mnt}/model_score_timings:${SCORING_DEST_MNT}/model_score_timings:ro" \
     --volume "${src_mnt}/model_score_outputs:${SCORING_DEST_MNT}/model_score_outputs" \
     ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} 2>&1 \
-    | tee "logs/$(kebab_to_snake ${src_cmd})/${image_name}_$(timestamp).log"
+    | tee "logs/$(kebab_to_snake ${src_cmd})/${app_name}_$(timestamp).log"
   printf "\n${CHARS_LINE}\n"
 }
 
@@ -585,16 +585,7 @@ main() {
       src_mnt=$(get_data_context_abs $2)
       model_build_time="${src_mnt}/model_score_timings/model_build_time.json"
       model_apply_time="${src_mnt}/model_score_timings/model_apply_time.json"
-      if [[ ! -d "${src_mnt}/model_build_outputs" ]]; then
-        err "'${src_mnt}/model_build_outputs': data not found"
-        exit 1
-      elif [[ ! -d "${RC_CLI_PATH}/data/model_score_inputs" ]]; then
-        err "'${RC_CLI_PATH}/data/model_score_inputs': data not found"
-        exit 1
-      elif [[ ! -d "${RC_CLI_PATH}/data/model_score_timings" ]]; then
-        err "'${RC_CLI_PATH}/data/model_score_timings': data not found"
-        exit 1
-      elif [[ ! -f "${model_build_time}" ]]; then
+      if [[ ! -f "${model_build_time}" ]]; then
         err "'${model_build_time}': file not found"
         exit 1
       elif [[ ! -f "${model_apply_time}" ]]; then
@@ -604,21 +595,10 @@ main() {
       cmd="model-score"
       make_logs ${cmd}
 
-      if [[ -z $2 ]]; then
-        image_name=${app_name}
-        image_type="App"
-        build_image ${cmd} ${app_name}
-      else
-        check_snapshot $2
-        image_name=$(get_snapshot $2)
-        image_type="Snapshot"
-        load_snapshot ${image_name}
-      fi
-
       if ! is_image_built ${RC_SCORING_IMAGE}; then
         build_image ${cmd} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
-      run_scoring_image ${cmd} ${image_type} ${image_name} ${src_mnt}
+      run_scoring_image ${cmd} ${app_name} ${src_mnt}
       ;;
 
     model-debug | debug | md)

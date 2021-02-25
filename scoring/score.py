@@ -1,6 +1,19 @@
 import numpy as np
 import json
 
+def read_json_data(filepath):
+    try:
+        with open(filepath, newline = '') as in_file:
+            return json.load(in_file)
+    except FileNotFoundError:
+        print("The '{}' file is missing!".format(filepath))
+    except JSONDecodeError:
+        print("Error in the '{}' JSON data!".format(filepath))
+    except Exception as e:
+        print("Error when reading the '{}' file!".format(filepath))
+        print(e)
+    return None
+
 def evaluate(actual_routes_json,submission_json,cost_matrices_json, invalid_scores_json,**kwargs):
     '''
     Calculates score for a submission.
@@ -26,10 +39,10 @@ def evaluate(actual_routes_json,submission_json,cost_matrices_json, invalid_scor
         of routes, and kwargs.
 
     '''
-    actual_routes=json.loads(actual_routes_json)
-    submission=json.loads(submission_json)
-    cost_matrices=json.loads(cost_matrices_json)
-    invalid_scores=json.loads(invalid_scores_json)
+    actual_routes=read_json_data(actual_routes_json)
+    submission=read_json_data(submission_json)
+    cost_matrices=read_json_data(cost_matrices_json)
+    invalid_scores=read_json_data(invalid_scores_json)
     scores={'submission_score':'x','route_scores':{},'route_feasibility':{}}
     for kwarg in kwargs:
         scores[kwarg]=kwargs[kwarg]
@@ -54,6 +67,7 @@ def evaluate(actual_routes_json,submission_json,cost_matrices_json, invalid_scor
                      cost_mat=cost_matrices[route]
                      scores['route_scores'][route]=score(actual,sub,cost_mat)
                      scores['route_feasibility'][route]=True
+    print(scores)
     submission_score=np.mean(list(scores['route_scores'].values()))
     scores['submission_score']=submission_score
     scores_json=json.dumps(scores)
