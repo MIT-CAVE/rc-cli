@@ -71,7 +71,7 @@ def sort_by_key(stops, sort_by):
     ordered_stop_list_ids=['Depot']+[i['id'] for i in ordered_stop_list]
 
     # Serialize back to dictionary format with output order +1 as the values
-    return {i:ordered_stop_list_ids.index(i)+1 for i in ordered_stop_list_ids}
+    return {i:ordered_stop_list_ids.index(i) for i in ordered_stop_list_ids}
 
 def predict_all_routes(prediction_routes, sort_by):
     """
