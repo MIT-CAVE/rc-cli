@@ -6,8 +6,8 @@ from random import randrange
 # Constants
 MIN_SCORE = 0
 MAX_SCORE = 100
-MODEL_SCORE_IN_FILENAME = 'foo.json'
-MODEL_SCORE_OUT_FILENAME = 'score-out.json'
+MODEL_SCORE_IN_FILENAME = 'input.json'
+MODEL_SCORE_OUT_FILENAME = 'evaluation_output.json'
 
 def get_feedback(score):
     score_range = MAX_SCORE - MIN_SCORE
