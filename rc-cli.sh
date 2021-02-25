@@ -585,8 +585,8 @@ main() {
       src_mnt=$(get_data_context_abs $2)
       model_build_time="${src_mnt}/model_score_timings/model_build_time.json"
       model_apply_time="${src_mnt}/model_score_timings/model_apply_time.json"
-      if [[ ! -d "${src_mnt}/setup_outputs" ]]; then
-        err "'${src_mnt}/setup_outputs': data not found"
+      if [[ ! -d "${src_mnt}/model_build_outputs" ]]; then
+        err "'${src_mnt}/model_build_outputs': data not found"
         exit 1
       elif [[ ! -d "${RC_CLI_PATH}/data/model_score_inputs" ]]; then
         err "'${RC_CLI_PATH}/data/model_score_inputs': data not found"
