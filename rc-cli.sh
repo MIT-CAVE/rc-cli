@@ -2,6 +2,8 @@
 #
 # A CLI for the Routing Challenge.
 
+# TODO(luisvasq): Set -u globally and fix all unbound variables
+
 # Constants
 readonly CHARS_LINE="============================"
 
@@ -33,7 +35,7 @@ err() {
 
 # Convert string from kebab case to snake case.
 kebab_to_snake() {
-  printf $1 | sed s/-/_/
+  echo $1 | sed s/-/_/
 }
 
 # Determine if the current directory contains a valid RC app
@@ -137,7 +139,7 @@ check_snapshot() {
 }
 
 # Prompts for a 'snapshot' name if the given snapshot exists
-get_image_name() {
+image_name_prompt() {
   local src_cmd=$1
   local snapshot=$2
 
@@ -147,9 +149,9 @@ get_image_name() {
     printf "WARNING! ${src_cmd}: Snapshot with name '${snapshot}' exists\n" >&2
     read -r -p "Enter a new name or overwrite [${snapshot}]: " input
     [[ -n ${input} ]] && snapshot=${input}
-    printf "\n" >& 2
+    printf "\n" >&2
   done
-  printf ${input}
+  printf ${snapshot}
 }
 
 select_template() {
@@ -329,8 +331,7 @@ run_app_image() {
     ${image_name}:${RC_IMAGE_TAG} 2>&1 >&3 3>&-); } 3>&1; echo ${error} \
     | tee "logs/${f_name}/${image_name}_$(timestamp).log"
   secs=$(($(date +%s) - start_time))
-
-  print_stdout_stats ${secs} ${error} \
+  print_stdout_stats "${secs}" "${error}" \
     "${src_mnt}/model_score_timings/${f_name}_time.json"
 }
 
@@ -344,17 +345,16 @@ run_app_image() {
 #   None
 #######################################
 run_dev_image() {
-  local src_cmd=$1
-  local image_type=$2
-  local image_name=$3
-  local src_mnt=$4
-  local run_opts=${@:5}
+  local src_cmd="$1"
+  local image_type="$2"
+  local image_name="$3"
+  local src_mnt="$4"
+  local run_opts="${@:5}"
 
   local f_name
   # Remove '-dev' and convert to snake_case:
   # 'model-build-dev' => 'model_build'
-  f_name=$(printf ${src_cmd} | sed s/-dev// | kebab_to_snake)
-
+  f_name="$(echo ${src_cmd} | sed s/-dev// | sed s/-/_/)"
   printf "${CHARS_LINE}\n"
   printf "Running ${image_type} [${image_name}] (${src_cmd}):\n\n"
   start_time=$(date +%s)
@@ -367,7 +367,7 @@ run_dev_image() {
     3>&1; echo ${error} | tee "logs/${f_name}/${image_name}_$(timestamp).log" sh
   secs=$(($(date +%s) - start_time))
 
-  print_stdout_stats ${secs} ${error} \
+  print_stdout_stats "${secs}" "${error}" \
     "${src_mnt}/model_score_timings/${f_name}_time.json"
 }
 
@@ -488,7 +488,7 @@ main() {
       [[ -z ${snapshot} ]] && tmp_name=${app_name} || tmp_name=${snapshot}
       printf "${CHARS_LINE}\n"
       printf "Save Precheck for App [${tmp_name}]:\n\n"
-      get_image_name ${cmd} ${tmp_name}
+      image_name=$(image_name_prompt ${cmd} ${tmp_name})
       printf "Save Precheck Complete\n\n"
       build_image ${cmd} ${image_name}
       save_image ${image_name}
