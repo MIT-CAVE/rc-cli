@@ -1,8 +1,7 @@
 import numpy as np
 import json
 
-def evaluate(actual_routes_json,submission_json,cost_matrices_json,
-             invalid_scores_json,**kwargs):
+def evaluate(actual_routes_json,submission_json,cost_matrices_json, invalid_scores_json,**kwargs):
     '''
     Calculates score for a submission.
 
@@ -30,7 +29,7 @@ def evaluate(actual_routes_json,submission_json,cost_matrices_json,
     actual_routes=json.loads(actual_routes_json)
     submission=json.loads(submission_json)
     cost_matrices=json.loads(cost_matrices_json)
-    invalid_scores=json.loads(invalid_scores_json)   
+    invalid_scores=json.loads(invalid_scores_json)
     scores={'submission_score':'x','route_scores':{},'route_feasibility':{}}
     for kwarg in kwargs:
         scores[kwarg]=kwargs[kwarg]
@@ -59,7 +58,7 @@ def evaluate(actual_routes_json,submission_json,cost_matrices_json,
     scores['submission_score']=submission_score
     scores_json=json.dumps(scores)
     return scores_json
-    
+
 def score(actual,sub,cost_mat,g=1000):
     '''
     Scores individual routes.
@@ -73,7 +72,7 @@ def score(actual,sub,cost_mat,g=1000):
     cost_mat : dict
         Cost matrix.
     g : int/float, optional
-        ERP gap penalty. Irrelevant if large and len(actual)==len(sub). The 
+        ERP gap penalty. Irrelevant if large and len(actual)==len(sub). The
         default is 1000.
 
     Returns
@@ -178,7 +177,7 @@ def erp_count_helper(actual,sub,matrix,g=1000,memo=None):
 def normalize_matrix(mat):
     '''
     Normalizes cost matrix. We will likely save normalized cost matrices, so
-    this function may be removed from the evaluation code, and instead given 
+    this function may be removed from the evaluation code, and instead given
     as an input.
 
     Parameters
@@ -314,7 +313,7 @@ def isinvalid(actual,sub):
         return True
     else:
         return False
-    
+
 def route2list(route_dict):
     '''
     Translates route from dictionary to list.
