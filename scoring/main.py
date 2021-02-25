@@ -19,17 +19,18 @@ def read_json_data(filepath):
 if __name__ == '__main__':
     BASE_DIR = path.dirname(path.abspath(__file__))
 
+    print(BASE_DIR)
     # Read JSON time inputs
-    model_build_time = read_json_data(path.join(BASE_DIR,'/data/model_score_timings/model_build_time.json')).get("time")
-    model_apply_time = read_json_data(path.join(BASE_DIR,'/data/model_score_timings/model_apply_time.json')).get("time")
+    model_build_time = read_json_data(path.join(BASE_DIR,'/data/model_score_timings/model_build_time.json'))
+    model_apply_time = read_json_data(path.join(BASE_DIR,'/data/model_score_timings/model_apply_time.json'))
 
     output=score.evaluate(
         actual_routes_json=path.join(BASE_DIR,'data/model_score_inputs/input.json'),
         submission_json=path.join(BASE_DIR,'data/model_apply_outputs/output.json'),
         cost_matrices_json=path.join(BASE_DIR,'data/model_apply_inputs/prediction_cost_matricies.json'),
         invalid_scores_json=path.join(BASE_DIR,'data/model_apply_inputs/prediction_cost_matricies.json'),
-        model_apply_time=model_apply_time,
-        model_build_time=model_build_time
+        model_apply_time=model_apply_time.get("time"),
+        model_build_time=model_build_time.get("time")
     )
 
 

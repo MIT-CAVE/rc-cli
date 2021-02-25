@@ -6,6 +6,7 @@ ARG SOURCE_DIR=/home/scoring/
 FROM python:${PYTHON_VERSION}-alpine as builder
 COPY ./requirements.txt ./
 # install Python dependencies to the local user directory
+RUN apk add g++
 RUN pip install --user --requirement ./requirements.txt
 
 FROM python:${PYTHON_VERSION}-alpine
@@ -21,6 +22,7 @@ RUN addgroup -g 1000 scoring && adduser -u 1000 -G scoring -s /bin/sh -D scoring
 RUN mkdir -p $SOURCE_DIR
 WORKDIR $SOURCE_DIR
 COPY --from=builder --chown=scoring:scoring /root/.local/ ./.local/
+COPY --chown=scoring:scoring ./score.py ./
 COPY --chown=scoring:scoring ./main.py ./
 COPY --chown=scoring:scoring ./docker-entrypoint.sh /usr/local/bin/
 # update PATH environment variable
