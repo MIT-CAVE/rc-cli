@@ -17,7 +17,6 @@ readonly RC_SCORING_IMAGE="rc-scoring"
 readonly RC_TEST_IMAGE="rc-test"
 
 readonly APP_DEST_MNT="/home/app/data"
-readonly SCORING_DEST_MNT="/home/scoring/data"
 readonly TMP_DIR="/tmp"
 
 #######################################
@@ -440,11 +439,11 @@ run_scoring_image() {
   printf "${CHARS_LINE}\n"
   printf "Running the Scoring Image [${RC_SCORING_IMAGE}]:\n\n"
   docker run --rm \
-    --volume "${src_mnt}/model_apply_inputs:${SCORING_DEST_MNT}/model_apply_inputs:ro" \
-    --volume "${src_mnt}/model_apply_outputs:${SCORING_DEST_MNT}/model_apply_outputs:ro" \
-    --volume "${src_mnt}/model_score_inputs:${SCORING_DEST_MNT}/model_score_inputs:ro" \
-    --volume "${src_mnt}/model_score_timings:${SCORING_DEST_MNT}/model_score_timings:ro" \
-    --volume "${src_mnt}/model_score_outputs:${SCORING_DEST_MNT}/model_score_outputs" \
+    --volume "${src_mnt}/model_apply_inputs:${APP_DEST_MNT}/model_apply_inputs:ro" \
+    --volume "${src_mnt}/model_apply_outputs:${APP_DEST_MNT}/model_apply_outputs:ro" \
+    --volume "${src_mnt}/model_score_inputs:${APP_DEST_MNT}/model_score_inputs:ro" \
+    --volume "${src_mnt}/model_score_timings:${APP_DEST_MNT}/model_score_timings:ro" \
+    --volume "${src_mnt}/model_score_outputs:${APP_DEST_MNT}/model_score_outputs" \
     ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} 2>&1 \
     | tee "logs/$(kebab_to_snake ${src_cmd})/${app_name}_$(timestamp).log"
   printf "\n${CHARS_LINE}\n"

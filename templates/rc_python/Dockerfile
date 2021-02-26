@@ -11,7 +11,8 @@ COPY ./requirements.txt ./
 # install Python dependencies to the local user directory
 RUN pip install --user --requirement ./requirements.txt
 
-FROM python:${PYTHON_VERSION}-alpine
+FROM builder
+
 ARG SOURCE_DIR
 ENV SOURCE_DIR $SOURCE_DIR
 ENV PATH $PATH:$SOURCE_DIR
@@ -19,7 +20,7 @@ RUN addgroup -g 1000 app && adduser -u 1000 -G app -s /bin/sh -D app
 RUN mkdir -p $SOURCE_DIR
 WORKDIR $SOURCE_DIR
 COPY --from=builder --chown=app:app /root/.local/ ./.local/
-COPY --chown=app:app ./src/ ./src/
 COPY --chown=app:app ./*.sh ./
+COPY --chown=app:app ./src/ ./src/
 USER app
 CMD ["/bin/sh"]
