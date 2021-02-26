@@ -68,7 +68,7 @@ print_stdout_stats() {
   secs=$1
   error=$2
   out_file=$3
-  printf "{ \"time\": ${secs}, \"status\": \"$(get_status ${error})\" }" > ${out_file}
+  printf "{ \"time\": ${secs}, \"status\": \"$(get_status "${error}")\" }" > ${out_file}
   printf "\nTime Elapsed: $(secs_to_iso_8601 ${secs})\n"
 }
 
@@ -100,7 +100,7 @@ run_app_image() {
   secs=$(($(date +%s) - start_time))
 
   [ -f /var/tmp/error ] && error=$(cat /var/tmp/error) || error=""
-  print_stdout_stats ${secs} ${error} \
+  print_stdout_stats "${secs}" "${error}" \
     "/data/model_score_timings/${cmd}_time.json"
 }
 
