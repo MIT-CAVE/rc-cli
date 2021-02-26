@@ -122,6 +122,7 @@ printf "\n${CHARS_LINE}\n"
 printf "Running the Scoring Image [${scoring_name}]:\n\n"
 # The time stats file is mounted in a different directory
 docker run --rm \
+  --volume "/data/model_apply_inputs:${SCORING_DEST_MNT}/model_apply_inputs:ro" \
   --volume "/data/model_apply_outputs:${SCORING_DEST_MNT}/model_apply_outputs:ro" \
   --volume "/data/model_score_inputs:${SCORING_DEST_MNT}/model_score_inputs:ro" \
   --volume "/data/model_score_timings:${SCORING_DEST_MNT}/model_score_timings:ro" \
