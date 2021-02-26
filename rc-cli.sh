@@ -684,7 +684,11 @@ main() {
       printf "${CHARS_LINE}\n"
       printf "Checking Installation\n"
       source "${RC_CLI_PATH}/CONFIG"
-      bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") "$DATA_URL" "$INSTALL_PARAM"
+      if [[ "$INSTALL_PARAM" = "" ]]; then
+        bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") "$DATA_URL"
+      else
+        bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") "$DATA_URL" "$INSTALL_PARAM"
+      fi
       printf "\n${CHARS_LINE}\n"
       printf "Running other update maintenance tasks\n"
       check_docker
