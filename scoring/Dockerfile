@@ -13,7 +13,7 @@ COPY ./requirements.txt ./
 # install Python dependencies to the local user directory
 RUN pip install --user --requirement ./requirements.txt
 
-FROM base
+FROM builder
 LABEL edu.mit.cave.scoring.image.vendor="MIT CTL Computational and Visual Education Lab"
 LABEL edu.mit.cave.scoring.image.authors="Connor Makowski <conmak@mit.edu>, Luis Vasquez <luisvasq@mit.edu>, Willem Guter <wjguter@mit.edu>"
 LABEL edu.mit.cave.scoring.image.title="Routing Challenge Scoring"

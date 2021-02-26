@@ -178,7 +178,7 @@ select_template() {
 # Returns:
 #   None
 #######################################
-build_image() {
+configuree_image() {
   local src_cmd=$1
   local image_name=$2
   local context="${3:-.}"
@@ -192,7 +192,7 @@ build_image() {
   printf "Configuring the '${image_name}' image... "
   docker rmi ${image_name}:${RC_IMAGE_TAG} &> /dev/null
   [[ -d "logs/${f_name}" ]] \
-    && out_file="logs/${f_name}/${image_name}_build_$(timestamp).log" \
+    && out_file="logs/${f_name}/${image_name}_configure_$(timestamp).log" \
     || out_file="/dev/null"
   docker build --file ${context}/Dockerfile --tag ${image_name}:${RC_IMAGE_TAG} \
     ${build_opts} ${context} &> ${out_file}
@@ -246,7 +246,7 @@ build_if_missing() { # Build the image if it is missing under the model configur
     printf "${CHARS_LINE}\n"
     printf "No prebuilt image exists yet. Configuring Image with 'model-configure'\n\n"
     make_logs "model-configure"
-    build_image "model-configure" ${1}
+    configuree_image "model-configure" ${1}
   fi
 }
 
@@ -497,7 +497,7 @@ main() {
       printf "Save Precheck for App [${tmp_name}]:\n\n"
       image_name=$(image_name_prompt ${cmd} ${tmp_name})
       printf "Save Precheck Complete\n\n"
-      build_image ${cmd} ${image_name}
+      configuree_image ${cmd} ${image_name}
       save_image ${image_name}
       printf "${CHARS_LINE}\n"
       ;;
@@ -537,7 +537,7 @@ main() {
       cmd="model-configure"
       make_logs ${cmd}
       basic_checks
-      build_image ${cmd} ${app_name}
+      configuree_image ${cmd} ${app_name}
       printf "${CHARS_LINE}\n"
       ;;
 
@@ -555,7 +555,7 @@ main() {
 
       if [[ -z $2 ]]; then
         image_name=${app_name}
-        build_image ${cmd} ${image_name}
+        configuree_image ${cmd} ${image_name}
         docker save ${image_name}:${RC_IMAGE_TAG} | gzip > "${TMP_DIR}/${image_name}.tar.gz"
       else
         image_name=$(get_snapshot $2)
@@ -564,10 +564,10 @@ main() {
 
       # Saving time if some images exist.
       if ! is_image_built ${RC_TEST_IMAGE}; then
-        build_image ${cmd} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
+        configuree_image ${cmd} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       fi
       if ! is_image_built ${RC_SCORING_IMAGE}; then
-        build_image ${cmd} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+        configuree_image ${cmd} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
       if [[ ! -f "scoring/${RC_SCORING_IMAGE}.tar.gz" ]]; then
         docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} \
@@ -595,7 +595,7 @@ main() {
       make_logs ${cmd}
 
       if ! is_image_built ${RC_SCORING_IMAGE}; then
-        build_image ${cmd} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+        configuree_image ${cmd} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
       run_scoring_image ${cmd} ${app_name} ${src_mnt}
       ;;
@@ -692,8 +692,8 @@ main() {
       printf "\n${CHARS_LINE}\n"
       printf "Running other update maintenance tasks\n"
       check_docker
-      build_image $1 ${RC_TEST_IMAGE} ${RC_CLI_PATH}
-      build_image $1 ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+      configuree_image $1 ${RC_TEST_IMAGE} ${RC_CLI_PATH}
+      configuree_image $1 ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
 
       printf "Finished!\n"
