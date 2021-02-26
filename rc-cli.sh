@@ -466,7 +466,7 @@ main() {
 
   # Select the command
   case $1 in
-    new-app | new | na)
+    new-app | new | app | na)
       # Create a new app based on a template
       if [[ $# -lt 2 ]]; then
         err "Missing arguments. Try using:\nrc-cli help"
@@ -486,7 +486,7 @@ main() {
       printf "the '${template}' template has been created ${optional}at '$(pwd)/$2'\n"
       ;;
 
-    save-snapshot | save | ss)
+    save-snapshot | save | snapshot | ss)
       # Build the app image and save it to the 'snapshots' directory
       cmd="save-snapshot"
       make_logs ${cmd}
@@ -541,7 +541,7 @@ main() {
       printf "${CHARS_LINE}\n"
       ;;
 
-    production-test | test | pt)
+    production-test | production | test | pt)
       # Run the tests with the '${RC_TEST_IMAGE}'
       basic_checks
       [[ -n $2 ]] && check_snapshot $2 # Sanity check
