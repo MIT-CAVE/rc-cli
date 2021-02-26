@@ -86,19 +86,23 @@ install_new() { # Copy the needed files locally
   mkdir -p "${RC_CLI_PATH}"
   printf "done\n"
   printf "${CHARS_LINE}\n"
-  printf "Cloning from '${CLONE_URL}':\n"
-  if [[ $2 != "--dev" ]]; then
+  if [[ $2 = "--dev" ]]; then
+    CLONE_URL="$SSH_CLONE_URL"
+    INSTALL_PARAM="--dev"
+  else
     clone_opts="--depth=1"
     CLONE_URL="$HTTPS_CLONE_URL"
-  else
-    CLONE_URL="$SSH_CLONE_URL"
+    INSTALL_PARAM=""
   fi
+  source "${RC_CLI_PATH}/DATA_URLS"
   git clone "${CLONE_URL}" \
     ${clone_opts} \
     "${RC_CLI_PATH}"
   if [ ! -d "${RC_CLI_PATH}" ]; then
     err "Git Clone Failed. Installation Canceled"
     exit 1
+  else
+    printf "INSTALL_PARAM=\"${INSTALL_PARAM}\"" > "${RC_CLI_PATH}/INSTALL_PARAMS"
   fi
 }
 

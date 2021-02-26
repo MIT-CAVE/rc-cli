@@ -674,16 +674,18 @@ main() {
       printf "${CHARS_LINE}\n"
       ;;
 
-    data-reset | reset | dr) # Flush the output data in the directories
+    reset-data | reset | rd) # Flush the output data in the directories
       data_path=$(get_data_context $2)
       reset_data_prompt $1 ${data_path}
       ;;
 
     update) # Run maintenance commands after breaking changes on the framework.
+      # Accepts an additional parameter to pass to the install function (useful for --dev installs)
       printf "${CHARS_LINE}\n"
       printf "Checking Installation\n"
       source "${RC_CLI_PATH}/DATA_URLS"
-      bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") "$DATA_URL"
+      source "${RC_CLI_PATH}/INSTALL_PARAMS"
+      bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") "$DATA_URL" "$INSTALL_PARAM"
       printf "\n${CHARS_LINE}\n"
       printf "Running other update maintenance tasks\n"
       check_docker
@@ -736,7 +738,6 @@ ${RC_CLI_LONG_NAME}
 General Usage:  rc-cli COMMAND [options]
 
 Core Commands:
-  data-reset (dr)           Reset the current app data directory to the initial state.
   model-apply (ma)          Execute the model_apply.sh script inside of your app's Docker image.
   model-build (mb)          Execute the model_build.sh script inside of your app's Docker image.
   model-configure (mc)      Configure your app's Docker image using your local Dockerfile.
@@ -747,6 +748,7 @@ Core Commands:
   model-score (ms)          Apply the scoring algorithm against your app's current data.
   new-app (na)              Create a new application directory within your current directory.
   production-test (pt)      Run your app phases end to end exactly as it will be run during your official scoring phase.
+  reset-data (rd)           Reset the current app data directory to the initial state.
   save-snapshot (ss)        Configure your app's Docker image and save it as a snapshot in the snapshots folder.
 
 Utility Commands:
@@ -758,15 +760,6 @@ Utility Commands:
   version                   Display the current ${RC_CLI_SHORT_NAME} version.
 
 Usage Examples:
-  data-reset [snapshot-name]
-    - Reset my-app/data to the values that will be used for competition scoring
-      ${CHARS_LINE}
-      rc-cli data-reset
-      ${CHARS_LINE}
-    - Reset my-app/snapshots/my-snapshot/data to the values that will be used for competition scoring
-      ${CHARS_LINE}
-      rc-cli data-reset my-snapshot
-      ${CHARS_LINE}
 
   model-apply [snapshot-name]
     - Run the model-apply phase for your current app (after having run model-build)
@@ -836,6 +829,16 @@ Usage Examples:
       - NOTE: This resets data, runs model-build, runs model-apply, and applies the scoring algorithm
       ${CHARS_LINE}
       rc-cli production-test my-snapshot
+      ${CHARS_LINE}
+
+  reset-data [snapshot-name]
+    - Reset my-app/data to the values that will be used for competition scoring
+      ${CHARS_LINE}
+      rc-cli reset-data
+      ${CHARS_LINE}
+    - Reset my-app/snapshots/my-snapshot/data to the values that will be used for competition scoring
+      ${CHARS_LINE}
+      rc-cli reset-data my-snapshot
       ${CHARS_LINE}
 
   save-snapshot [snapshot-name]
