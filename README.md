@@ -94,7 +94,13 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     ```
     - This may not work until you close and re-open docker.
 
-7) Install the `rc-cli` in the `Ubuntu 20.04` app
+7) Install `unzip`:
+  - Run the following command in your Ubuntu 20.04 app
+    ```
+    sudo apt-get install unzip
+    ```
+
+8) Install the `rc-cli` in the `Ubuntu 20.04` app
   - Run the following commands to install the `rc-cli`
     ```
     bash <(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh) \
@@ -102,13 +108,13 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     ```
     - Follow the prompts to finish the installation process
 
-8) Validate the installation was successful in the `Ubuntu 20.04` app
+9) Validate the installation was successful in the `Ubuntu 20.04` app
   - Run the following command:
     ```
     rc-cli version
     ```
 
-9) Continue to the `Bootstrap your Project` section below
+10) Continue to the `Bootstrap your Project` section below
 
 ## Bootstrap your Project
 1) Get available commands
@@ -145,9 +151,9 @@ Saved solutions that have been tested can be uploaded to the competition site: [
   - On Windows 10 (using WSL Ubuntu 20.04)
     - Open explorer from your current directory
       ```
-      explorer.exe
+      explorer.exe .
       ```
     - Alternatively, your `Ubuntu 20.04` app stores files on your local operating system at:
-      - `\\wsl$`>`Ubuntu`>`home`>`your-username`
+      - `\\wsl$`>`Ubuntu-20.04`>`home`>`your-username`
 
 5) All `rc-cli` commands and usages are documented in your bootstrapped application as README.md
