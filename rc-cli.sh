@@ -394,7 +394,7 @@ run_test_image() {
 
   local src_mnt
   local src_mnt_image
-  local image_file="$2.tar.gz"
+  local image_file="${image_name}.tar.gz"
   local scoring_image="${RC_SCORING_IMAGE}.tar.gz"
   src_mnt="$(pwd)/${data_path}"
 
@@ -826,14 +826,14 @@ Usage Examples:
       rc-cli new-app my-app ${RC_CLI_DEFAULT_TEMPLATE}
       ${CHARS_LINE}
 
-  produciton-test [snapshot-name]
+  production-test [snapshot-name]
     - Test the scoring process on your app
-      - NOTE: This resets data, runs setup, runs evaluate, and applies the scoring algorithm
+      - NOTE: This resets data, runs model-build, runs model-apply, and applies the scoring algorithm
       ${CHARS_LINE}
       rc-cli production-test
       ${CHARS_LINE}
     - Test the scoring process on a saved snapshot
-      - NOTE: This resets data, runs setup, runs evaluate, and applies the scoring algorithm
+      - NOTE: This resets data, runs model-build, runs model-apply, and applies the scoring algorithm
       ${CHARS_LINE}
       rc-cli production-test my-snapshot
       ${CHARS_LINE}
