@@ -10,7 +10,8 @@ readonly RC_CLI_SHORT_NAME="RC CLI"
 readonly RC_CLI_COMMAND="rc-cli"
 readonly RC_CLI_VERSION="0.1.0"
 readonly BIN_DIR="/usr/local/bin"
-readonly CLONE_URL="https://github.com/MIT-CAVE/rc-cli.git"
+readonly SSH_CLONE_URL="git@github.com:MIT-CAVE/rc-cli.git"
+readonly HTTPS_CLONE_URL="https://github.com/MIT-CAVE/rc-cli.git"
 readonly MIN_DOCKER_VERSION="18.09.00"
 
 err() { # Display an error message
@@ -86,7 +87,12 @@ install_new() { # Copy the needed files locally
   printf "done\n"
   printf "${CHARS_LINE}\n"
   printf "Cloning from '${CLONE_URL}':\n"
-  [[ $2 != "--dev" ]] && clone_opts="--depth=1"
+  if [[ $2 != "--dev" ]]; then
+    clone_opts="--depth=1"
+    CLONE_URL="$HTTPS_CLONE_URL"
+  else
+    CLONE_URL="$SSH_CLONE_URL"
+  fi
   git clone "${CLONE_URL}" \
     ${clone_opts} \
     "${RC_CLI_PATH}"
