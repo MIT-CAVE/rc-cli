@@ -683,8 +683,7 @@ main() {
       # Accepts an additional parameter to pass to the install function (useful for --dev installs)
       printf "${CHARS_LINE}\n"
       printf "Checking Installation\n"
-      source "${RC_CLI_PATH}/DATA_URLS"
-      source "${RC_CLI_PATH}/INSTALL_PARAMS"
+      source "${RC_CLI_PATH}/CONFIG"
       bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") "$DATA_URL" "$INSTALL_PARAM"
       printf "\n${CHARS_LINE}\n"
       printf "Running other update maintenance tasks\n"
