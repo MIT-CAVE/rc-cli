@@ -118,7 +118,7 @@ Saved solutions that have been tested can be uploaded to the competition site: [
 2) Bootstrap a project in your current directory
   - Note: Feel free to change `my-app` to any name you want
   ```
-  rc-cli new my-app
+  rc-cli new-app my-app
   ```
 
 3) Enter the project directory
@@ -148,5 +148,5 @@ Saved solutions that have been tested can be uploaded to the competition site: [
       ```
     - Alternatively, your `Ubuntu 20.04` app stores files on your local operating system at:
       - `\\wsl$`>`Ubuntu`>`home`>`your-username`
-      
+
 5) All `rc-cli` commands and usages are documented in your bootstrapped application as README.md

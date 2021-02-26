@@ -756,8 +756,10 @@ Core Commands:
 
 Utility Commands:
   help                      Print help information for the ${RC_CLI_SHORT_NAME}.
-  purge                     Remove all the logs and snapshots created by ${RC_CLI_SHORT_NAME} in the current.
-                            app directory. This also removes all ${RC_CLI_SHORT_NAME} Docker images.
+  purge                     Remove all:
+                            - Logs created by ${RC_CLI_SHORT_NAME} in the current app.
+                            - Snapshots created by ${RC_CLI_SHORT_NAME} in the current app.
+                            - All (global) ${RC_CLI_SHORT_NAME} Docker images.
   uninstall                 Uninstall the ${RC_CLI_SHORT_NAME} and all ${RC_CLI_SHORT_NAME} created docker images.
   update                    Update to the most recent ${RC_CLI_SHORT_NAME}.
   version                   Display the current ${RC_CLI_SHORT_NAME} version.
