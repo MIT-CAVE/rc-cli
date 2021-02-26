@@ -102,7 +102,7 @@ install_new() { # Copy the needed files locally
     err "Git Clone Failed. Installation Canceled"
     exit 1
   else
-    printf "INSTALL_PARAM=\"${INSTALL_PARAM}\"" > "${RC_CLI_PATH}/INSTALL_PARAMS"
+    printf "INSTALL_PARAM=\"${INSTALL_PARAM}\"" > "${RC_CLI_PATH}/CONFIG"
   fi
 }
 
@@ -138,7 +138,7 @@ get_data() { # Copy the needed data files locally
 
   printf "Setting data URL locally for future CLI Updates... "
   touch "${RC_CLI_PATH}/DATA_URLS"
-  printf "DATA_URL=\"${DATA_URL}\"" > "${RC_CLI_PATH}/DATA_URLS"
+  printf "DATA_URL=\"${DATA_URL}\"" >> "${RC_CLI_PATH}/CONFIG"
   printf "done\n"
 }
 
