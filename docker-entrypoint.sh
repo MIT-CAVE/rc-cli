@@ -6,7 +6,6 @@ readonly RC_IMAGE_TAG="rc-cli"
 readonly MODEL_BUILD_TIMEOUT=$((8*60*60))
 readonly MODEL_APPLY_TIMEOUT=$((2*60*60))
 readonly APP_DEST_MNT="/home/app/data"
-readonly SCORING_DEST_MNT="/home/scoring/data/"
 
 wait_for_docker() {
   while ! docker ps; do
@@ -88,7 +87,7 @@ run_app_image() {
   run_opts=$4
 
   printf "\n${CHARS_LINE}\n"
-  printf "Running the Snapshot Image [${image_name}] (${cmd}):\n\n"
+  printf "Running the Image [${image_name}] (${cmd}):\n\n"
 
   start_time=$(date +%s)
   # TODO: Improve redirection to avoid using a file for stderr
@@ -122,11 +121,11 @@ printf "\n${CHARS_LINE}\n"
 printf "Running the Scoring Image [${scoring_name}]:\n\n"
 # The time stats file is mounted in a different directory
 docker run --rm \
-  --volume "/data/model_apply_inputs:${SCORING_DEST_MNT}/model_apply_inputs:ro" \
-  --volume "/data/model_apply_outputs:${SCORING_DEST_MNT}/model_apply_outputs:ro" \
-  --volume "/data/model_score_inputs:${SCORING_DEST_MNT}/model_score_inputs:ro" \
-  --volume "/data/model_score_timings:${SCORING_DEST_MNT}/model_score_timings:ro" \
-  --volume "/data/model_score_outputs:${SCORING_DEST_MNT}/model_score_outputs" \
+  --volume "/data/model_apply_inputs:${APP_DEST_MNT}/model_apply_inputs:ro" \
+  --volume "/data/model_apply_outputs:${APP_DEST_MNT}/model_apply_outputs:ro" \
+  --volume "/data/model_score_inputs:${APP_DEST_MNT}/model_score_inputs:ro" \
+  --volume "/data/model_score_timings:${APP_DEST_MNT}/model_score_timings:ro" \
+  --volume "/data/model_score_outputs:${APP_DEST_MNT}/model_score_outputs" \
   ${scoring_name}:${RC_IMAGE_TAG}
 
 exec "$@"

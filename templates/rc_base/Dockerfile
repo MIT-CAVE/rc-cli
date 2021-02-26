@@ -1,6 +1,6 @@
 # syntax = docker/dockerfile:1.2
+ARG UBUNTU_RELEASE=20.04
 ARG SOURCE_DIR=/home/app/
-ARG UBUNTU_RELEASE=20.10
 
 FROM ubuntu:$UBUNTU_RELEASE
 ARG SOURCE_DIR
@@ -17,7 +17,7 @@ RUN groupadd --gid 1000 app \
     build-essential \
     # other pkgs...
  && rm -rf /var/lib/apt/lists/*
-COPY --chown=app:app ./src/ ./src/
 COPY --chown=app:app ./*.sh ./
+COPY --chown=app:app ./src/ ./src/
 USER app
 CMD ["/bin/bash"]

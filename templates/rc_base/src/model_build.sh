@@ -13,7 +13,7 @@ sleep 1
 echo "Saving Solved Model State"
 sleep 1
 echo "{
-      'Message':'Hello from the setup.py script!',
-      'Algorithm':\"Initialize Gizmo\",
-      'Algorithm_Parameter': 32
-  }" > data/setup_outputs/setup_out.json
+      'Model':'Hello from the model_build.py script!',
+      'sort_by':'lat',
+  }" > data/model_build_outputs/model.json
+echo "Success: The '$PWD/data/model_build_outputs/model.json' file has been saved"
