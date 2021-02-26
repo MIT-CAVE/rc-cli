@@ -2,13 +2,11 @@
 ARG PYTHON_VERSION=3.9.1
 ARG SOURCE_DIR=/home/app/
 
-FROM python:${PYTHON_VERSION}-alpine as base
+# builder image
+FROM python:${PYTHON_VERSION}-alpine as builder
 RUN apk update && apk --no-cache add \
 # adding deps required by some popular Python packages
     g++
-
-# builder image
-FROM base as builder
 COPY ./requirements.txt ./
 # install Python dependencies to the local user directory
 RUN pip install --user --requirement ./requirements.txt

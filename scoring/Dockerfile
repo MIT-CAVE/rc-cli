@@ -2,16 +2,16 @@
 ARG PYTHON_VERSION=3.9.1
 ARG SOURCE_DIR=/home/app/
 
-FROM python:${PYTHON_VERSION}-alpine as base
+
+# builder image
+FROM python:${PYTHON_VERSION}-alpine as builder
 RUN apk update && apk --no-cache add \
 # adding deps required by some popular Python packages
     g++
-
-# builder image
-FROM base as builder
 COPY ./requirements.txt ./
 # install Python dependencies to the local user directory
 RUN pip install --user --requirement ./requirements.txt
+
 
 FROM builder
 
@@ -27,9 +27,10 @@ COPY --chown=app:app ./*.py ./
 USER app
 ENTRYPOINT ["docker-entrypoint.sh"]
 
+
 LABEL edu.mit.cave.scoring.image.vendor="MIT CTL Computational and Visual Education Lab"
 LABEL edu.mit.cave.scoring.image.authors="Connor Makowski <conmak@mit.edu>, Luis Vasquez <luisvasq@mit.edu>, Willem Guter <wjguter@mit.edu>"
 LABEL edu.mit.cave.scoring.image.title="Routing Challenge Scoring"
 LABEL edu.mit.cave.scoring.image.licenses="Copyright (c) 2021 MIT CTL CAVE Lab"
-LABEL edu.mit.cave.scoring.image.created="2021-02-25 22:06:16-05:00"
+LABEL edu.mit.cave.scoring.image.created="2021-02-26 15:45:01-05:00"
 LABEL edu.mit.cave.scoring.image.version="0.1.0"
