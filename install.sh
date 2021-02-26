@@ -94,7 +94,6 @@ install_new() { # Copy the needed files locally
     CLONE_URL="$HTTPS_CLONE_URL"
     INSTALL_PARAM=""
   fi
-  source "${RC_CLI_PATH}/DATA_URLS"
   git clone "${CLONE_URL}" \
     ${clone_opts} \
     "${RC_CLI_PATH}"
@@ -102,7 +101,7 @@ install_new() { # Copy the needed files locally
     err "Git Clone Failed. Installation Canceled"
     exit 1
   else
-    printf "INSTALL_PARAM=\"${INSTALL_PARAM}\"" > "${RC_CLI_PATH}/CONFIG"
+    printf "INSTALL_PARAM=\"${INSTALL_PARAM}\"\n" > "${RC_CLI_PATH}/CONFIG"
   fi
 }
 
@@ -137,8 +136,7 @@ get_data() { # Copy the needed data files locally
   copy_zip_data_down "$DATA_URL" "${RC_CLI_PATH}" "data"
 
   printf "Setting data URL locally for future CLI Updates... "
-  touch "${RC_CLI_PATH}/DATA_URLS"
-  printf "DATA_URL=\"${DATA_URL}\"" >> "${RC_CLI_PATH}/CONFIG"
+  printf "DATA_URL=\"${DATA_URL}\"\n" >> "${RC_CLI_PATH}/CONFIG"
   printf "done\n"
 }
 
