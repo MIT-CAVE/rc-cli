@@ -11,8 +11,7 @@ COPY ./requirements.txt ./
 # install Python dependencies to the local user directory
 RUN pip install --user --requirement ./requirements.txt
 
-FROM builder
-
+FROM python:${PYTHON_VERSION}-alpine
 ARG SOURCE_DIR
 ENV SOURCE_DIR $SOURCE_DIR
 ENV PATH $PATH:$SOURCE_DIR
