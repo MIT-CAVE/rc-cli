@@ -92,6 +92,7 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     ```
     docker run hello-world
     ```
+    - This may not work until you close and re-open docker.
 
 7) Install the `rc-cli` in the `Ubuntu 20.04` app
   - Run the following commands to install the `rc-cli`
