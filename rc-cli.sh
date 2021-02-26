@@ -404,7 +404,7 @@ run_test_image() {
     || src_mnt_image="$(pwd)/snapshots/${image_name}/${image_file}"
   printf "${src_cmd}: The data at '${data_path}' has been reset to the initial state\n\n"
   printf "${CHARS_LINE}\n"
-  printf "Preparing Test Image [${image_name}] to Run With [${RC_TEST_IMAGE}]:\n\n"
+  printf "Preparing Image [${image_name}] to Run With [${RC_TEST_IMAGE}]:\n\n"
 
   docker run --privileged --rm \
     --env IMAGE_FILE=${image_file} \

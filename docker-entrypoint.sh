@@ -18,14 +18,13 @@ wait_for_docker() {
 # Globals:
 #   None
 # Arguments:
-#   image_type, image_file
+#   image_file
 # Returns:
 #   None
 #######################################
 load_image() {
-  image_type=$1
-  image_file=$2
-  printf "Loading the ${image_type} Image... "
+  image_file=$1
+  printf "Loading the Image... "
   docker load --quiet --input "/mnt/${image_file}" > /dev/null 2>&1
   printf "done\n"
 }
@@ -108,14 +107,14 @@ printf "Starting the Docker daemon... "
 wait_for_docker > /dev/null 2>&1
 printf "done\n"
 
-load_image "Snapshot" ${IMAGE_FILE}
+load_image ${IMAGE_FILE}
 image_name=${IMAGE_FILE:0:-7} # Remove the '.tar.gz' extension
 run_app_image "model_build" ${image_name} ${MODEL_BUILD_TIMEOUT} ""
 run_app_image "model_apply" ${image_name} ${MODEL_APPLY_TIMEOUT} \
   "--volume /data/model_build_outputs:${APP_DEST_MNT}/model_build_outputs:ro"
 
 printf "\n"
-load_image "Scoring" ${SCORING_IMAGE}
+load_image ${SCORING_IMAGE}
 scoring_name=${SCORING_IMAGE:0:-7}
 printf "\n${CHARS_LINE}\n"
 printf "Running the Scoring Image [${scoring_name}]:\n\n"
