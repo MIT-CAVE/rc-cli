@@ -618,13 +618,13 @@ main() {
         && app_sh="/bin/bash" || app_sh="/bin/sh"
       printf "${CHARS_LINE}\n"
       printf "Debug mode:\n"
-      printf "  - You are in the equvalent of your current app directory inside of a docker container\n"
+      printf "  - You are in the equivalent of your current app directory inside of a Docker container\n"
       printf "  - You can test your code directly in this environment\n"
       printf "    - EG: try running:\n"
       printf "      ${CHARS_LINE}\n"
       printf "      ./model_build.sh'\n"
       printf "      ${CHARS_LINE}\n"
-      printf "  - use the 'exit' command to exit the current shell\n"
+      printf "  - Use the 'exit' command to exit the current shell\n"
       printf "\nEnabling an interactive shell with the snapshot container...\n"
       src_mnt=$(get_data_context_abs $2)
       docker run --rm --entrypoint="" --user root \
