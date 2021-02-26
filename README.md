@@ -13,7 +13,7 @@ Saved solutions that have been tested can be uploaded to the competition site: [
 
 ## Mac and Unix
 ### Setup
-1 Install [Docker](https://docs.docker.com/get-docker/):
+1. Install [Docker](https://docs.docker.com/get-docker/):
   - Note: Make sure to install Docker Engine v18.09 or later
   - If you have an older version of Docker, make sure [BuildKits are enabled](https://docs.docker.com/develop/develop-images/build_enhancements/#to-enable-buildkit-builds)
   - On Linux based systems you may need to follow the post installation setup instructions for docker:
@@ -22,13 +22,13 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     - Validate the Installation
       - `docker run hello-world`
 
-2) Install [Git](https://git-scm.com)
+2. Install [Git](https://git-scm.com)
   - It is likely git is already installed. You can check with:
     ```
     git --version
     ```
 
-3) Install the `rc-cli`
+3. Install the `rc-cli`
   - Run the following commands to install the `rc-cli`
     ```
     bash <(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh) \
@@ -36,17 +36,17 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     ```
     - Follow the prompts to finish the installation process
 
-4) Validate the installation was successful
+4. Validate the installation was successful
   - Run the following command:
     ```
     rc-cli version
     ```
 
-5) Continue to the `Bootstrap your Project` section below the Windows 10 setup section
+5. Continue to the `Bootstrap your Project` section below the Windows 10 setup section
 
 ## Windows 10 Setup
 ### Setup
-1) Install [Docker](https://hub.docker.com/editions/community/docker-ce-desktop-windows/)
+1. Install [Docker](https://hub.docker.com/editions/community/docker-ce-desktop-windows/)
   - Install WSL2 update during docker installation
     - Update your WSL2 Kernel (If you are prompted during installation)
       - Click on link to the Windows Documentation about WSL2
@@ -54,7 +54,7 @@ Saved solutions that have been tested can be uploaded to the competition site: [
       - Use the downloaded package to install the WSL2 Kernel
   - Reboot your
 
-2) Open **powershell** as **Administrator**
+2. Open **powershell** as **Administrator**
   - In powershell type:
     ```
     wsl --set-default-version 2
@@ -62,23 +62,23 @@ Saved solutions that have been tested can be uploaded to the competition site: [
   - Press `Enter`
   - Exit powershell
 
-3) Install Ubuntu 20.04
+3. Install Ubuntu 20.04
   - In the Microsoft store, search for `Ubuntu 20.04`
   - Install the Ubuntu 20.04 App
 
-4) Open the `Ubuntu 20.04` app
+4. Open the `Ubuntu 20.04` app
   - This may take a while the first time
   - You will be prompted for a username and password
     - Set your username and password
     - **MAKE SURE TO REMEMBER THESE**
   - Close the app
 
-5) Open the Docker Desktop app
+5. Open the Docker Desktop app
   - In settings > resources > WSL Integration
     - Allow Ubuntu 20.04
   - Reboot docker
 
-6) Open the `Ubuntu 20.04` app
+6. Open the `Ubuntu 20.04` app
   - Run the following commands to finish setting up Docker:
     - Note: You may be prompted for your password
       - This is your Ubuntu password
@@ -94,13 +94,13 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     ```
     - This may not work until you close and re-open docker.
 
-7) Install `unzip`:
+7. Install `unzip`:
   - Run the following command in your Ubuntu 20.04 app
     ```
     sudo apt-get install unzip
     ```
 
-8) Install the `rc-cli` in the `Ubuntu 20.04` app
+8. Install the `rc-cli` in the `Ubuntu 20.04` app
   - Run the following commands to install the `rc-cli`
     ```
     bash <(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh) \
@@ -108,32 +108,32 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     ```
     - Follow the prompts to finish the installation process
 
-9) Validate the installation was successful in the `Ubuntu 20.04` app
+9. Validate the installation was successful in the `Ubuntu 20.04` app
   - Run the following command:
     ```
     rc-cli version
     ```
 
-10) Continue to the `Bootstrap your Project` section below
+10. Continue to the `Bootstrap your Project` section below
 
 ## Bootstrap your Project
-1) Get available commands
+1. Get available commands
   ```
   rc-cli help
   ```
 
-2) Bootstrap a project in your current directory
+2. Bootstrap a project in your current directory
   - Note: Feel free to change `my-app` to any name you want
   ```
   rc-cli new-app my-app
   ```
 
-3) Enter the project directory
+3. Enter the project directory
   ```
   cd my-app
   ```
 
-4) Get the folder location on your machine to open the project in your favorite editor.
+4. Get the folder location on your machine to open the project in your favorite editor.
   - On Mac:
     - Open your current directory in finder
       ```
@@ -156,4 +156,4 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     - Alternatively, your `Ubuntu 20.04` app stores files on your local operating system at:
       - `\\wsl$`>`Ubuntu-20.04`>`home`>`your-username`
 
-5) All `rc-cli` commands and usages are documented in your bootstrapped application as README.md
+5. All `rc-cli` commands and usages are documented in your bootstrapped application as README.md
