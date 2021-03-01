@@ -177,7 +177,7 @@ select_template() {
 # Returns:
 #   None
 #######################################
-configuree_image() {
+configure_image() {
   local src_cmd=$1
   local image_name=$2
   local context="${3:-.}"
@@ -245,7 +245,7 @@ build_if_missing() { # Build the image if it is missing under the model configur
     printf "${CHARS_LINE}\n"
     printf "No prebuilt image exists yet. Configuring Image with 'model-configure'\n\n"
     make_logs "model-configure"
-    configuree_image "model-configure" ${1}
+    configure_image "model-configure" ${1}
   fi
 }
 
@@ -471,7 +471,7 @@ main() {
       printf "Save Precheck for App [${tmp_name}]:\n\n"
       image_name=$(image_name_prompt ${cmd} ${tmp_name})
       printf "Save Precheck Complete\n\n"
-      configuree_image ${cmd} ${image_name}
+      configure_image ${cmd} ${image_name}
       save_image ${image_name}
       printf "${CHARS_LINE}\n"
       ;;
@@ -500,16 +500,16 @@ main() {
       run_app_image ${cmd} ${image_type} ${image_name} ${src_mnt} ${run_opts}
       ;;
 
-    model-configure | configure | mc)
+    configure-app | configure | ca)
       # Rebuild a Docker image for the current app
       if [[ $# -gt 1 ]]; then
         err "Too many arguments"
         exit 1
       fi
-      cmd="model-configure"
+      cmd="configure-app"
       make_logs ${cmd}
       basic_checks
-      configuree_image ${cmd} ${app_name}
+      configure_image ${cmd} ${app_name}
       printf "${CHARS_LINE}\n"
       ;;
 
@@ -527,7 +527,7 @@ main() {
 
       if [[ -z $2 ]]; then
         image_name=${app_name}
-        configuree_image ${cmd} ${image_name}
+        configure_image ${cmd} ${image_name}
         docker save ${image_name}:${RC_IMAGE_TAG} | gzip > "${TMP_DIR}/${image_name}.tar.gz"
       else
         image_name=$(get_snapshot $2)
@@ -536,10 +536,10 @@ main() {
 
       # Saving time if some images exist.
       if ! is_image_built ${RC_TEST_IMAGE}; then
-        configuree_image ${cmd} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
+        configure_image ${cmd} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       fi
       if ! is_image_built ${RC_SCORING_IMAGE}; then
-        configuree_image ${cmd} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+        configure_image ${cmd} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
       if [[ ! -f "scoring/${RC_SCORING_IMAGE}.tar.gz" ]]; then
         docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} \
@@ -567,7 +567,7 @@ main() {
       make_logs ${cmd}
 
       if ! is_image_built ${RC_SCORING_IMAGE}; then
-        configuree_image ${cmd} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+        configure_image ${cmd} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
       run_scoring_image ${cmd} ${app_name} ${src_mnt}
       ;;
@@ -664,8 +664,8 @@ main() {
       printf "\n${CHARS_LINE}\n"
       printf "Running other update maintenance tasks\n"
       check_docker
-      configuree_image $1 ${RC_TEST_IMAGE} ${RC_CLI_PATH}
-      configuree_image $1 ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+      configure_image $1 ${RC_TEST_IMAGE} ${RC_CLI_PATH}
+      configure_image $1 ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
 
       printf "Finished!\n"
@@ -713,18 +713,20 @@ ${RC_CLI_LONG_NAME}
 General Usage:  rc-cli COMMAND [options]
 
 Core Commands:
+  configure-app (ca)        Configure your app's Docker image using your local Dockerfile.
+                            - This overwrites previous image giving you an updated image.
+                            - Every time you update your project root (shell scripts or
+                              Dockerfile), you should run model-configure again.
   model-apply (ma)          Execute the model_apply.sh script inside of your app's Docker image.
   model-build (mb)          Execute the model_build.sh script inside of your app's Docker image.
-  model-configure (mc)      Configure your app's Docker image using your local Dockerfile.
-                            - This overwrites previous image giving you an updated image.
-                            - Every time you update your project root (shell scripts or Dockerfile),
-                              you should run model-configure again.
   model-debug (md)          Launch an interactive terminal into your app's Docker image.
   model-score (ms)          Apply the scoring algorithm against your app's current data.
   new-app (na)              Create a new application directory within your current directory.
-  production-test (pt)      Run your app phases end to end exactly as it will be run during your official scoring phase.
+  production-test (pt)      Run your app phases end to end exactly as it will be run during your
+                            official scoring phase.
   reset-data (rd)           Reset the current app data directory to the initial state.
-  save-snapshot (ss)        Configure your app's Docker image and save it as a snapshot in the snapshots folder.
+  save-snapshot (ss)        Configure your app's Docker image and save it as a snapshot in
+                            the snapshots folder.
 
 Utility Commands:
   help                      Print help information for the ${RC_CLI_SHORT_NAME}.
@@ -732,11 +734,18 @@ Utility Commands:
                             - Logs created by ${RC_CLI_SHORT_NAME} in the current app.
                             - Snapshots created by ${RC_CLI_SHORT_NAME} in the current app.
                             - All (global) ${RC_CLI_SHORT_NAME} Docker images.
-  uninstall                 Uninstall the ${RC_CLI_SHORT_NAME} and all ${RC_CLI_SHORT_NAME} created docker images.
+  uninstall                 Uninstall the ${RC_CLI_SHORT_NAME} and all ${RC_CLI_SHORT_NAME}
+                            created docker images.
   update                    Update to the most recent ${RC_CLI_SHORT_NAME}.
   version                   Display the current ${RC_CLI_SHORT_NAME} version.
 
 Usage Examples:
+
+  configure-app
+    - Configure your app's current Docker image
+      ${CHARS_LINE}
+      rc-cli configure-app
+      ${CHARS_LINE}
 
   model-apply [snapshot-name]
     - Run the model-apply phase for your current app (after having run model-build)
@@ -756,12 +765,6 @@ Usage Examples:
     - Run the evaluate phase for a snapshot
       ${CHARS_LINE}
       rc-cli model-build my-snapshot
-      ${CHARS_LINE}
-
-  model-configure
-    - Configure your app's current Docker image
-      ${CHARS_LINE}
-      rc-cli model-configure
       ${CHARS_LINE}
 
   model-debug [snapshot-name]
