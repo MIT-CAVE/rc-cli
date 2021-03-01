@@ -326,53 +326,28 @@ run_app_image() {
   local run_opts=${@:5}
 
   local f_name
+  local entrypoint
+  local cmd
   f_name="$(kebab_to_snake ${src_cmd})"
+  local script="${f_name}.sh"
+  if [[ ${image_type} == "Snapshot" ]]; then
+    entrypoint="--entrypoint ${script}"
+    cmd=""
+  else
+    entrypoint=""
+    cmd="${script}"
+    run_opts="${run_opts} --volume $(pwd)/src:/home/app/src --volume $(pwd)/${script}:/home/app/${script}"
+  fi
 
   printf "${CHARS_LINE}\n"
   printf "Running ${image_type} [${image_name}] (${src_cmd}):\n\n"
   start_time=$(date +%s)
-  { error=$(docker run --rm --entrypoint "${f_name}.sh" ${run_opts} \
+  { error=$(docker run --rm ${entrypoint} ${run_opts} \
     --volume ${src_mnt}/${f_name}_inputs:${APP_DEST_MNT}/${f_name}_inputs:ro \
     --volume ${src_mnt}/${f_name}_outputs:${APP_DEST_MNT}/${f_name}_outputs \
-    ${image_name}:${RC_IMAGE_TAG} 2>&1 >&3 3>&-); } 3>&1; echo ${error} \
+    ${image_name}:${RC_IMAGE_TAG} ${cmd} 2>&1 >&3 3>&-); } 3>&1; echo ${error} \
     | tee "logs/${f_name}/${image_name}_$(timestamp).log"
   secs=$(($(date +%s) - start_time))
-  print_stdout_stats "${secs}" "${error}" \
-    "${src_mnt}/model_score_timings/${f_name}_time.json"
-}
-
-#######################################
-# Run a Docker image for the specified 'model-*' command
-# Globals:
-#   None
-# Arguments:
-#   src_cmd, image_type, image_name, src_mnt, run_opts
-# Returns:
-#   None
-#######################################
-run_dev_image() {
-  local src_cmd="$1"
-  local image_type="$2"
-  local image_name="$3"
-  local src_mnt="$4"
-  local run_opts="${@:5}"
-
-  local f_name
-  # Remove '-dev' and convert to snake_case:
-  # 'model-build-dev' => 'model_build'
-  f_name="$(echo ${src_cmd} | sed s/-dev// | sed s/-/_/)"
-  printf "${CHARS_LINE}\n"
-  printf "Running ${image_type} [${image_name}] (${src_cmd}):\n\n"
-  start_time=$(date +%s)
-  { error=$(docker run --rm --entrypoint "" ${run_opts} \
-    --volume "$(pwd)/src:/home/app/src" \
-    --volume "$(pwd)/${f_name}.sh:/home/app/${f_name}.sh" \
-    --volume $4/${f_name}_inputs:${APP_DEST_MNT}/${f_name}_inputs:ro \
-    --volume $4/${f_name}_outputs:${APP_DEST_MNT}/${f_name}_outputs \
-    --interactive --tty ${image_name}:${RC_IMAGE_TAG} ${f_name}.sh 2>&1 >&3 3>&-); } \
-    3>&1; echo ${error} | tee "logs/${f_name}/${image_name}_$(timestamp).log" sh
-  secs=$(($(date +%s) - start_time))
-
   print_stdout_stats "${secs}" "${error}" \
     "${src_mnt}/model_score_timings/${f_name}_time.json"
 }
@@ -503,28 +478,26 @@ main() {
 
     model-build | build | mb | model-apply | apply | ma)
       # Build and run the 'model-[build,apply].sh' script
-      [[ $1 == "model-build" || $1 == "build" || $1 == "mb" ]] \
-        && cmd="model-build" \
-        || cmd="model-apply"
       make_logs ${cmd}
       basic_checks
       if [[ -z $2 ]]; then
         build_if_missing "${app_name}"
+        image_name="${app_name}"
         image_type="App"
         src_mnt="$(pwd)/data"
-        [[ ${cmd} == "model-apply" ]] \
-          && run_opts="--volume ${src_mnt}/model_build_outputs:${APP_DEST_MNT}/model_build_outputs:ro"
-        run_dev_image ${cmd} ${image_type} ${app_name} ${src_mnt} ${run_opts}
       else
         check_snapshot $2
         image_name=$(get_snapshot $2)
         load_snapshot ${image_name}
         image_type="Snapshot"
         src_mnt=$(get_data_context_abs $2)
-        [[ ${cmd} == "model-apply" ]] \
-          && run_opts="--volume ${src_mnt}/model_build_outputs:${APP_DEST_MNT}/model_build_outputs:ro"
-        run_app_image ${cmd} ${image_type} ${image_name} ${src_mnt} ${run_opts}
       fi
+      [[ $1 == "model-build" || $1 == "build" || $1 == "mb" ]] \
+        && cmd="model-build" \
+        || cmd="model-apply"
+      [[ ${cmd} == "model-apply" ]] \
+        && run_opts="--volume ${src_mnt}/model_build_outputs:${APP_DEST_MNT}/model_build_outputs:ro"
+      run_app_image ${cmd} ${image_type} ${image_name} ${src_mnt} ${run_opts}
       ;;
 
     model-configure | configure | mc)
