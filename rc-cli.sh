@@ -478,6 +478,9 @@ main() {
 
     model-build | build | mb | model-apply | apply | ma)
       # Build and run the 'model-[build,apply].sh' script
+      [[ $1 == "model-build" || $1 == "build" || $1 == "mb" ]] \
+        && cmd="model-build" \
+        || cmd="model-apply"
       make_logs ${cmd}
       basic_checks
       if [[ -z $2 ]]; then
@@ -492,9 +495,6 @@ main() {
         image_type="Snapshot"
         src_mnt=$(get_data_context_abs $2)
       fi
-      [[ $1 == "model-build" || $1 == "build" || $1 == "mb" ]] \
-        && cmd="model-build" \
-        || cmd="model-apply"
       [[ ${cmd} == "model-apply" ]] \
         && run_opts="--volume ${src_mnt}/model_build_outputs:${APP_DEST_MNT}/model_build_outputs:ro"
       run_app_image ${cmd} ${image_type} ${image_name} ${src_mnt} ${run_opts}
