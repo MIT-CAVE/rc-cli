@@ -6,12 +6,12 @@ Although [Python](https://www.python.org/) and [R](https://www.r-project.org/) c
 Please follow these guidelines to allow for a working environment between `Dockerfile` and `rc-cli`:
 
 1. Select the base image(s) for your custom Dockerfile from a reputable Docker repository. Your best option should be [Docker Hub](https://hub.docker.com/search?q=&type=image&category=languages).
-> If your programming language does not appear in the official images or if you prefer to create a custom image for your environment, you may want to extend the Ubuntu-based `Dockerfile` in the `rc_base` template.
+> Note: If your programming language does not appear in the official images or if you prefer to create a custom image for your environment, you may want to extend the Ubuntu-based `Dockerfile` in the `rc_base` template.
 
 2. Once you have selected the base image(s), in order for your Dockerfile to work with `rc-cli`, it should meet the following minimum requirements:
   - Create an `app` user and `app` group for the container
-  - Create the `/home/app/` directory
-  - The directory `src` along with the `model_build.sh` and `model_apply.sh` script files need to be copied to `/home/app/`
+  - Create a `/home/app/` directory
+  - The directory `src` along with the `model_build.sh` and `model_apply.sh` script files in your template must be copied to `/home/app/`
   - The `/home/app/` directory must be included in the `PATH` environment variable, i.e. `/home/app/` must be part of the list of executable directories. The reason for this is that `rc-cli` can execute the `model_build.sh` and `model_apply.sh` files.
   - The default `USER` for your Docker image must be `app`
   - You should not define an `ENTRYPOINT` instruction within your custom Dockerfile, as this will be overwritten by `rc-cli` to run the `model_build.sh` and `model_apply.sh` scripts. Instead, add any shell commands that you want to execute at run-time to these script files.
@@ -66,5 +66,5 @@ CMD ["/bin/sh"]
 </details>
 
 ## References
-- If you need more information about the syntax of **Dockerfile**, check the [official Dockerfile reference](https://docs.docker.com/engine/reference/builder/)
+- If you need more information about the syntax of **Dockerfile**, check the [official documentation](https://docs.docker.com/engine/reference/builder/)
 - [Best practices](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/) for writing Dockerfiles
