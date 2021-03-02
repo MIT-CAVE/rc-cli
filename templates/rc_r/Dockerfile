@@ -10,7 +10,7 @@ RUN mkdir -p $SOURCE_DIR
 WORKDIR $SOURCE_DIR
 RUN groupadd --gid 1001 app \
  && useradd --uid 1001 --gid app --shell /bin/bash --create-home app \
-# # install pkgs
+# install pkgs
  && apt update \
 # R devtools
  && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
@@ -19,10 +19,10 @@ RUN groupadd --gid 1001 app \
     libssl-dev \
  && rm -rf /var/lib/apt/lists/*
 # install R dependencies from requirements.txt file
-RUN Rscript -e 'install.packages("devtools")'
+RUN Rscript -e "install.packages('devtools')"
 COPY ./requirements.txt ./
 RUN while IFS=" " read -r package version; do \
-      Rscript -e 'devtools::install_version("${package}", version="${version}")' \
+      Rscript -e "devtools::install_version('"$package"', version='"${version}"')"; \
     done < "requirements.txt"
 COPY --chown=app:app ./*.sh ./
 COPY --chown=app:app ./src/ ./src/
