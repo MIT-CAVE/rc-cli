@@ -8,21 +8,22 @@ ENV SOURCE_DIR $SOURCE_DIR
 ENV PATH $PATH:$SOURCE_DIR
 RUN mkdir -p $SOURCE_DIR
 WORKDIR $SOURCE_DIR
-RUN groupadd --gid 1001 app \
- && useradd --uid 1001 --gid app --shell /bin/bash --create-home app \
+RUN deluser --quiet --remove-all-files docker \
+ && groupadd --gid 1000 app \
+ && useradd --uid 1000 --gid app --shell /bin/bash --create-home app \
 # install pkgs
  && apt update \
 # R devtools
  && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
     libcurl4-gnutls-dev \
-    libxml2-dev \
     libssl-dev \
+    libxml2-dev \
  && rm -rf /var/lib/apt/lists/*
 # install R dependencies from requirements.txt file
-RUN Rscript -e "install.packages('devtools')"
-COPY ./requirements.txt ./
+RUN Rscript -e "install.packages(\"devtools\")"
+COPY --chown=app:app ./requirements.txt ./
 RUN while IFS=" " read -r package version; do \
-      Rscript -e "devtools::install_version('"$package"', version='"${version}"')"; \
+      Rscript -e "devtools::install_version(\"${package}\", version=\"${version}\")"; \
     done < "requirements.txt"
 COPY --chown=app:app ./*.sh ./
 COPY --chown=app:app ./src/ ./src/
