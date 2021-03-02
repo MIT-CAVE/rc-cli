@@ -1,9 +1,9 @@
-# App
+# Dockerfile setup
 ## Introduction
 Although [Python](https://www.python.org/) and [R](https://www.r-project.org/) cover most programming language preferences, some teams can choose other programming languages and create their own `Dockerfile`s to set up their custom templates. This document will help you to quickly set up a working `Dockerfile`.
 
-## Dockerfile and `rc-cli`
-Follow these guidelines to allow for a working environment with `rc-cli`:
+## `Dockerfile` and `rc-cli`
+Follow these guidelines to allow for a working environment between your `Dockerfile` and `rc-cli`:
 
 1. Select the base image(s) for your custom `Dockerfile` from a reputable Docker repository. Your best option should be [Docker Hub](https://hub.docker.com/search?q=&type=image&category=languages).
 > If your programming language does not appear in the official images or if you prefer to create a custom image for your environment, you may want to extend the Ubuntu-based `Dockerfile` in the `rc_base` template.
@@ -20,7 +20,7 @@ Follow these guidelines to allow for a working environment with `rc-cli`:
 ## Examples:
 ### Linux-based image with a Bash shell
 <details>
-<summary>Details</summary>
+<summary>Dockerfile</summary>
 
 ```Dockerfile
 # syntax = docker/dockerfile:1.2
@@ -44,7 +44,7 @@ CMD ["/bin/bash"]
 
 ### Linux-based image with an Almquist shell
 <details>
-<summary>Details</summary>
+<summary>Dockerfile</summary>
 
 ```Dockerfile
 # syntax = docker/dockerfile:1.2
