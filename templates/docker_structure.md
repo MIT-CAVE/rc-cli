@@ -1,6 +1,6 @@
 # Dockerfile setup
 ## Introduction
-Although [Python](https://www.python.org/) and [R](https://www.r-project.org/) cover most programming language preferences, some teams can choose other programming languages and create their own `Dockerfile`s to set up their custom templates. This document will help you to quickly set up a working `Dockerfile`.
+Although [Python](https://www.python.org/) and [R](https://www.r-project.org/) cover most programming language preferences, some teams can choose other programming languages and create their own `Dockerfile`s to set up their custom templates. This document will help you to correctly set up a working `Dockerfile`.
 
 ## `Dockerfile` and `rc-cli`
 Please follow these guidelines to allow for a working environment between `Dockerfile` and `rc-cli`:
@@ -17,7 +17,7 @@ Please follow these guidelines to allow for a working environment between `Docke
   - You should not define an `ENTRYPOINT` instruction within your custom Dockerfile, as this will be overwritten by `rc-cli` to run the `model_build.sh` and `model_apply.sh` scripts. Instead, add any shell commands that you want to execute at run-time to these script files.
   - Place a `CMD` instruction at the end of the Dockerfile to run the default shell of the image, e.g. `CMD ["/bin/bash"]` or `CMD ["/bin/sh"]`
 
-## Examples:
+## Examples
 ### Linux-based image with a Bash shell
 <details>
 <summary>Dockerfile</summary>
