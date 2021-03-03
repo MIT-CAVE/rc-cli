@@ -5,18 +5,15 @@ ARG SOURCE_DIR=/home/app/
 # builder image
 FROM r-base:$R_BASE_VERSION as builder
 # install pkgs
-RUN apt update \
-# R devtools
- && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-    libcurl4-gnutls-dev \
-    libssl-dev \
-    libxml2-dev \
- && rm -rf /var/lib/apt/lists/*
-RUN Rscript -e "install.packages(\"devtools\")"
+# RUN apt update \
+# && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
+#  # Packages here \
+# && rm -rf /var/lib/apt/lists/*
+RUN Rscript -e "install.packages(\"versions\")"
 COPY ./requirements.txt ./
 # install R dependencies from requirements.txt file
 RUN while IFS=" " read -r package version; do \
-      Rscript -e "devtools::install_version(\"${package}\", version=\"${version}\")"; \
+      Rscript -e "versions::install.versions(c('$package'), c('$version'))"; \
     done < "requirements.txt"
 
 FROM r-base:$R_BASE_VERSION
