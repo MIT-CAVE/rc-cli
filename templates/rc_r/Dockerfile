@@ -12,9 +12,9 @@ RUN apt update \
     libssl-dev \
     libxml2-dev \
  && rm -rf /var/lib/apt/lists/*
-# install R dependencies from requirements.txt file
 RUN Rscript -e "install.packages(\"devtools\")"
 COPY ./requirements.txt ./
+# install R dependencies from requirements.txt file
 RUN while IFS=" " read -r package version; do \
       Rscript -e "devtools::install_version(\"${package}\", version=\"${version}\")"; \
     done < "requirements.txt"
