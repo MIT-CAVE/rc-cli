@@ -2,17 +2,10 @@
 ARG R_BASE_VERSION=4.0.4
 ARG SOURCE_DIR=/home/app/
 
-FROM r-base:$R_BASE_VERSION
-ARG SOURCE_DIR
-ENV SOURCE_DIR $SOURCE_DIR
-ENV PATH $PATH:$SOURCE_DIR
-RUN mkdir -p $SOURCE_DIR
-WORKDIR $SOURCE_DIR
-RUN deluser --quiet --remove-all-files docker \
- && groupadd --gid 1000 app \
- && useradd --uid 1000 --gid app --shell /bin/bash --create-home app \
+# builder image
+FROM r-base:$R_BASE_VERSION as builder
 # install pkgs
- && apt update \
+RUN apt update \
 # R devtools
  && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
     libcurl4-gnutls-dev \
@@ -21,10 +14,21 @@ RUN deluser --quiet --remove-all-files docker \
  && rm -rf /var/lib/apt/lists/*
 # install R dependencies from requirements.txt file
 RUN Rscript -e "install.packages(\"devtools\")"
-COPY --chown=app:app ./requirements.txt ./
+COPY ./requirements.txt ./
 RUN while IFS=" " read -r package version; do \
       Rscript -e "devtools::install_version(\"${package}\", version=\"${version}\")"; \
     done < "requirements.txt"
+
+FROM r-base:$R_BASE_VERSION
+ARG SOURCE_DIR
+ENV SOURCE_DIR $SOURCE_DIR
+ENV PATH $PATH:$SOURCE_DIR
+RUN mkdir -p $SOURCE_DIR
+WORKDIR $SOURCE_DIR
+RUN deluser --quiet --remove-all-files docker \
+ && groupadd --gid 1000 app \
+ && useradd --uid 1000 --gid app --shell /bin/bash --create-home app
+COPY --from=builder --chown=app:app /usr/local/lib/R/ /usr/local/lib/R/
 COPY --chown=app:app ./*.sh ./
 COPY --chown=app:app ./src/ ./src/
 USER app
