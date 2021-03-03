@@ -47,7 +47,7 @@ get_status() {
       ;;
     *)
       printf "\n${error}\n" >&2
-      printf "fail: ${error}"
+      printf "Failure"
       ;;
   esac
 }

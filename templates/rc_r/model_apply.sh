@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
 
-exec "./src/model_apply.sh"
+exec Rscript ./src/model_apply.r
