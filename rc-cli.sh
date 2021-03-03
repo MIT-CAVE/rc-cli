@@ -454,6 +454,7 @@ main() {
       template_path="${RC_CLI_PATH}/templates/${template}"
       cp -R "${template_path}" "$2"
       cp "${RC_CLI_PATH}/templates/README.md" "$2"
+      cp "${RC_CLI_PATH}/templates/docker_structure.md" "$2"
       cp -R "${RC_CLI_PATH}/data" "$2"
       chmod +x $(echo "$2/*.sh")
       [[ -z $3 ]] && optional="by default "
