@@ -11,8 +11,7 @@ Using the `rc-cli`, participants of the Amazon Routing Challenge will be able to
 
 Saved solutions that have been tested can be uploaded to the competition site: [routingchallenge.io](https://routingchallenge.io)
 
-## Mac and Unix
-### Setup
+## Mac and Unix Setup
 1. Install [Docker](https://docs.docker.com/get-docker/):
   - Note: Make sure to install Docker Engine v18.09 or later
   - If you have an older version of Docker, make sure [BuildKits are enabled](https://docs.docker.com/develop/develop-images/build_enhancements/#to-enable-buildkit-builds)
@@ -45,7 +44,6 @@ Saved solutions that have been tested can be uploaded to the competition site: [
 5. Continue to the `Bootstrap your Project` section below the Windows 10 setup section
 
 ## Windows 10 Setup
-### Setup
 1. Install [Docker](https://hub.docker.com/editions/community/docker-ce-desktop-windows/)
   - Install WSL2 update during docker installation
     - Update your WSL2 Kernel (If you are prompted during installation)
