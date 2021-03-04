@@ -24,10 +24,10 @@ if __name__ == '__main__':
     model_apply_time = read_json_data(os.path.join(BASE_DIR,'data/model_score_timings/model_apply_time.json'))
 
     output=score.evaluate(
-        actual_routes_json=os.path.join(BASE_DIR,'data/model_score_inputs/acttual_routes.json'),
+        actual_routes_json=os.path.join(BASE_DIR,'data/model_score_inputs/actual_routes.json'),
+        invalid_scores_json=os.path.join(BASE_DIR,'data/model_score_inputs/invalid_scores.json'),
         submission_json=os.path.join(BASE_DIR,'data/model_apply_outputs/predicted_routes.json'),
         cost_matrices_json=os.path.join(BASE_DIR,'data/model_apply_inputs/prediction_cost_matrices.json'),
-        invalid_scores_json=os.path.join(BASE_DIR,'data/model_score_inputs/invalid_scores.json'),
         model_apply_time=model_apply_time.get("time"),
         model_build_time=model_build_time.get("time")
     )
