@@ -139,19 +139,24 @@ image_name_prompt() {
 }
 
 select_template() {
-  while ! printf "$RC_TEMPLATES" | grep -w -q "$template"; do
+  local template=$1
+
+  local rc_templates
+  rc_templates="$(get_templates)"
+  while ! printf "${rc_templates}" | grep -w -q "${template}"; do
     # Prompt confirmation to select proper template
     if [[ -z ${template} ]]; then
-      printf "WARNING! new: A template was not provided:\n"
+      printf "WARNING! new: A template was not provided:\n" >&2
     else
-      printf "WARNING! new: The supplied template (${template}) does not exist.\n"
+      printf "WARNING! new: The supplied template (${template}) does not exist.\n" >&2
     fi
-    printf "The following are valid templates:\n$(get_new_template_string)\n"
-    template="$RC_CLI_DEFAULT_TEMPLATE"
+    printf "The following are valid templates:\n$(get_new_template_string)\n" >&2
+    template="${RC_CLI_DEFAULT_TEMPLATE}"
     read -r -p "Enter your selection [${template}]: " input
     [[ -n ${input} ]] && template=${input}
-    printf "\n"
+    printf "\n" >&2
   done
+  printf ${template}
 }
 
 #######################################
@@ -435,8 +440,8 @@ main() {
         err "Cannot create app '$2': This folder already exists in the current directory"
         exit 1
       fi
-      template=${3:-"None Provided"}
-      select_template
+
+      template=$(select_template ${3:-"None Provided"})
       template_path="${RC_CLI_PATH}/templates/${template}"
       cp -R "${template_path}" "$2"
       cp "${RC_CLI_PATH}/templates/README.md" "$2"
