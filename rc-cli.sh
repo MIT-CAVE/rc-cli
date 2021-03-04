@@ -94,28 +94,15 @@ basic_checks() {
 }
 
 get_templates () {
-RC_TEMPLATES="$(\
-  ls -d $RC_CLI_PATH/templates/*/ | \
-  awk -F'/' ' {print $(NF-1)} ' \
-  )"
+  printf "$(ls -d ${RC_CLI_PATH}/templates/*/ | awk -F'/' ' {print $(NF-1)} ')"
 }
 
 get_new_template_string () {
-  get_templates
-  RC_NEW_TEMPLATE_STRING="$(\
-    printf "$RC_TEMPLATES" | \
-    tr '\n' ',' | \
-    sed 's/,/\n- /g' \
-    )"
+  printf "$(get_templates)" | sed 's/\([^\n]*\)/- \1/'
 }
 
 get_help_template_string () {
-  get_templates
-  RC_HELP_TEMPLATE_STRING="$(\
-    printf "$RC_TEMPLATES" | \
-    tr '\n' ',' | \
-    sed 's/,/\n      - /g'\
-    )"
+  printf "$(get_templates)" | sed 's/\([^\n]*\)/      - \1/'
 }
 
 # Strips off any leading directory components.
@@ -152,7 +139,6 @@ image_name_prompt() {
 }
 
 select_template() {
-  get_new_template_string
   while ! printf "$RC_TEMPLATES" | grep -w -q "$template"; do
     # Prompt confirmation to select proper template
     if [[ -z ${template} ]]; then
@@ -160,7 +146,7 @@ select_template() {
     else
       printf "WARNING! new: The supplied template (${template}) does not exist.\n"
     fi
-    printf "The following are valid templates:\n- ${RC_NEW_TEMPLATE_STRING}\n"
+    printf "The following are valid templates:\n$(get_new_template_string)\n"
     template="$RC_CLI_DEFAULT_TEMPLATE"
     read -r -p "Enter your selection [${template}]: " input
     [[ -n ${input} ]] && template=${input}
@@ -707,7 +693,6 @@ main() {
       ;;
 
     help | --help) # Display the help
-      get_help_template_string
       cat 1>&2 <<EOF
 ${RC_CLI_LONG_NAME}
 
@@ -790,7 +775,7 @@ Usage Examples:
 
   new-app [app-name] [template-name]
     - The following templates are available:
-      - ${RC_HELP_TEMPLATE_STRING}
+$(get_help_template_string)
     - Create a new app with the default template ${RC_CLI_DEFAULT_TEMPLATE}
       ${CHARS_LINE}
       rc-cli new-app my-app
