@@ -52,17 +52,17 @@ Please follow these guidelines to ensure the `rc-cli` will work with your develo
           - Changes to this data during run time will be reflected in your local `data` folder
         - Data is restricted to the current phase
           1. `model-build`:
-            - `data/model_build_inputs`
-            - `data/model_build_outputs`
+            - `data/model_build_inputs` (read)
+            - `data/model_build_outputs` (read/write)
           2. `model-apply`:
-            - `data/model_build_outputs`
-            - `data/model_apply_inputs`
-            - `data/model_apply_outputs`
+            - `data/model_build_outputs` (read)
+            - `data/model_apply_inputs` (read)
+            - `data/model_apply_outputs` (read/write)
           - `model-debug`:
-            - `data/model_build_inputs`
-            - `data/model_build_outputs`
-            - `data/model_apply_inputs`
-            - `data/model_apply_outputs`
+            - `data/model_build_inputs` (read/write)
+            - `data/model_build_outputs` (read/write)
+            - `data/model_apply_inputs` (read/write)
+            - `data/model_apply_outputs` (read/write)
       - During `rc-cli` production testing (`production-test`)
         - The `rc-cli` will first reset your local `data` folder to the initial data state
           - This is exactly how the data will be formatted during official scoring
