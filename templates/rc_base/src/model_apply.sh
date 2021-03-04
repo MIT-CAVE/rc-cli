@@ -13,7 +13,7 @@ sleep 1
 echo "The Answer is 42!"
 sleep 1
 # Copy in eample output as the output for this algorithm
-rm -rf data/model_apply_outputs/output.json 2> /dev/null
-cp data/model_apply_outputs/example_output.json data/model_apply_outputs/output.json
-echo "Success: The '$PWD/data/model_apply_outputs/output.json' file has been saved"
+rm -rf data/model_apply_outputs/predicted_routes.json 2> /dev/null
+cp data/model_apply_outputs/predicted_routes_example.json data/model_apply_outputs/predicted_routes.json
+echo "Success: The '$PWD/data/model_apply_outputs/predicted_routes.json' file has been saved"
 echo "Done!"

@@ -24,16 +24,16 @@ if __name__ == '__main__':
     model_apply_time = read_json_data(os.path.join(BASE_DIR,'data/model_score_timings/model_apply_time.json'))
 
     output=score.evaluate(
-        actual_routes_json=os.path.join(BASE_DIR,'data/model_score_inputs/input.json'),
-        submission_json=os.path.join(BASE_DIR,'data/model_apply_outputs/output.json'),
+        actual_routes_json=os.path.join(BASE_DIR,'data/model_score_inputs/acttual_routes.json'),
+        submission_json=os.path.join(BASE_DIR,'data/model_apply_outputs/predicted_routes.json'),
         cost_matrices_json=os.path.join(BASE_DIR,'data/model_apply_inputs/prediction_cost_matrices.json'),
-        invalid_scores_json=os.path.join(BASE_DIR,'data/model_apply_outputs/output.json'),
+        invalid_scores_json=os.path.join(BASE_DIR,'data/model_score_inputs/invalid_scores.json'),
         model_apply_time=model_apply_time.get("time"),
         model_build_time=model_build_time.get("time")
     )
 
 
-    output_dir = os.path.join(BASE_DIR,'data/model_score_outputs/output.json')
+    output_dir = os.path.join(BASE_DIR,'data/model_score_outputs/evaluation_output.json')
     with open(output_dir, 'w') as out_file:
         json.dump(output, out_file)
         print(output)

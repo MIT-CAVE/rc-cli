@@ -15,10 +15,10 @@ print("The Answer is 42!")
 Sys.sleep(1)
 
 # Copy in eample output as the output for this algorithm
-if (file.exists("data/model_apply_outputs/output.json")) {
-  file.remove("data/model_apply_outputs/output.json")
+if (file.exists("data/model_apply_outputs/predicted_routes.json")) {
+  file.remove("data/model_apply_outputs/predicted_routes.json")
 }
-file.copy("data/model_apply_outputs/example_output.json", "data/model_apply_outputs/output.json")
+file.copy("data/model_apply_outputs/predicted_routes_example.json", "data/model_apply_outputs/predicted_routes.json")
 
-print(paste("Success: The '", getwd(), "/data/model_apply_outputs/output.json' file has been saved.",sep = ""))
+print(paste("Success: The '", getwd(), "/data/model_apply_outputs/predicted_routes.json' file has been saved.",sep = ""))
 print("Done!")
