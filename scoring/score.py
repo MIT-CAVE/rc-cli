@@ -208,22 +208,22 @@ def normalize_matrix(mat):
     time_list=[]
     for origin in mat:
         for destination in mat[origin]:
-            time_list.append(mat[origin][destination]['time'])
+            time_list.append(mat[origin][destination])
     avg_time=np.mean(time_list)
     std_time=np.std(time_list)
     min_new_time=np.inf
     for origin in mat:
         for destination in mat[origin]:
-            old_time=mat[origin][destination]['time']
+            old_time=mat[origin][destination]
             new_time=(old_time-avg_time)/std_time
             if new_time<min_new_time:
                 min_new_time=new_time
-            new_mat[origin][destination]['time']=new_time
+            new_mat[origin][destination]=new_time
     for origin in new_mat:
         for destination in new_mat[origin]:
-            new_time=new_mat[origin][destination]['time']
+            new_time=new_mat[origin][destination]
             shifted_time=new_time-min_new_time
-            new_mat[origin][destination]['time']=shifted_time
+            new_mat[origin][destination]=shifted_time
     return new_mat
 
 def gap_sum(path,g):
@@ -272,7 +272,9 @@ def dist_erp(p_1,p_2,mat,g=1000):
     if p_1=='gap' or p_2=='gap':
         dist=g
     else:
-        dist=mat[p_1][p_2]['time']
+        p_1=p_1[7:]
+        p_2=p_2[7:]
+        dist=mat[p_1][p_2]
     return dist
 
 def seq_dev(actual,sub):
