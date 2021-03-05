@@ -80,33 +80,46 @@ secs_to_iso_8601() {
   printf "%dh:%dm:%ds" $(($1 / 3600)) $(($1 % 3600 / 60)) $(($1 % 60))
 }
 
-# Check that the CLI is run from a valid app
-# directory and returns the base name directory.
+get_app_name() {
+  printf "$(basename "$(pwd)")"
+}
+
+# Check that the CLI is run from a valid app directory.
 check_app() {
   if ! valid_app_dir; then
     err "Error: You are not in a valid app directory. Make sure to cd into an app directory that you bootstrapped with the rc-cli."
     exit 1
   fi
-  app_name=$(basename "$(pwd)")
+}
+
+# Foolproof basic setup to minimize user-side errors
+foolproof_setup() {
+  local scripts
+  scripts="$(ls *.sh) $(find src/ -type f -name "*.r")"
+  for sh_file in ${scripts}; do
+    # Force chmod to 755
+    chmod +x ${sh_file}
+    # Force line endings to LF
+    awk 'BEGIN{RS="^$";ORS="";getline;gsub("\r","");print>ARGV[1]}' ${sh_file}
+  done
 }
 
 # Run basic checks on requirements for some commands.
 basic_checks() {
   check_app
   check_docker
-  # TODO Force Chmod to 755 for *.sh and src/*
-  # TODO Force all line endings to be LF
+  foolproof_setup
 }
 
-get_templates () {
+get_templates() {
   printf "$(ls -d ${RC_CLI_PATH}/templates/*/ | awk -F'/' ' {print $(NF-1)} ')"
 }
 
-get_new_template_string () {
+get_new_template_string() {
   printf "$(get_templates)" | sed 's/\([^\n]*\)/- \1/'
 }
 
-get_help_template_string () {
+get_help_template_string() {
   printf "$(get_templates)" | sed 's/\([^\n]*\)/      - \1/'
 }
 
@@ -465,7 +478,7 @@ main() {
       make_logs ${cmd}
       basic_checks
       snapshot="$(basename ${2:-''})"
-      [[ -z ${snapshot} ]] && tmp_name=${app_name} || tmp_name=${snapshot}
+      [[ -z ${snapshot} ]] && tmp_name=$(get_app_name) || tmp_name=${snapshot}
       printf "${CHARS_LINE}\n"
       printf "Save Precheck for App [${tmp_name}]:\n\n"
       image_name=$(image_name_prompt ${cmd} ${tmp_name})
@@ -482,7 +495,10 @@ main() {
         || cmd="model-apply"
       make_logs ${cmd}
       basic_checks
+
       if [[ -z $2 ]]; then
+        local app_name
+        app_name=$(get_app_name)
         build_if_missing "${app_name}"
         image_name="${app_name}"
         image_type="App"
@@ -507,7 +523,7 @@ main() {
       fi
       cmd="configure-app"
       basic_checks
-      configure_image ${RC_CONFIGURE_APP_NAME} ${app_name}
+      configure_image ${RC_CONFIGURE_APP_NAME} "$(get_app_name)"
       printf "${CHARS_LINE}\n"
       ;;
 
@@ -524,7 +540,7 @@ main() {
       make_logs ${cmd}
 
       if [[ -z $2 ]]; then
-        image_name=${app_name}
+        image_name=$(get_app_name)
         configure_image ${RC_CONFIGURE_APP_NAME} ${image_name}
         docker save ${image_name}:${RC_IMAGE_TAG} | gzip > "${TMP_DIR}/${image_name}.tar.gz"
       else
@@ -567,7 +583,7 @@ main() {
       if ! is_image_built ${RC_SCORING_IMAGE}; then
         configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
-      run_scoring_image ${cmd} ${app_name} ${src_mnt}
+      run_scoring_image ${cmd} $(get_app_name)${src_mnt}
       ;;
 
     model-debug | debug | md)
@@ -576,6 +592,8 @@ main() {
       make_logs ${cmd}
       basic_checks
       if [[ -z $2 ]]; then
+        local app_name
+        app_name=$(get_app_name)
         build_if_missing "${app_name}"
         image_name="${app_name}"
         run_opts="--volume $(pwd)/src:/home/app/src"
