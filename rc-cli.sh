@@ -20,7 +20,7 @@ readonly APP_DEST_MNT="/home/app/data"
 readonly TMP_DIR="/tmp"
 
 readonly RC_CONFIGURE_APP_NAME="configure_app"
-readonly RC_CONFIGURE_UTILS_NAME="configure_utils"
+readonly NO_LOGS="no_logs"
 
 #######################################
 # Display an error message when the user input is invalid.
@@ -180,7 +180,9 @@ configure_image() {
   local f_name
   local out_file
   f_name="$(kebab_to_snake ${src_cmd})"
-  make_logs $f_name
+  if [[ ! $f_name = $NO_LOGS ]]; then
+    make_logs $f_name
+  fi
   printf "${CHARS_LINE}\n"
   printf "Configure Image [${image_name}]:\n\n"
   printf "Configuring the '${image_name}' image... "
@@ -530,10 +532,10 @@ main() {
 
       # Saving time if some images exist.
       if ! is_image_built ${RC_TEST_IMAGE}; then
-        configure_image ${RC_CONFIGURE_UTILS_NAME} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
+        configure_image ${NO_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       fi
       if ! is_image_built ${RC_SCORING_IMAGE}; then
-        configure_image ${RC_CONFIGURE_UTILS_NAME} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+        configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
       if [[ ! -f "scoring/${RC_SCORING_IMAGE}.tar.gz" ]]; then
         docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} \
@@ -561,7 +563,7 @@ main() {
       make_logs ${cmd}
 
       if ! is_image_built ${RC_SCORING_IMAGE}; then
-        configure_image ${RC_CONFIGURE_UTILS_NAME} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+        configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
       run_scoring_image ${cmd} ${app_name} ${src_mnt}
       ;;
@@ -658,11 +660,22 @@ main() {
       printf "\n${CHARS_LINE}\n"
       printf "Running other update maintenance tasks\n"
       check_docker
-      configure_image ${RC_CONFIGURE_UTILS_NAME} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
-      configure_image ${RC_CONFIGURE_UTILS_NAME} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+      configure_image ${NO_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
+      configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
 
-      printf "Finished!\n"
+      printf "${CHARS_LINE}\n"
+      ;;
+
+    configure-utils | cu) # Run maintenance commands to configure the utility images during development
+      printf "${CHARS_LINE}\n"
+      printf "Configuring Utility Images\n"
+      check_docker
+      configure_image ${NO_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
+      configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+      docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
+
+      printf "${CHARS_LINE}\n"
       ;;
 
     uninstall)
