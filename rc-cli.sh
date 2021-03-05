@@ -738,24 +738,24 @@ Usage Examples:
       rc-cli configure-app
       ${CHARS_LINE}
 
-  model-apply [snapshot-name]
-    - Run the model-apply phase for your current app (after having run model-build)
-      ${CHARS_LINE}
-      rc-cli model-apply
-      ${CHARS_LINE}
-    - Run the evaluate phase for a snapshot (after having run model-build)
-      ${CHARS_LINE}
-      rc-cli model-apply my-snapshot
-      ${CHARS_LINE}
-
   model-build [snapshot-name]
     - Run the model-build phase for your current app
       ${CHARS_LINE}
       rc-cli model-build
       ${CHARS_LINE}
-    - Run the evaluate phase for a snapshot
+    - Run the model-build phase for a snapshot
       ${CHARS_LINE}
       rc-cli model-build my-snapshot
+      ${CHARS_LINE}
+
+  model-apply [snapshot-name]
+    - Run the model-apply phase for your current app (after having run model-build)
+      ${CHARS_LINE}
+      rc-cli model-apply
+      ${CHARS_LINE}
+    - Run the model-apply phase for a snapshot (after having run model-build)
+      ${CHARS_LINE}
+      rc-cli model-apply my-snapshot
       ${CHARS_LINE}
 
   model-debug [snapshot-name]
