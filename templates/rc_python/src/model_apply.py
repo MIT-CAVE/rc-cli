@@ -58,17 +58,14 @@ def sort_by_key(stops, sort_by):
     ```
 
     """
-    # Rempte the depot to manually format it back in first later
-    stops.pop('Depot')
-
     # Serialize keys as id into each dictionary value and make the dict a list
     stops_list=[{**value, **{'id':key}} for key, value in stops.items()]
 
     # Sort the stops list by the key specified when calling the sort_by_key func
     ordered_stop_list=sorted(stops_list, key=lambda x: x[sort_by])
 
-    # Keep only sorted list of ids and add in the Depot as the first item in the list
-    ordered_stop_list_ids=['Depot']+[i['id'] for i in ordered_stop_list]
+    # Keep only sorted list of ids
+    ordered_stop_list_ids=[i['id'] for i in ordered_stop_list]
 
     # Serialize back to dictionary format with output order +1 as the values
     return {i:ordered_stop_list_ids.index(i) for i in ordered_stop_list_ids}

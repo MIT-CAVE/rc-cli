@@ -12,8 +12,13 @@ echo "Checking Validity"
 sleep 1
 echo "The Answer is 42!"
 sleep 1
-# Copy in eample output as the output for this algorithm
+
+# Remove any old solution if it exists
 rm -rf data/model_apply_outputs/predicted_routes.json 2> /dev/null
-cp data/model_apply_outputs/predicted_routes_example.json data/model_apply_outputs/predicted_routes.json
-echo "Success: The '$PWD/data/model_apply_outputs/predicted_routes.json' file has been saved"
+
+echo "Executing a python script from the Shell Script to actually solve the problem"
+python3 src/model_apply.py && \
+echo "Success: The '$PWD/data/model_apply_outputs/predicted_routes.json' file has been saved" ||
+echo "Failure: Something did not quite work correct when executing the python script!"
+
 echo "Done!"

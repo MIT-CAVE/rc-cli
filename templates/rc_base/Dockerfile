@@ -15,6 +15,7 @@ RUN groupadd --gid 1000 app \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     # you might need build-essential
     build-essential \
+    python3 \
     # other pkgs...
  && rm -rf /var/lib/apt/lists/*
 COPY --chown=app:app ./*.sh ./

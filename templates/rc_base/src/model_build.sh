@@ -13,7 +13,7 @@ sleep 1
 echo "Saving Solved Model State"
 sleep 1
 echo "{
-      'Model':'Hello from the model_build.py script!',
-      'sort_by':'lat',
-  }" > data/model_build_outputs/model.json
+      \"Model\":\"Hello from the model_build.py script!\",
+      \"sort_by\":\"lat\"
+}" > data/model_build_outputs/model.json
 echo "Success: The '$PWD/data/model_build_outputs/model.json' file has been saved"
