@@ -94,6 +94,8 @@ check_app() {
 basic_checks() {
   check_app
   check_docker
+  # TODO Force Chmod to 755 for *.sh and src/*
+  # TODO Force all line endings to be LF
 }
 
 get_templates () {
