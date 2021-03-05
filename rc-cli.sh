@@ -19,6 +19,9 @@ readonly RC_TEST_IMAGE="rc-test"
 readonly APP_DEST_MNT="/home/app/data"
 readonly TMP_DIR="/tmp"
 
+readonly RC_CONFIGURE_APP_NAME="configure_app"
+readonly RC_CONFIGURE_UTILS_NAME="configure_utils"
+
 #######################################
 # Display an error message when the user input is invalid.
 # Globals:
@@ -177,6 +180,7 @@ configure_image() {
   local f_name
   local out_file
   f_name="$(kebab_to_snake ${src_cmd})"
+  make_logs $f_name
   printf "${CHARS_LINE}\n"
   printf "Configure Image [${image_name}]:\n\n"
   printf "Configuring the '${image_name}' image... "
@@ -235,8 +239,7 @@ build_if_missing() { # Build the image if it is missing under the model configur
   if ! is_image_built ${1}; then
     printf "${CHARS_LINE}\n"
     printf "No prebuilt image exists yet. Configuring Image with 'model-configure'\n\n"
-    make_logs "model-configure"
-    configure_image "model-configure" ${1}
+    configure_image ${RC_CONFIGURE_APP_NAME} ${1}
   fi
 }
 
@@ -463,7 +466,7 @@ main() {
       printf "Save Precheck for App [${tmp_name}]:\n\n"
       image_name=$(image_name_prompt ${cmd} ${tmp_name})
       printf "Save Precheck Complete\n\n"
-      configure_image ${cmd} ${image_name}
+      configure_image ${RC_CONFIGURE_APP_NAME} ${image_name}
       save_image ${image_name}
       printf "${CHARS_LINE}\n"
       ;;
@@ -499,9 +502,8 @@ main() {
         exit 1
       fi
       cmd="configure-app"
-      make_logs ${cmd}
       basic_checks
-      configure_image ${cmd} ${app_name}
+      configure_image ${RC_CONFIGURE_APP_NAME} ${app_name}
       printf "${CHARS_LINE}\n"
       ;;
 
@@ -519,7 +521,7 @@ main() {
 
       if [[ -z $2 ]]; then
         image_name=${app_name}
-        configure_image ${cmd} ${image_name}
+        configure_image ${RC_CONFIGURE_APP_NAME} ${image_name}
         docker save ${image_name}:${RC_IMAGE_TAG} | gzip > "${TMP_DIR}/${image_name}.tar.gz"
       else
         image_name=$(get_snapshot $2)
@@ -528,10 +530,10 @@ main() {
 
       # Saving time if some images exist.
       if ! is_image_built ${RC_TEST_IMAGE}; then
-        configure_image ${cmd} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
+        configure_image ${RC_CONFIGURE_UTILS_NAME} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       fi
       if ! is_image_built ${RC_SCORING_IMAGE}; then
-        configure_image ${cmd} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+        configure_image ${RC_CONFIGURE_UTILS_NAME} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
       if [[ ! -f "scoring/${RC_SCORING_IMAGE}.tar.gz" ]]; then
         docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} \
@@ -559,7 +561,7 @@ main() {
       make_logs ${cmd}
 
       if ! is_image_built ${RC_SCORING_IMAGE}; then
-        configure_image ${cmd} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+        configure_image ${RC_CONFIGURE_UTILS_NAME} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
       run_scoring_image ${cmd} ${app_name} ${src_mnt}
       ;;
@@ -656,8 +658,8 @@ main() {
       printf "\n${CHARS_LINE}\n"
       printf "Running other update maintenance tasks\n"
       check_docker
-      configure_image $1 ${RC_TEST_IMAGE} ${RC_CLI_PATH}
-      configure_image $1 ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+      configure_image ${RC_CONFIGURE_UTILS_NAME} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
+      configure_image ${RC_CONFIGURE_UTILS_NAME} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
 
       printf "Finished!\n"
