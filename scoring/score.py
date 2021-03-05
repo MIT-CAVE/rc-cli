@@ -272,9 +272,7 @@ def dist_erp(p_1,p_2,mat,g=1000):
     if p_1=='gap' or p_2=='gap':
         dist=g
     else:
-        point_1=p_1[7:]
-        point_2=p_2[7:]
-        dist=mat[point_1][point_2]
+        dist=mat[p_1][p_2]
     return dist
 
 def seq_dev(actual,sub):
