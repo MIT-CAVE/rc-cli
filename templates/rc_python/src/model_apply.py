@@ -67,7 +67,7 @@ def sort_by_key(stops, sort_by):
     # Keep only sorted list of ids
     ordered_stop_list_ids=[i['id'] for i in ordered_stop_list]
 
-    # Serialize back to dictionary format with output order +1 as the values
+    # Serialize back to dictionary format with output order as the values
     return {i:ordered_stop_list_ids.index(i) for i in ordered_stop_list_ids}
 
 def predict_all_routes(prediction_routes, sort_by):

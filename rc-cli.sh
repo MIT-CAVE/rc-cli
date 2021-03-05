@@ -84,7 +84,7 @@ secs_to_iso_8601() {
 # directory and returns the base name directory.
 check_app() {
   if ! valid_app_dir; then
-    err "not a valid app directory"
+    err "Error: You are not in a valid app directory. Make sure to cd into an app directory that you bootstrapped with the rc-cli."
     exit 1
   fi
   app_name=$(basename "$(pwd)")
