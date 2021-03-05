@@ -95,7 +95,7 @@ check_app() {
 # Foolproof basic setup to minimize user-side errors
 foolproof_setup() {
   local scripts
-  scripts="$(ls *.sh) $(find src/ -type f -name "*.r")"
+  scripts="$(ls *.sh) $(find src/ -type f -name "*.sh")"
   for sh_file in ${scripts}; do
     # Force chmod to 755
     chmod +x ${sh_file}
