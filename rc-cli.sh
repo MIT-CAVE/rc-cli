@@ -576,10 +576,15 @@ main() {
       if [[ -z $2 ]]; then
         build_if_missing "${app_name}"
         image_name="${app_name}"
+        run_opts="--volume $(pwd)/src:/home/app/src"
+        for f in $(pwd)/*.sh; do
+          run_opts="$run_opts --volume $(pwd)/$(basename ${f}):/home/app/$(basename ${f})"
+        done
       else
         check_snapshot $2
         image_name=$(get_snapshot $2)
         load_snapshot ${image_name}
+        run_opts=""
       fi
       # Find all available shells in container and choose bash if available
       valid_sh=$(docker run --rm --entrypoint="" ${image_name}:${RC_IMAGE_TAG} cat /etc/shells)
@@ -594,9 +599,9 @@ main() {
       printf "      ./model_build.sh'\n"
       printf "      ${CHARS_LINE}\n"
       printf "  - Use the 'exit' command to exit the current shell\n"
-      printf "\nEnabling an interactive shell with the snapshot container...\n"
+      printf "\nEnabling an interactive shell in the Docker image...\n"
       src_mnt=$(get_data_context_abs $2)
-      docker run --rm --entrypoint="" --user root \
+      docker run --rm --entrypoint="" --user root ${run_opts}\
         --volume "${src_mnt}/model_build_inputs:${APP_DEST_MNT}/model_build_inputs:ro" \
         --volume "${src_mnt}/model_build_outputs:${APP_DEST_MNT}/model_build_outputs" \
         --volume "${src_mnt}/model_apply_inputs:${APP_DEST_MNT}/model_apply_inputs:ro" \
