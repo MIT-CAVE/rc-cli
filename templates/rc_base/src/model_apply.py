@@ -6,7 +6,7 @@ model_path=path.join(BASE_DIR, 'data/model_build_outputs/model.json')
 with open(model_path, newline='') as in_file:
     model_build_out = json.load(in_file)
 
-prediction_routes_path=path.join(BASE_DIR, 'data/model_apply_inputs/prediction_routes.json')
+prediction_routes_path=path.join(BASE_DIR, 'data/model_apply_inputs/new_route_data.json')
 with open(prediction_routes_path, newline='') as in_file:
     prediction_routes = json.load(in_file)
 
