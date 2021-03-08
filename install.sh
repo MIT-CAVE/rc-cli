@@ -38,8 +38,10 @@ get_compressed_data_info() { # Get information on compressed data to download
   compressed_file_path="${2}/${compressed_file_name}"
   compressed_file_type="${compressed_file_path##*.}"
   if [[ "$compressed_file_type" = "xz" ]]; then
+    compressed_file_name_no_ext==${compressed_file_name%.*.*}
     compressed_folder_name=${compressed_file_name%.*.*}
   else
+    compressed_file_name_no_ext==${compressed_file_name%.*}
     compressed_folder_name=${compressed_file_name%.*}
   fi
 
@@ -152,7 +154,7 @@ install_new() { # Copy the needed files locally
 }
 
 copy_compressed_data_down() { # Copy the needed data files locally
-  # Takes two optional parameters (order matters)
+  # Takes three optional parameters (order matters)
   # EG:
   # copy_compressed_data_down URL LOCAL_PATH NEW_DIR_NAME
   new_dir_name="${3:-$compressed_folder_name}"
@@ -160,7 +162,7 @@ copy_compressed_data_down() { # Copy the needed data files locally
   curl -s -o "${compressed_file_path}" "$1" > /dev/null
   echo "$compressed_file_type"
   if [[ "${compressed_file_type}" = "xz" ]]; then
-    tar -xf "${compressed_file_path}" -C "$2"
+    tar -xf "${compressed_file_path}" && mv "${compressed_file_name_no_ext}" "$2"
   elif [[ "${compressed_file_type}" = "zip" ]]; then
     unzip -qq "${compressed_file_path}" -d "$2"
   fi
