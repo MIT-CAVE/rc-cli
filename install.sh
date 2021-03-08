@@ -160,9 +160,9 @@ copy_compressed_data_down() { # Copy the needed data files locally
   new_dir_name="${3:-$compressed_folder_name}"
   printf "Copying data down from $1... "
   curl -s -o "${compressed_file_path}" "$1" > /dev/null
-  echo "$compressed_file_type"
+  echo "\n\n$compressed_file_path\n\n"
   if [[ "${compressed_file_type}" = "xz" ]]; then
-    tar -xf "${compressed_file_path}" && mv "${compressed_file_name_no_ext}" "$2"
+    tar -xf "${compressed_file_path}" -C "$2"
   elif [[ "${compressed_file_type}" = "zip" ]]; then
     unzip -qq "${compressed_file_path}" -d "$2"
   fi
