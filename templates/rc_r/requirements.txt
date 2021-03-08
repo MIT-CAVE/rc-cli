@@ -1,1 +1,2 @@
 curl 4.3
+jsonlite 1.7.2
