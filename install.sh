@@ -78,7 +78,7 @@ validate_version() {
 
 check_compression() { # Validate tar compression command is installed
   if [[ "$compressed_file_type" = "xz" ]]; then
-    install_tar="\nPlease install version ${MIN_TAR_VERSION} or greater. \nFor more information see: ''"
+    install_tar="\nPlease install version ${MIN_TAR_VERSION} or greater. \nIf your machine does not support tar, you may consider installing {$RC_CLI_SHORT_NAME} using a zip folder. \nThis requires the unzip funciton to be installed locally.\n"
     validate_install "tar" "1" "$install_tar"
     CURRENT_TAR_VERSION=$(tar --version | grep -m1 -o ").*" | sed "s/) //")
     validate_version "tar" "1" "$install_tar" "$MIN_TAR_VERSION" "$CURRENT_TAR_VERSION"

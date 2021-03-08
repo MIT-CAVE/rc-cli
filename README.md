@@ -31,9 +31,14 @@ Saved solutions that have been tested can be uploaded to the competition site: [
   - Run the following commands to install the `rc-cli`
     ```
     bash <(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh) \
-    https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.zip
+    https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.tar.xz
     ```
     - Follow the prompts to finish the installation process
+    - Note: If your computer does not support the needed version of `tar`, you can always use the zip data folder (about 50% larger data download)
+      ```
+      bash <(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh) \
+      https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.zip
+      ```
 
 4. Validate the installation was successful
   - Run the following command:
@@ -92,27 +97,21 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     ```
     - This may not work until you close and re-open docker.
 
-7. Install `unzip`:
-  - Run the following command in your Ubuntu 20.04 app
-    ```
-    sudo apt-get install unzip
-    ```
-
-8. Install the `rc-cli` in the `Ubuntu 20.04` app
+7. Install the `rc-cli` in the `Ubuntu 20.04` app
   - Run the following commands to install the `rc-cli`
     ```
     bash <(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh) \
-    https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.zip
+    https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.tar.xz
     ```
     - Follow the prompts to finish the installation process
 
-9. Validate the installation was successful in the `Ubuntu 20.04` app
+8. Validate the installation was successful in the `Ubuntu 20.04` app
   - Run the following command:
     ```
     rc-cli version
     ```
 
-10. Continue to the `Bootstrap your Project` section below
+9. Continue to the `Bootstrap your Project` section below
 
 ## Bootstrap your Project
 1. Get available commands
