@@ -35,9 +35,14 @@ check_os() { # Validate that the current OS
 
 get_compressed_data_info() { # Get information on compressed data to download
   compressed_file_name="$(basename $1)"
-  compressed_folder_name=${compressed_file_name%.*}
   compressed_file_path="${2}/${compressed_file_name}"
   compressed_file_type="${compressed_file_path##*.}"
+  if [[ "$compressed_file_type" = "xz" ]]; then
+    compressed_folder_name=${compressed_file_name%.*.*}
+  else
+    compressed_folder_name=${compressed_file_name%.*}
+  fi
+
 }
 
 validate_install() {
@@ -73,7 +78,7 @@ check_compression() { # Validate tar compression command is installed
     validate_install "tar" "1" "$install_tar"
     CURRENT_TAR_VERSION=$(tar --version | grep -m1 -o ").*" | sed "s/) //")
     validate_version "tar" "1" "$install_tar" "$MIN_TAR_VERSION" "$CURRENT_TAR_VERSION"
-  elif [[ "$compressed_file_type" = "xz" ]]; then
+  elif [[ "$compressed_file_type" = "zip" ]]; then
     install_unzip="\nPlease install unzip."
     validate_install "unzip" "1" "$install_unzip"
   else
@@ -153,9 +158,10 @@ copy_compressed_data_down() { # Copy the needed data files locally
   new_dir_name="${3:-$compressed_folder_name}"
   printf "Copying data down from $1... "
   curl -s -o "${compressed_file_path}" "$1" > /dev/null
-  if [[ "xz" = "${compressed_file_type}" ]]; then
-    tar -xf "${compressed_file_path}" -d "$2"
-  elif [[ "zip" = "${compressed_file_type}" ]]; then
+  echo "$compressed_file_type"
+  if [[ "${compressed_file_type}" = "xz" ]]; then
+    tar -xf "${compressed_file_path}" -C "$2"
+  elif [[ "${compressed_file_type}" = "zip" ]]; then
     unzip -qq "${compressed_file_path}" -d "$2"
   fi
   rm "${compressed_file_path}"
