@@ -10,6 +10,7 @@ readonly RC_CLI_SHORT_NAME="RC CLI"
 readonly RC_CLI_COMMAND="rc-cli"
 readonly RC_CLI_VERSION="0.1.0"
 readonly BIN_DIR="/usr/local/bin"
+readonly DATA_DIR="data"
 readonly SSH_CLONE_URL="git@github.com:MIT-CAVE/rc-cli.git"
 readonly HTTPS_CLONE_URL="https://github.com/MIT-CAVE/rc-cli.git"
 readonly MIN_DOCKER_VERSION="18.09.00"
@@ -34,8 +35,9 @@ check_os() { # Validate that the current OS
 }
 
 get_compressed_data_info() { # Get information on compressed data to download
-  compressed_file_name="$(basename $1)"
-  compressed_file_path="${2}/${compressed_file_name}"
+  DATA_URL="${1:-''}"
+  compressed_file_name="$(basename $DATA_URL)"
+  compressed_file_path="${RC_CLI_PATH}/${compressed_file_name}"
   compressed_file_type="${compressed_file_path##*.}"
   if [[ "$compressed_file_type" = "xz" ]]; then
     compressed_file_name_no_ext==${compressed_file_name%.*.*}
@@ -179,12 +181,7 @@ copy_compressed_data_down() { # Copy the needed data files locally
 }
 
 get_data() { # Copy the needed data files locally
-  # EG:
-  # get_data DATA_URL
-  DATA_URL="${1:-''}"
-
-  copy_compressed_data_down "$DATA_URL" "${RC_CLI_PATH}" "data"
-
+  copy_compressed_data_down "$DATA_URL" "${RC_CLI_PATH}" "$DATA_DIR"
   printf "Setting data URL locally for future CLI Updates... "
   printf "DATA_URL=\"${DATA_URL}\"\n" >> "${RC_CLI_PATH}/CONFIG"
   printf "done\n"
@@ -192,10 +189,10 @@ get_data() { # Copy the needed data files locally
 
 check_args() {
   if [[ $# -lt 1 ]]; then
-    err "Not enough arguments to install the CLI with data. Please specify a a DATA_URL \nEG:\ncurl -o- https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.zip"
+    err "Not enough arguments to install the CLI with data. Please specify a a DATA_URL \nEG:\ncurl -o- https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.tar.xz"
     exit 1
   elif [[ $# -gt 1 && $2 != "--dev" ]]; then
-    err "Too many arguments for CLI installation. Please only specify a DATA_URL\nEG:\ncurl -o- https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.zip"
+    err "Too many arguments for CLI installation. Please only specify a DATA_URL\nEG:\ncurl -o- https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.tar.xz"
     exit 1
   fi
 }
@@ -226,7 +223,7 @@ main() {
   check_git
   check_previous_installation
   install_new "$@"
-  get_data "$@"
+  get_data
   add_to_path
   success_message
 }
