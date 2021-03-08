@@ -672,18 +672,9 @@ main() {
       reset_data_prompt $1 ${data_path}
       ;;
 
-    update) # Run maintenance commands after breaking changes on the framework.
-      # Accepts an additional parameter to pass to the install function (useful for --dev installs)
+    configure-utils | cu) # Run maintenance commands to configure the utility images during development
       printf "${CHARS_LINE}\n"
-      printf "Checking Installation\n"
-      source "${RC_CLI_PATH}/CONFIG"
-      if [[ "$INSTALL_PARAM" = "" ]]; then
-        bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") "$DATA_URL"
-      else
-        bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") "$DATA_URL" "$INSTALL_PARAM"
-      fi
-      printf "\n${CHARS_LINE}\n"
-      printf "Running other update maintenance tasks\n"
+      printf "Configuring Utility Images\n"
       check_docker
       configure_image ${NO_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
@@ -692,9 +683,15 @@ main() {
       printf "${CHARS_LINE}\n"
       ;;
 
-    configure-utils | cu) # Run maintenance commands to configure the utility images during development
+    update) # Run maintenance commands after breaking changes on the framework.
+      # Accepts an additional parameter to pass to the install function (useful for --dev installs)
       printf "${CHARS_LINE}\n"
-      printf "Configuring Utility Images\n"
+      printf "Checking Installation\n"
+      source "${RC_CLI_PATH}/CONFIG"
+      bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") \
+        "${DATA_URL}" "${INSTALL_PARAM}"
+      printf "\n${CHARS_LINE}\n"
+      printf "Running other update maintenance tasks\n"
       check_docker
       configure_image ${NO_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
@@ -712,7 +709,7 @@ main() {
       # Prompt confirmation to delete
       printf "WARNING! uninstall: This will remove: \
               \n- ${RC_CLI_SHORT_NAME} (${RC_CLI_VERSION}) \
-              \n- All associated docker images.\n"
+              \n- All associated Docker images.\n"
       read -r -p "Are you sure you want to continue? [y/N] " input
       case ${input} in
         [yY][eE][sS] | [yY])
