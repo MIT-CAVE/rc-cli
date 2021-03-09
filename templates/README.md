@@ -52,8 +52,9 @@ When developing your model, you can run any code from the src/ directory and rea
 
 **NOTE:** The data/ directory will not be included as part of your submission. Clean data will be mounted using evaluation data that matches this structure during the submission scoring.
 
-For additional details on Dockefile setup please refer to [custom_dev_stack.md](https://github.com/MIT-CAVE/rc-cli/blob/main/templates/custom_dev_stack.md) on GitHub .
+For additional details on Dockefile setup please refer to [custom_dev_stack.md](https://github.com/MIT-CAVE/rc-cli/blob/main/templates/custom_dev_stack.md) on GitHub.
 
+To see a more detailed example file structure, expand the Python example below:
 <details>
 <summary>An example Python-based project structure</summary>
 
@@ -66,7 +67,7 @@ The `model_build.sh` and `model_apply.sh` scripts are called by the RC-CLI insid
 The folders listed below include additional folders used for logging, storing saved models, and scoring not required for submission. The `new-app` command creates these folders.
 - `data/model_build_outputs` would contain a trained model created from the "build inputs" dataset.
 - `data/model_apply_outputs` folder would contain the predicted routes based on your model and the "apply inputs" dataset.
-- `data/model_score_inputs` and `data/model_score_outputs` directories are utilized by the RC-CLI when scoring your application and not necessary for submission. After sourcing your model, find the results in `data/model_score_outputs/eval_scores.json`.
+- `data/model_score_inputs`,`data/model_score_outputs`, and `data/model_score_timings` directories are utilized by the RC-CLI when scoring your application and not necessary for submission. After scoring your model, find the results in `data/model_score_outputs/scores.json`.
 - `snapshots` contains saved Docker images and their corresponding data files.
 - `logs` contains folders created by the RC-CLI while running commands. Logs are kept for `configure-app`, `model-debug`, `save_snapshot`, etc...
 
@@ -81,8 +82,12 @@ The folders listed below include additional folders used for logging, storing sa
 │   ├── model_apply_outputs
 │   │   └── proposed_sequences.json
 │   ├── model_score_inputs
-│   └── model_score_outputs
-│       └── eval_scores.json
+│   │   └── <provided score-input-file(s)>
+│   ├── model_score_outputs
+│   │   └── scores.json
+│   └── model_score_timings
+│       ├── model_apply_time.json
+│       └── model_build_time.json
 ├── src
 │   ├── model_build.py
 │   └── model_apply.py
