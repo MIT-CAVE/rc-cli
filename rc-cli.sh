@@ -177,6 +177,12 @@ select_template() {
   printf ${template}
 }
 
+save_scoring_image() {
+  printf "Saving the '${RC_SCORING_IMAGE}' image... "
+  docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
+  printf "done\n\n"
+}
+
 #######################################
 # Build a Docker image based on the given arguments.
 # Globals:
@@ -556,8 +562,7 @@ main() {
         configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
       if [[ ! -f "scoring/${RC_SCORING_IMAGE}.tar.gz" ]]; then
-        docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} \
-          | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
+        save_scoring_image
       fi
       run_test_image ${cmd} ${image_name} ${data_path}
       printf "\n${CHARS_LINE}\n"
@@ -678,7 +683,7 @@ main() {
       check_docker
       configure_image ${NO_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
-      docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
+      save_scoring_image
 
       printf "${CHARS_LINE}\n"
       ;;
@@ -695,7 +700,7 @@ main() {
       check_docker
       configure_image ${NO_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
-      docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
+      save_scoring_image
 
       printf "${CHARS_LINE}\n"
       ;;

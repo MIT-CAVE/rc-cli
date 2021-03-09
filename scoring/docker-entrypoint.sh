@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
 
-exec python main.py "$@"
+exec python -u main.py "$@"
