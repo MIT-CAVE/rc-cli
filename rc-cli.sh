@@ -693,8 +693,8 @@ main() {
       printf "${CHARS_LINE}\n"
       printf "Configuring Utility Images\n"
       check_docker
-      configure_image ${NO_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
-      configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+      configure_image ${ROOT_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
+      configure_image ${ROOT_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       save_scoring_image
 
       printf "${CHARS_LINE}\n"
