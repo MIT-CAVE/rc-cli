@@ -21,6 +21,7 @@ readonly TMP_DIR="/tmp"
 
 readonly RC_CONFIGURE_APP_NAME="configure_app"
 readonly NO_LOGS="no_logs"
+readonly ROOT_LOGS="root_logs"
 
 #######################################
 # Display an error message when the user input is invalid.
@@ -177,6 +178,12 @@ select_template() {
   printf ${template}
 }
 
+save_scoring_image() {
+  printf "Saving the '${RC_SCORING_IMAGE}' image... "
+  docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
+  printf "done\n\n"
+}
+
 #######################################
 # Build a Docker image based on the given arguments.
 # Globals:
@@ -195,16 +202,23 @@ configure_image() {
   local f_name
   local out_file
   f_name="$(kebab_to_snake ${src_cmd})"
-  if [[ ! $f_name = $NO_LOGS ]]; then
+  if [[ $f_name = $ROOT_LOGS ]]; then
+    make_root_logs
+    [[ -d "${RC_CLI_PATH}/logs/" ]] \
+    && out_file="${RC_CLI_PATH}/logs/${image_name}_configure_$(timestamp).log" \
+    || out_file="/dev/null"
+  elif [[ ! $f_name = $NO_LOGS ]]; then
     make_logs $f_name
+    [[ -d "logs/${f_name}" ]] \
+    && out_file="logs/${f_name}/${image_name}_configure_$(timestamp).log" \
+    || out_file="/dev/null"
+  else
+    out_file="/dev/null"
   fi
   printf "${CHARS_LINE}\n"
   printf "Configure Image [${image_name}]:\n\n"
   printf "Configuring the '${image_name}' image... "
   docker rmi ${image_name}:${RC_IMAGE_TAG} &> /dev/null
-  [[ -d "logs/${f_name}" ]] \
-    && out_file="logs/${f_name}/${image_name}_configure_$(timestamp).log" \
-    || out_file="/dev/null"
   docker build --file ${context}/Dockerfile --tag ${image_name}:${RC_IMAGE_TAG} \
     ${build_opts} ${context} &> ${out_file}
   printf "done\n\n"
@@ -439,6 +453,10 @@ make_logs() { # Ensure the necessary log file structure for the calling command
   mkdir -p "logs/$(kebab_to_snake $1)"
 }
 
+make_root_logs() { # Ensure the necessary log file structure for the calling command
+  mkdir -p "${RC_CLI_PATH}/logs/"
+}
+
 # Single main function
 main() {
   if [[ $# -lt 1 ]]; then
@@ -556,8 +574,7 @@ main() {
         configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
       if [[ ! -f "scoring/${RC_SCORING_IMAGE}.tar.gz" ]]; then
-        docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} \
-          | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
+        save_scoring_image
       fi
       run_test_image ${cmd} ${image_name} ${data_path}
       printf "\n${CHARS_LINE}\n"
@@ -583,7 +600,7 @@ main() {
       if ! is_image_built ${RC_SCORING_IMAGE}; then
         configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
-      run_scoring_image ${cmd} $(get_app_name)${src_mnt}
+      run_scoring_image ${cmd} $(get_app_name) ${src_mnt}
       ;;
 
     model-debug | debug | md)
@@ -672,33 +689,30 @@ main() {
       reset_data_prompt $1 ${data_path}
       ;;
 
+    configure-utils | cu) # Run maintenance commands to configure the utility images during development
+      printf "${CHARS_LINE}\n"
+      printf "Configuring Utility Images\n"
+      check_docker
+      configure_image ${ROOT_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
+      configure_image ${ROOT_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+      save_scoring_image
+
+      printf "${CHARS_LINE}\n"
+      ;;
+
     update) # Run maintenance commands after breaking changes on the framework.
       # Accepts an additional parameter to pass to the install function (useful for --dev installs)
       printf "${CHARS_LINE}\n"
       printf "Checking Installation\n"
       source "${RC_CLI_PATH}/CONFIG"
-      if [[ "$INSTALL_PARAM" = "" ]]; then
-        bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") "$DATA_URL"
-      else
-        bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") "$DATA_URL" "$INSTALL_PARAM"
-      fi
+      bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") \
+        "${DATA_URL}" "${INSTALL_PARAM}"
       printf "\n${CHARS_LINE}\n"
       printf "Running other update maintenance tasks\n"
       check_docker
       configure_image ${NO_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
-      docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
-
-      printf "${CHARS_LINE}\n"
-      ;;
-
-    configure-utils | cu) # Run maintenance commands to configure the utility images during development
-      printf "${CHARS_LINE}\n"
-      printf "Configuring Utility Images\n"
-      check_docker
-      configure_image ${NO_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
-      configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
-      docker save ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} | gzip > "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz"
+      save_scoring_image
 
       printf "${CHARS_LINE}\n"
       ;;
@@ -712,7 +726,7 @@ main() {
       # Prompt confirmation to delete
       printf "WARNING! uninstall: This will remove: \
               \n- ${RC_CLI_SHORT_NAME} (${RC_CLI_VERSION}) \
-              \n- All associated docker images.\n"
+              \n- All associated Docker images.\n"
       read -r -p "Are you sure you want to continue? [y/N] " input
       case ${input} in
         [yY][eE][sS] | [yY])

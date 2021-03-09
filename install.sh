@@ -10,9 +10,11 @@ readonly RC_CLI_SHORT_NAME="RC CLI"
 readonly RC_CLI_COMMAND="rc-cli"
 readonly RC_CLI_VERSION="0.1.0"
 readonly BIN_DIR="/usr/local/bin"
+readonly DATA_DIR="data"
 readonly SSH_CLONE_URL="git@github.com:MIT-CAVE/rc-cli.git"
 readonly HTTPS_CLONE_URL="https://github.com/MIT-CAVE/rc-cli.git"
 readonly MIN_DOCKER_VERSION="18.09.00"
+readonly MIN_TAR_VERSION="1.22"
 
 err() { # Display an error message
   printf "$0: $1\n" >&2
@@ -32,25 +34,75 @@ check_os() { # Validate that the current OS
   fi
 }
 
-check_docker() { # Validate docker is installed
-  install_docker="\nPlease install version ${MIN_DOCKER_VERSION} or greater. \nFor more information see: 'https://docs.docker.com/get-docker/'"
-  if [ "$(docker --version)" = "" ]; then
-    err "Docker is not installed. ${install_docker}"
-    exit 1
+get_compressed_data_info() { # Get information on compressed data to download
+  DATA_URL="${1:-''}"
+  compressed_file_name="$(basename $DATA_URL)"
+  compressed_file_path="${RC_CLI_PATH}/${compressed_file_name}"
+  compressed_file_type="${compressed_file_path##*.}"
+  if [[ "$compressed_file_type" = "xz" ]]; then
+    compressed_file_name_no_ext==${compressed_file_name%.*.*}
+    compressed_folder_name=${compressed_file_name%.*.*}
+  else
+    compressed_file_name_no_ext==${compressed_file_name%.*}
+    compressed_folder_name=${compressed_file_name%.*}
   fi
-  CURRENT_DOCKER_VERSION=$(docker --version | sed -e 's/Docker version \(.*\), build.*/\1/')
-  if [ ! "$(printf '%s\n' "$MIN_DOCKER_VERSION" "$CURRENT_DOCKER_VERSION" | sort -V | head -n1)" = "$MIN_DOCKER_VERSION" ]
-  then
-    err "Your current Docker version ($CURRENT_DOCKER_VERSION) is too old. ${install_docker}"
+
+}
+
+validate_install() {
+  local PROGRAM_NAME="$1"
+  local EXIT_BOOL="$2"
+  local ERROR_STRING="$3"
+  if [ "$($PROGRAM_NAME --version)" = "" ]; then
+    err "${PROGRAM_NAME} is not installed. ${ERROR_STRING}"
+    if [ "${EXIT_BOOL}" = "1" ]; then
+      exit 1
+    fi
+  fi
+}
+
+validate_version() {
+  local PROGRAM_NAME="$1"
+  local EXIT_BOOL="$2"
+  local ERROR_STRING="$3"
+  local MIN_VERSION="$4"
+  local CURRENT_VERSION="$5"
+  if [ ! "$(printf '%s\n' "$MIN_VERSION" "$CURRENT_VERSION" | sort -V | head -n1)" = "$MIN_VERSION" ]; then
+    err "Your current $PROGRAM_NAME version ($CURRENT_VERSION) is too old. ${ERROR_STRING}"
+    if [ "${EXIT_BOOL}" = "1" ]; then
+      exit 1
+    fi
+  fi
+
+}
+
+check_compression() { # Validate tar compression command is installed
+  if [[ "$compressed_file_type" = "xz" ]]; then
+    install_tar="\nPlease install version ${MIN_TAR_VERSION} or greater. \nIf your machine does not support tar, you may consider installing {$RC_CLI_SHORT_NAME} using a zip folder. \nThis requires the unzip funciton to be installed locally.\n"
+    validate_install "tar" "1" "$install_tar"
+    CURRENT_TAR_VERSION=$(tar --version | grep -m1 -o ").*" | sed "s/) //")
+    validate_version "tar" "1" "$install_tar" "$MIN_TAR_VERSION" "$CURRENT_TAR_VERSION"
+  # Can not validate unzip as version pipes out to stderr
+  elif [[ "$compressed_file_type" = "zip" ]]; then
+    : # Do nothing
+  #   install_unzip="\nPlease install unzip."
+  #   validate_install "unzip" "1" "$install_unzip"
+  else
+    err "The data file you are installing with is not recognized. \nPlease install the $RC_CLI_SHORT_NAME with a tar.xz or zip file."
     exit 1
   fi
 }
 
+check_docker() { # Validate docker is installed
+  install_docker="\nPlease install version ${MIN_DOCKER_VERSION} or greater. \nFor more information see: 'https://docs.docker.com/get-docker/'"
+  validate_install "docker" "1" "$install_docker"
+  CURRENT_DOCKER_VERSION=$(docker --version | sed -e 's/Docker version \(.*\), build.*/\1/')
+  validate_version "docker" "1" "$install_docker" "$MIN_DOCKER_VERSION" "$CURRENT_DOCKER_VERSION"
+}
+
 check_git() { # Validate git is installed
-  if [ "$(git --version)" = "" ]; then
-    err "'git' is not installed. Please install git. \nFor more information see: 'https://git-scm.com'"
-    exit 1
-  fi
+  install_git="\nPlease install git. \nFor more information see: 'https://git-scm.com'"
+  validate_install "git" "1" "$install_git"
 }
 
 check_previous_installation() { # Check to make sure previous installations are removed before continuing
@@ -105,23 +157,24 @@ install_new() { # Copy the needed files locally
   fi
 }
 
-copy_zip_data_down() { # Copy the needed data files locally
-  # Takes two optional parameters (order matters)
+copy_compressed_data_down() { # Copy the needed data files locally
+  # Takes three optional parameters (order matters)
   # EG:
-  # copy_zip_data_down URL LOCAL_PATH NEW_DIR_NAME
-  zip_file_name="$(basename $1)"
-  zip_folder_name=${zip_file_name%.*}
-  zip_file_path="${2}/${zip_file_name}"
-  new_dir_name="${3:-$zip_folder_name}"
+  # copy_compressed_data_down URL LOCAL_PATH NEW_DIR_NAME
+  new_dir_name="${3:-$compressed_folder_name}"
   printf "Copying data down from $1... "
-  curl -s -o "${zip_file_path}" "$1" > /dev/null
-  unzip -qq "${zip_file_path}" -d "$2"
-  rm "${zip_file_path}"
-  if [[ ! "${2}/${zip_folder_name}" = "${2}/${new_dir_name}" ]]; then
+  curl -s -o "${compressed_file_path}" "$1" > /dev/null
+  if [[ "${compressed_file_type}" = "xz" ]]; then
+    tar -xf "${compressed_file_path}" -C "$2"
+  elif [[ "${compressed_file_type}" = "zip" ]]; then
+    unzip -qq "${compressed_file_path}" -d "$2"
+  fi
+  rm "${compressed_file_path}"
+  if [[ ! "${2}/${compressed_folder_name}" = "${2}/${new_dir_name}" ]]; then
     mv "${2}/${zip_folder_name}" "${2}/${new_dir_name}"
   fi
   if [ ! -d "${2}/${new_dir_name}" ]; then
-    err "Unable to access zipped data from ${1}. Installation Canceled"
+    err "Unable to access data from ${1}. Installation Canceled"
     exit 1
   fi
   printf "done\n"
@@ -129,12 +182,7 @@ copy_zip_data_down() { # Copy the needed data files locally
 }
 
 get_data() { # Copy the needed data files locally
-  # EG:
-  # get_data DATA_URL
-  DATA_URL="${1:-''}"
-
-  copy_zip_data_down "$DATA_URL" "${RC_CLI_PATH}" "data"
-
+  copy_compressed_data_down "$DATA_URL" "${RC_CLI_PATH}" "$DATA_DIR"
   printf "Setting data URL locally for future CLI Updates... "
   printf "DATA_URL=\"${DATA_URL}\"\n" >> "${RC_CLI_PATH}/CONFIG"
   printf "done\n"
@@ -142,10 +190,10 @@ get_data() { # Copy the needed data files locally
 
 check_args() {
   if [[ $# -lt 1 ]]; then
-    err "Not enough arguments to install the CLI with data. Please specify a a DATA_URL \nEG:\ncurl -o- https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.zip"
+    err "Not enough arguments to install the CLI with data. Please specify a a DATA_URL \nEG:\ncurl -o- https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.tar.xz"
     exit 1
   elif [[ $# -gt 1 && $2 != "--dev" ]]; then
-    err "Too many arguments for CLI installation. Please only specify a DATA_URL\nEG:\ncurl -o- https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.zip"
+    err "Too many arguments for CLI installation. Please only specify a DATA_URL\nEG:\ncurl -o- https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.tar.xz"
     exit 1
   fi
 }
@@ -170,11 +218,13 @@ success_message() { # Send a success message to the user on successful installat
 main() {
   check_args "$@"
   check_os
+  get_compressed_data_info "$@"
+  check_compression
   check_docker
   check_git
   check_previous_installation
   install_new "$@"
-  get_data "$@"
+  get_data
   add_to_path
   success_message
 }

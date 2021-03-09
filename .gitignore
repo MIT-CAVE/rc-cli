@@ -2,3 +2,4 @@
 *.tar.gz
 data/
 CONFIG
+logs/

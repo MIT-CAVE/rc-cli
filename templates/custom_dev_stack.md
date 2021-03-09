@@ -33,7 +33,7 @@ Please follow these guidelines to ensure the `rc-cli` will work with your develo
   - The directory `src` along with the `model_build.sh` and `model_apply.sh` script files in your template must be copied to `/home/app/`
     - `model_build.sh` and `model_apply.sh` should both be executable by the file owners
       - This should be set on your local OS before configuring your app image
-      - You can do this on most unix systems with: `sudo chmod 700 model_build.sh & sudo chmod 700 model_apply.sh`
+      - You can do this on most unix systems with: `sudo chmod 755 model_build.sh & sudo chmod 755 model_apply.sh`
     - `model_build.sh` and `model_apply.sh` should both be owned by the Docker `app` user
       - This can happen in the Dockerfile when executing a `copy` command
   - The `/home/app/` directory must be included in the `PATH` environment variable, i.e. `/home/app/` must be part of the list of executable directories

@@ -17,6 +17,14 @@ print("Saving Solved Model State")
 Sys.sleep(1)
 
 # write an output file
-cat("{\n    'Model':'Hello from the model_build.r script!',    \n    'sort_by':'lat'\n}", file="data/model_build_outputs/model.json")
+cat('{
+  "Model": "Hello from the model_build.r script!",
+  "sort_by": "lat"
+}', file = "data/model_build_outputs/model.json")
 
-print(paste("Success: The '", getwd(),"/data/model_build_outputs/model.json' file has been saved.", sep = ""))
+print(paste(
+  "Success: The '",
+  getwd(),
+  "/data/model_build_outputs/model.json' file has been saved.",
+  sep = ""
+))

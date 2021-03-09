@@ -6,7 +6,7 @@ BASE_DIR = path.dirname(path.dirname(path.abspath(__file__)))
 
 # Read input data
 print('Reading Input Data')
-training_routes_path=path.join(BASE_DIR, 'data/model_build_inputs/training_routes.json')
+training_routes_path=path.join(BASE_DIR, 'data/model_build_inputs/route_data.json')
 with open(training_routes_path, newline='') as in_file:
     actual_routes = json.load(in_file)
 
