@@ -73,7 +73,7 @@ check_docker() {
 
 # Get the current date and time expressed according to ISO 8601.
 timestamp() {
-  date +"%Y-%m-%dT%H:%M:%S%:z"
+  date +"%Y-%m-%dT%H:%M:%S"
 }
 
 # Convert a number of seconds to the ISO 8601 standard.
