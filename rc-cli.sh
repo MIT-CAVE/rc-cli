@@ -583,7 +583,7 @@ main() {
       if ! is_image_built ${RC_SCORING_IMAGE}; then
         configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
-      run_scoring_image ${cmd} $(get_app_name)${src_mnt}
+      run_scoring_image ${cmd} $(get_app_name) ${src_mnt}
       ;;
 
     model-debug | debug | md)
