@@ -21,6 +21,7 @@ readonly TMP_DIR="/tmp"
 
 readonly RC_CONFIGURE_APP_NAME="configure_app"
 readonly NO_LOGS="no_logs"
+readonly ROOT_LOGS="root_logs"
 
 #######################################
 # Display an error message when the user input is invalid.
@@ -201,16 +202,23 @@ configure_image() {
   local f_name
   local out_file
   f_name="$(kebab_to_snake ${src_cmd})"
-  if [[ ! $f_name = $NO_LOGS ]]; then
+  if [[ $f_name = $ROOT_LOGS ]]; then
+    make_root_logs
+    [[ -d "${RC_CLI_PATH}/logs/" ]] \
+    && out_file="${RC_CLI_PATH}/logs/${image_name}_configure_$(timestamp).log" \
+    || out_file="/dev/null"
+  elif [[ ! $f_name = $NO_LOGS ]]; then
     make_logs $f_name
+    [[ -d "logs/${f_name}" ]] \
+    && out_file="logs/${f_name}/${image_name}_configure_$(timestamp).log" \
+    || out_file="/dev/null"
+  else
+    out_file="/dev/null"
   fi
   printf "${CHARS_LINE}\n"
   printf "Configure Image [${image_name}]:\n\n"
   printf "Configuring the '${image_name}' image... "
   docker rmi ${image_name}:${RC_IMAGE_TAG} &> /dev/null
-  [[ -d "logs/${f_name}" ]] \
-    && out_file="logs/${f_name}/${image_name}_configure_$(timestamp).log" \
-    || out_file="/dev/null"
   docker build --file ${context}/Dockerfile --tag ${image_name}:${RC_IMAGE_TAG} \
     ${build_opts} ${context} &> ${out_file}
   printf "done\n\n"
@@ -443,6 +451,10 @@ run_scoring_image() {
 
 make_logs() { # Ensure the necessary log file structure for the calling command
   mkdir -p "logs/$(kebab_to_snake $1)"
+}
+
+make_root_logs() { # Ensure the necessary log file structure for the calling command
+  mkdir -p "${RC_CLI_PATH}/logs/"
 }
 
 # Single main function
