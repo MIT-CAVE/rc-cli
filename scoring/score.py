@@ -1,18 +1,102 @@
 import numpy as np
 import json
+import sys
 
-def read_json_data(filepath):
+def read_json_data(filepath,input_type):
+    '''
+    
+
+    Parameters
+    ----------
+    filepath : str
+        Path of desired file.
+    input_type : str
+        Indicates which input of evaluate the current file is. Can be
+        "actual," "prediction," "costs," or "invalids."
+
+    Raises
+    ------
+    JSONDecodeError
+        The file exists and is readable, but it does not have the proper
+        formatting for its place in the inputs of evaluate.
+
+    Returns
+    -------
+    file : dict
+        Dictionary form of the JSON file to which filepath points.
+
+    '''
     try:
         with open(filepath, newline = '') as in_file:
-            return json.load(in_file)
+            file=json.load(in_file)
+            in_file.close()
     except FileNotFoundError:
         print("The '{}' file is missing!".format(filepath))
-    except JSONDecodeError:
-        print("Error in the '{}' JSON data!".format(filepath))
+        sys.exit()
     except Exception as e:
         print("Error when reading the '{}' file!".format(filepath))
         print(e)
-    return None
+        sys.exit()
+    if not good_format(file,input_type):
+        raise JSONDecodeError("Error in the '{}' JSON data!".format(filepath))
+    return file
+
+def good_format(file,input_type):
+    '''
+    Checks if an input to evaluate has proper formatting.
+
+    Parameters
+    ----------
+    file : dict
+        Dictionary loaded from evaluate input file.
+    input_type : str
+        Indicates which input of evaluate the current file is. Can be
+        "actual," "prediction," "costs," or "invalids."
+
+    Returns
+    -------
+    bool
+        True if no errors detected. False otherwise.
+
+    '''
+    for route in file:
+        if route[:8]!='RouteID_':
+            return False
+    if input_type=='prediction' or input_type=='actual':
+        for route in file:
+            if len(file[route])!=1 or input_type not in file[route] or type(file[route][input_type])!=dict:
+                return False
+            num_stops=len(file[route][input_type])
+            for stop in file[route][input_type]:
+                if type(stop)!=str or len(stop)!=2:
+                    return False
+                stop_num=file[route][input_type][stop]
+                if type(stop_num)!=int or stop_num>=num_stops:
+                    return False
+    if input_type=='costs':
+        for route in file:
+            if type(file[route])!=dict:
+                return False
+            for origin in file[route]:
+                if type(origin)!=str or len(origin)!=2:
+                    return False
+                if type(file[route][origin])!=dict:
+                    return False
+                for dest in file[route][origin]:
+                    if type(dest)!=str or len(dest)!=2:
+                        return False
+                    if not(type(file[route][origin][dest])==float or type(file[route][origin][dest])==int):
+                        return False
+    if input_type=='invalids':
+        for route in file:
+            if not(type(file[route])==float or type(file[route])==int):
+                return False
+    return True
+
+class JSONDecodeError(Exception):
+    pass
+                    
+                
 
 def evaluate(actual_routes_json,submission_json,cost_matrices_json, invalid_scores_json,**kwargs):
     '''
@@ -20,14 +104,14 @@ def evaluate(actual_routes_json,submission_json,cost_matrices_json, invalid_scor
 
     Parameters
     ----------
-    actual_routes_json : JSON
-        Dictionary containing actual routes.
-    submission_json : JSON
-        Dictionary containing participant-created routes.
-    cost_matrices_json : JSON
-        Dictionary containing estimated times to travel between stops of routes.
-    invalid_scores_json : JSON
-        Dictionary containing scores assigned to routes if they are invalide.
+    actual_routes_json : str
+        filepath of JSON of actual routes.
+    submission_json : str
+        filepath of JSON of participant-created routes.
+    cost_matrices_json : str
+        filepath of JSON of estimated times to travel between stops of routes.
+    invalid_scores_json : str
+        filepath of JSON of scores assigned to routes if they are invalid.
     **kwargs :
         Inputs placed in output. Intended for testing_time_seconds and
         training_time_seconds
@@ -39,10 +123,10 @@ def evaluate(actual_routes_json,submission_json,cost_matrices_json, invalid_scor
         of routes, and kwargs.
 
     '''
-    actual_routes=read_json_data(actual_routes_json)
-    submission=read_json_data(submission_json)
-    cost_matrices=read_json_data(cost_matrices_json)
-    invalid_scores=read_json_data(invalid_scores_json)
+    actual_routes=read_json_data(actual_routes_json,'actual')
+    submission=read_json_data(submission_json,'prediction')
+    cost_matrices=read_json_data(cost_matrices_json,'costs')
+    invalid_scores=read_json_data(invalid_scores_json,'invalids')
     scores={'submission_score':'x','route_scores':{},'route_feasibility':{}}
     for kwarg in kwargs:
         scores[kwarg]=kwargs[kwarg]
@@ -189,9 +273,7 @@ def erp_count_helper(actual,sub,matrix,g=1000,memo=None):
 
 def normalize_matrix(mat):
     '''
-    Normalizes cost matrix. We will likely save normalized cost matrices, so
-    this function may be removed from the evaluation code, and instead given
-    as an input.
+    Normalizes cost matrix.
 
     Parameters
     ----------
