@@ -10,7 +10,7 @@ where sequence $$A$$ is the historically realized sequence of deliveries, sequen
 
 If a user-submitted route is deemed invalid -- meaning it does not provide a valid of sequence that contains the station and all stops -- the route is given a score equivalent to a typical complete random perturbation of the driver-taken sequence. 
 
-# 'Evaluate Function'
+# 'Evaluate' Function
 To incorporate the scoring logic into your own models, call the function 'evaluate' located within the score.py script and provide it the following inputs:
 
 ## Inputs
