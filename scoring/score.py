@@ -2,17 +2,14 @@ import numpy as np
 import json
 import sys
 
-def read_json_data(filepath,input_type):
+def read_json_data(filepath):
     '''
-    
+    Loads JSON file and generates a dictionary from it.
 
     Parameters
     ----------
     filepath : str
         Path of desired file.
-    input_type : str
-        Indicates which input of evaluate the current file is. Can be
-        "actual," "prediction," "costs," or "invalids."
 
     Raises
     ------
@@ -37,14 +34,12 @@ def read_json_data(filepath,input_type):
         print("Error when reading the '{}' file!".format(filepath))
         print(e)
         sys.exit()
-    if not good_format(file,input_type):
-        raise JSONDecodeError("Error in the '{}' JSON data!".format(filepath))
     return file
 
-def good_format(file,input_type):
+def good_format(file,input_type,filepath):
     '''
-    Checks if an input to evaluate has proper formatting.
-
+    Checks if input dictionary has proper formatting.
+    
     Parameters
     ----------
     file : dict
@@ -52,51 +47,63 @@ def good_format(file,input_type):
     input_type : str
         Indicates which input of evaluate the current file is. Can be
         "actual," "prediction," "costs," or "invalids."
+    filepath : str
+        Path from which file was loaded.
+
+    Raises
+    ------
+    JSONDecodeError
+        The file exists and is readable, but it does not have the proper
+        formatting for its place in the inputs of evaluate.
 
     Returns
     -------
-    bool
-        True if no errors detected. False otherwise.
+    None.
 
     '''
+    
     for route in file:
         if route[:8]!='RouteID_':
-            return False
+            raise JSONDecodeError('Improper route ID in {}. Every route must be denoted by a string that begins with "RouteID_".'.format(filepath))
     if input_type=='prediction' or input_type=='actual':
         for route in file:
-            if len(file[route])!=1 or input_type not in file[route] or type(file[route][input_type])!=dict:
-                return False
+            if type(file[route])!=dict or len(file[route])!=1: 
+                raise JSONDecodeError('Improper route in {}. Each route ID must map to a dictionary with a single key.'.format(filepath))
+            if input_type not in file[route]:
+                if input_type=='prediction':
+                    raise JSONDecodeError('Improper route in {}. Each route\'s dictionary in a projected sequence file must have the key, "prediction".'.format(filepath))
+                else:
+                    raise JSONDecodeError('Improper route in {}. Each route\'s dictionary in an actual sequence file must have the key, "actual".'.format(filepath))
+            if type(file[route][input_type])!=dict:
+                raise JSONDecodeError('Improper route in {}. Each sequence must be in the form of a dictionary.'.format(filepath))
             num_stops=len(file[route][input_type])
             for stop in file[route][input_type]:
                 if type(stop)!=str or len(stop)!=2:
-                    return False
+                    raise JSONDecodeError('Improper stop ID in {}. Each stop must be denoted by a two-letter ID string.'.format(filepath))
                 stop_num=file[route][input_type][stop]
                 if type(stop_num)!=int or stop_num>=num_stops:
-                    return False
+                    raise JSONDecodeError('Improper stop number in {}. Each stop\'s position number, x, must be an integer in the range 0<=x<N where N is the number of stops in the route (including the depot).'.format(filepath))
     if input_type=='costs':
         for route in file:
             if type(file[route])!=dict:
-                return False
+                raise JSONDecodeError('Improper matrix in {}. Each cost matrix must be a dictionary.'.format(filepath)) 
             for origin in file[route]:
                 if type(origin)!=str or len(origin)!=2:
-                    return False
+                    raise JSONDecodeError('Improper stop ID in {}. Each stop must be denoted by a two-letter ID string.'.format(filepath))
                 if type(file[route][origin])!=dict:
-                    return False
+                    raise JSONDecodeError('Improper matrix in {}. Each origin in a cost matrix must map to a dictionary of destinations'.format(filepath))
                 for dest in file[route][origin]:
                     if type(dest)!=str or len(dest)!=2:
-                        return False
+                        raise JSONDecodeError('Improper stop ID in {}. Each stop must be denoted by a two-letter ID string.'.format(filepath))
                     if not(type(file[route][origin][dest])==float or type(file[route][origin][dest])==int):
-                        return False
+                        raise JSONDecodeError('Improper time in {}. Every travel time must be a float or int.'.format(filepath))
     if input_type=='invalids':
         for route in file:
             if not(type(file[route])==float or type(file[route])==int):
-                return False
-    return True
+                raise JSONDecodeError('Improper score in {}. Every score in an invalid score file must be a float or int.'.format(filepath))
 
 class JSONDecodeError(Exception):
     pass
-                    
-                
 
 def evaluate(actual_routes_json,submission_json,cost_matrices_json, invalid_scores_json,**kwargs):
     '''
@@ -123,10 +130,14 @@ def evaluate(actual_routes_json,submission_json,cost_matrices_json, invalid_scor
         of routes, and kwargs.
 
     '''
-    actual_routes=read_json_data(actual_routes_json,'actual')
-    submission=read_json_data(submission_json,'prediction')
-    cost_matrices=read_json_data(cost_matrices_json,'costs')
-    invalid_scores=read_json_data(invalid_scores_json,'invalids')
+    actual_routes=read_json_data(actual_routes_json)
+    good_format(actual_routes,'actual',actual_routes_json)
+    submission=read_json_data(submission_json)
+    good_format(submission,'prediction',submission_json)
+    cost_matrices=read_json_data(cost_matrices_json)
+    good_format(cost_matrices,'costs',cost_matrices_json)
+    invalid_scores=read_json_data(invalid_scores_json)
+    good_format(invalid_scores,'invalids',invalid_scores_json)
     scores={'submission_score':'x','route_scores':{},'route_feasibility':{}}
     for kwarg in kwargs:
         scores[kwarg]=kwargs[kwarg]
