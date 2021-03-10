@@ -164,8 +164,7 @@ def evaluate(actual_routes_json,submission_json,cost_matrices_json, invalid_scor
                      scores['route_feasibility'][route]=True
     submission_score=np.mean(list(scores['route_scores'].values()))
     scores['submission_score']=submission_score
-    scores_json=json.dumps(scores)
-    return scores_json
+    return scores
 
 def score(actual,sub,cost_mat,g=1000):
     '''
