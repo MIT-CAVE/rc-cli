@@ -230,11 +230,17 @@ configure_image() {
 # Load the Docker image for a given snapshot name.
 load_snapshot() {
   local snapshot=$1
-
   local f_name
+  local old_image_tag
   f_name="$(kebab_to_snake ${snapshot})"
-  docker rmi ${snapshot}:${RC_IMAGE_TAG} &> /dev/null
-  docker load --quiet --input "snapshots/${f_name}/${f_name}.tar.gz" &> /dev/null
+  docker rmi ${f_name}:${RC_IMAGE_TAG} &> /dev/null
+  load_stdout=$(docker load --quiet --input "snapshots/${f_name}/${f_name}.tar.gz" 2>&1)
+  old_image_tag="${load_stdout:14}"
+  # Force the image tag to be that of the tar archive filename.
+  if [[ "${old_image_tag}" != "${snapshot}:${RC_IMAGE_TAG}" ]]; then
+    docker tag ${old_image_tag} ${f_name}:${RC_IMAGE_TAG}
+    docker rmi ${old_image_tag} &> /dev/null
+  fi
 }
 
 # Get the relative path of the data directory based
