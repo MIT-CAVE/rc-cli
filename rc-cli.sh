@@ -714,7 +714,7 @@ main() {
       # shellcheck source=./CONFIG
       . "${RC_CLI_PATH}/CONFIG"
       bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") \
-        "${DATA_URL}" "${INSTALL_PARAM}"
+        "${DATA_URL}" ${INSTALL_PARAM}
       printf "\n${CHARS_LINE}\n"
       printf "Running other update maintenance tasks\n"
       check_docker
