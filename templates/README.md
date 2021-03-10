@@ -58,7 +58,8 @@ To see a more detailed example file structure, expand the Python example below:
 ### An example Python-based project structure
 <details>
 <summary>Details</summary>
-There are templates available for Python, a Unix shell, and R. See the [Bootstrap your Project section](https://github.com/MIT-CAVE/rc-cli/blob/main/README.md#bootstrap-your-project) [Bootstrap your Project]() section of the [RC-CLI readme](https://github.com/MIT-CAVE/rc-cli/blob/main/README.md#bootstrap-your-project) for more information. This is an example file structure for a Python-based solution.
+
+There are templates available for Python, a Unix shell, and R. See the [Bootstrap your Project section](../README.md#bootstrap-your-project) of the [RC-CLI readme](../README.md#bootstrap-your-project) for more information. This is an example file structure for a Python-based solution.
 
 When you create a `new-app`, the RC-CLI creates a Docker image. In this Python example, the `Dockerfile` installs packages from `requirements.txt` needed for your dockerized Python environment.
 
