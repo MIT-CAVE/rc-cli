@@ -22,7 +22,7 @@ Saved solutions that have been tested can be uploaded to the competition site: [
       - `docker run hello-world`
 
 2. Install [Git](https://git-scm.com)
-  - It is likely git is already installed. You can check with:
+  - It is likely `git` is already installed. You can check with:
     ```
     git --version
     ```
@@ -46,24 +46,24 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     rc-cli version
     ```
 
-5. Continue to the `Bootstrap your Project` section below the Windows 10 setup section
+5. Continue to the [Bootstrap your Project section](#bootstrap-your-project) below
 
 ## Windows 10 Setup
 1. Install [Docker](https://hub.docker.com/editions/community/docker-ce-desktop-windows/)
-  - Install WSL2 update during docker installation
+  - Install WSL2 update during Docker installation
     - Update your WSL2 Kernel (If you are prompted during installation)
       - Click on link to the Windows Documentation about WSL2
       - Download the file to update the WSL kernel package to WSL2
       - Use the downloaded package to install the WSL2 Kernel
-  - Reboot your
+  - Reboot your system
 
-2. Open **powershell** as **Administrator**
-  - In powershell type:
+2. Open **PowerShell** as **Administrator**
+  - In PowerShell type:
     ```
     wsl --set-default-version 2
     ```
   - Press `Enter`
-  - Exit powershell
+  - Exit PowerShell
 
 3. Install Ubuntu 20.04
   - In the Microsoft store, search for `Ubuntu 20.04`
@@ -79,7 +79,7 @@ Saved solutions that have been tested can be uploaded to the competition site: [
 5. Open the Docker Desktop app
   - In settings > resources > WSL Integration
     - Allow Ubuntu 20.04
-  - Reboot docker
+  - Reboot Docker
 
 6. Open the `Ubuntu 20.04` app
   - Run the following commands to finish setting up Docker:
@@ -95,7 +95,7 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     ```
     docker run hello-world
     ```
-    - This may not work until you close and re-open docker.
+    - This may not work until you close and re-open Docker.
 
 7. Install the `rc-cli` in the `Ubuntu 20.04` app
   - Run the following commands to install the `rc-cli`
@@ -111,7 +111,7 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     rc-cli version
     ```
 
-9. Continue to the `Bootstrap your Project` section below
+9. Continue to the [Bootstrap your Project section](#bootstrap-your-project) below
 
 ## Bootstrap your Project
 1. Get available commands

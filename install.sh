@@ -190,10 +190,10 @@ get_data() { # Copy the needed data files locally
 
 check_args() {
   if [[ $# -lt 1 ]]; then
-    err "Not enough arguments to install the CLI with data. Please specify a a DATA_URL \nEG:\ncurl -o- https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.tar.xz"
+    err "Not enough arguments to install the CLI with data. Please specify a a DATA_URL \nEG:\ncurl -o- https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.tar.xz"
     exit 1
   elif [[ $# -gt 1 && $2 != "--dev" ]]; then
-    err "Too many arguments for CLI installation. Please only specify a DATA_URL\nEG:\ncurl -o- https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/public/data.tar.xz"
+    err "Too many arguments for CLI installation. Please only specify a DATA_URL\nEG:\ncurl -o- https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh | bash -s https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.tar.xz"
     exit 1
   fi
 }
