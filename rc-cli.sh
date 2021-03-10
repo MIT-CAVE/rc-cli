@@ -23,6 +23,9 @@ readonly RC_CONFIGURE_APP_NAME="configure_app"
 readonly NO_LOGS="no_logs"
 readonly ROOT_LOGS="root_logs"
 
+readonly DATA_URL_XZ="https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.tar.xz"
+readonly DATA_URL_ZIP="https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.zip"
+
 #######################################
 # Display an error message when the user input is invalid.
 # Globals:
@@ -704,9 +707,10 @@ main() {
       # Accepts an additional parameter to pass to the install function (useful for --dev installs)
       printf "${CHARS_LINE}\n"
       printf "Checking Installation\n"
-      source "${RC_CLI_PATH}/CONFIG"
+      # shellcheck source=./CONFIG
+      . "${RC_CLI_PATH}/CONFIG"
       bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") \
-        "${DATA_URL}" "${INSTALL_PARAM}"
+        "${DATA_URL:-${DATA_URL_XZ}}" "${INSTALL_PARAM}"
       printf "\n${CHARS_LINE}\n"
       printf "Running other update maintenance tasks\n"
       check_docker
