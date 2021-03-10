@@ -27,7 +27,7 @@ if __name__ == '__main__':
     output = score.evaluate(
         actual_routes_json = os.path.join(BASE_DIR,'data/model_score_inputs/new_actual_sequences.json'),
         invalid_scores_json = os.path.join(BASE_DIR,'data/model_score_inputs/new_invalid_sequence_scores.json'),
-        submission_json = os.path.join(BASE_DIR,'data/model_apply_outputs/predicted_routes.json'),
+        submission_json = os.path.join(BASE_DIR,'data/model_apply_outputs/proposed_sequences.json'),
         cost_matrices_json = os.path.join(BASE_DIR,'data/model_apply_inputs/new_travel_times.json'),
         model_apply_time = model_apply_time.get("time"),
         model_build_time = model_build_time.get("time")

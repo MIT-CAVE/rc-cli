@@ -576,7 +576,7 @@ main() {
       if ! is_image_built ${RC_SCORING_IMAGE}; then
         configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
-      if [[ ! -f "scoring/${RC_SCORING_IMAGE}.tar.gz" ]]; then
+      if [[ ! -f "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz" ]]; then
         save_scoring_image
       fi
       run_test_image ${cmd} ${image_name} ${data_path}

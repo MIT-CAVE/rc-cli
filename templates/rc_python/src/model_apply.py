@@ -136,7 +136,7 @@ output=predict_all_routes(prediction_routes=prediction_routes, sort_by=sort_by)
 print('Data sorted!')
 
 # Write output data
-output_path=path.join(BASE_DIR, 'data/model_apply_outputs/predicted_routes.json')
+output_path=path.join(BASE_DIR, 'data/model_apply_outputs/proposed_sequences.json')
 with open(output_path, 'w') as out_file:
     json.dump(output, out_file)
     print("Success: The '{}' file has been saved".format(output_path))
