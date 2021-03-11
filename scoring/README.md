@@ -10,6 +10,8 @@ where sequence $$A$$ is the historically realized sequence of deliveries, sequen
 
 If a user-submitted route is deemed invalid -- meaning it does not provide a valid of sequence that contains the station and all stops -- the route is given a score equivalent to a typical complete random perturbation of the driver-taken sequence. 
 
+User-submitted sequences that perfectly match the driver-taken sequence are given a score of 0. Scores increase as the user-submitted sequence differs more and more from the driver-taken sequence. Complete random shuffles of all the stops in the driver-taken route typically receive scores of betweeen 0.8 and 1.2. 
+
 # 'Evaluate' Function
 To incorporate the scoring logic into your own models, call the function 'evaluate' located within the score.py script and provide it the following inputs:
 
@@ -22,3 +24,7 @@ To incorporate the scoring logic into your own models, call the function 'evalua
 All JSON files above may contain the necessary information corresponding to one or more routes. 
 
 ## Outputs
+- scores_json: a JSON object that contains the scores assigned to each submitted route.
+
+## Caveats when using 'Evaluate'
+- The route sequences your model ouputs in submission_json should begin but not end at the depot. The depot will be automatically appended to the end of the route during the scoring process. 
