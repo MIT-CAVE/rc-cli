@@ -96,6 +96,16 @@ check_app() {
   fi
 }
 
+# Load the CONFIG file. If it doesn't exist, it is created.
+load_config() {
+  if [[ ! -f "${RC_CLI_PATH}/CONFIG" ]]; then
+    err "Could not find a valid 'CONFIG' file. Using a default 'DATA_URL' value..."
+    printf "DATA_URL=\"${DATA_URL_XZ}\"\n" > "${RC_CLI_PATH}/CONFIG"
+  fi
+  # shellcheck source=./CONFIG
+  . "${RC_CLI_PATH}/CONFIG"
+}
+
 # Foolproof basic setup to minimize user-side errors
 foolproof_setup() {
   local scripts
@@ -713,12 +723,7 @@ main() {
       # Accepts an additional parameter to pass to the install function (useful for --dev installs)
       printf "${CHARS_LINE}\n"
       printf "Checking Installation\n"
-      if [[ ! -f "${RC_CLI_PATH}/CONFIG" ]]; then
-        err "Could not find a valid 'CONFIG' file. Using a default DATA_URL value..."
-        printf "DATA_URL=\"${DATA_URL_XZ}\"\n" >> "${RC_CLI_PATH}/CONFIG"
-      fi
-      # shellcheck source=./CONFIG
-      . "${RC_CLI_PATH}/CONFIG"
+      load_config
       bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") \
         "${DATA_URL}" ${INSTALL_PARAM}
       printf "\n${CHARS_LINE}\n"
@@ -728,6 +733,18 @@ main() {
       configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       save_scoring_image
 
+      printf "${CHARS_LINE}\n"
+      ;;
+
+    update-data) # Update the data provided by Amazon to build and apply the model
+      printf "${CHARS_LINE}\n"
+      printf "Updating data provided by Amazon\n"
+      # shellcheck source=lib/amzn_data.sh
+      . ${RC_CLI_PATH}/lib/amzn_data.sh
+      load_config
+      # shellcheck source=./CONFIG
+      . "${RC_CLI_PATH}/CONFIG"
+      amzn_data::update_data "${DATA_URL}" "${RC_CLI_PATH}" "${DATA_DIR}"
       printf "${CHARS_LINE}\n"
       ;;
 
@@ -796,6 +813,7 @@ Utility Commands:
   uninstall                 Uninstall the ${RC_CLI_SHORT_NAME} and all ${RC_CLI_SHORT_NAME}
                             created docker images.
   update                    Update to the most recent ${RC_CLI_SHORT_NAME}.
+  update-data               Update the data provided by Amazon to build and apply your model.
   version                   Display the current ${RC_CLI_SHORT_NAME} version.
 
 Usage Examples:
@@ -912,6 +930,12 @@ $(get_help_template_string)
     - Update this cli
       ${CHARS_LINE}
       rc-cli update
+      ${CHARS_LINE}
+
+  update-data
+    - Update the data provided by Amazon to build and apply your model
+      ${CHARS_LINE}
+      rc-cli update-data
       ${CHARS_LINE}
 
   version
