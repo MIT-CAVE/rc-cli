@@ -744,13 +744,13 @@ main() {
 
     update-data) # Update the data provided by Amazon to build and apply the model
       printf "${CHARS_LINE}\n"
-      printf "Updating data provided by Amazon\n"
-      # shellcheck source=lib/amzn_data.sh
-      . ${RC_CLI_PATH}/lib/amzn_data.sh
+      printf "Updating data\n"
+      # shellcheck source=lib/get_data.sh
+      . ${RC_CLI_PATH}/lib/get_data.sh
       load_config
       # shellcheck source=./CONFIG
       . "${RC_CLI_PATH}/CONFIG"
-      amzn_data::update_data "${DATA_URL}" "${RC_CLI_PATH}" "${DATA_DIR}"
+      data::update_data "${DATA_URL}" "${RC_CLI_PATH}" "${DATA_DIR}"
       printf "${CHARS_LINE}\n"
       ;;
 

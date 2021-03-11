@@ -114,7 +114,7 @@ update_data() { # Copy the needed data files locally
   printf "done\n"
 }
 
-amzn_data::update_data() {
+data::update_data() {
   get_compressed_data_info "$@"
   check_compression
   update_data
