@@ -35,8 +35,8 @@ if __name__ == '__main__':
     print('done')
 
     # Write Outputs to File
-    output_dir = os.path.join(BASE_DIR,'data/model_score_outputs/score.json')
-    with open(output_dir, 'w') as out_file:
+    output_path = os.path.join(BASE_DIR,'data/model_score_outputs/scores.json')
+    with open(output_path, 'w') as out_file:
         json.dump(output, out_file)
 
     # Print Pretty Output
