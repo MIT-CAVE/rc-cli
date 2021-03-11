@@ -481,7 +481,13 @@ main() {
   if [[ $# -lt 1 ]]; then
     err "missing command operand"
     exit 1
-  elif [[ $# -gt 2 && $1 != "new-model" && $1 != "new" && $1 != "nm" ]]; then
+  elif [[
+    $# -gt 2 \
+    && $1 != "new-app" \
+    && $1 != "new" \
+    && $1 != "app" \
+    && $1 != 'na' \
+  ]]; then
     err "too many arguments"
     exit 1
   fi
