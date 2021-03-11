@@ -752,7 +752,7 @@ main() {
           printf "done\n"
 
           printf "Uninstalling ${RC_CLI_SHORT_NAME} (${RC_CLI_VERSION})\n"
-          rm -rf s"${RC_CLI_PATH}"
+          rm -rf "${RC_CLI_PATH}"
           printf "Uninstall Complete!\n"
           ;;
         [nN][oO] | [nN] | "")
