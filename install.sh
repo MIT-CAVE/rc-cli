@@ -5,7 +5,6 @@
 # Constants
 readonly CHARS_LINE="============================"
 readonly RC_CLI_PATH="${HOME}/.rc-cli"
-readonly RC_CLI_LONG_NAME="Routing Challenge CLI"
 readonly RC_CLI_SHORT_NAME="RC CLI"
 readonly RC_CLI_COMMAND="rc-cli"
 readonly RC_CLI_VERSION="0.1.0"
@@ -15,9 +14,19 @@ readonly SSH_CLONE_URL="git@github.com:MIT-CAVE/rc-cli.git"
 readonly HTTPS_CLONE_URL="https://github.com/MIT-CAVE/rc-cli.git"
 readonly MIN_DOCKER_VERSION="18.09.00"
 readonly MIN_TAR_VERSION="1.22"
+readonly MIN_BSDTAR_VERSION="0" # FIXME: Minimum version for which 'xz' compression is supported
 
 err() { # Display an error message
   printf "$0: $1\n" >&2
+}
+
+# Get the current version of the 'tar' archiving utility
+get_tar_version() {
+  if [[ -n $(which bsdtar) ]]; then
+    printf "$(bsdtar --version | sed 's/\([a-z]\+\s\)\(.*\)\-.*/\2/g')"
+  elif [[ -n $(which tar) ]]; then
+    printf "$(tar --version | grep -m1 -o ").*" | sed "s/) //")"
+  fi
 }
 
 check_os() { # Validate that the current OS
@@ -77,13 +86,16 @@ validate_version() {
 }
 
 check_compression() { # Validate tar compression command is installed
-  if [[ "$compressed_file_type" = "xz" ]]; then
-    install_tar="\nPlease install version ${MIN_TAR_VERSION} or greater. \nIf your machine does not support tar, you may consider installing {$RC_CLI_SHORT_NAME} using a zip folder. \nThis requires the unzip funciton to be installed locally.\n"
-    validate_install "tar" "1" "$install_tar"
-    CURRENT_TAR_VERSION=$(tar --version | grep -m1 -o ").*" | sed "s/) //")
-    validate_version "tar" "1" "$install_tar" "$MIN_TAR_VERSION" "$CURRENT_TAR_VERSION"
+  if [[ "${compressed_file_type}" == "xz" ]]; then
+    [[ -n $(which bsdtar) ]] \
+      && min_tar_ver=${MIN_TAR_VERSION} \
+      || min_tar_ver=${MIN_BSDTAR_VERSION}
+    install_tar="\nPlease install version ${min_tar_ver} or greater. \nIf your machine does not support tar, you may consider installing {$RC_CLI_SHORT_NAME} using a zip folder. \nThis requires the unzip function to be installed locally.\n"
+    validate_install "tar" "1" "${install_tar}"
+    CURRENT_TAR_VERSION=$(get_tar_version)
+    validate_version "tar" "1" "${install_tar}" "${min_tar_ver}" "${CURRENT_TAR_VERSION}"
   # Can not validate unzip as version pipes out to stderr
-  elif [[ "$compressed_file_type" = "zip" ]]; then
+  elif [[ "${compressed_file_type}" == "zip" ]]; then
     : # Do nothing
   #   install_unzip="\nPlease install unzip."
   #   validate_install "unzip" "1" "$install_unzip"
