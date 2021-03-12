@@ -36,11 +36,27 @@ Regardless of the programming language(s) or libraries you use for your applicat
 ```
 ├── data
 │   ├── model_build_inputs
-│   │   └── <model-build-input-file(s)>
+│   │   ├── actual_sequences.json
+│   │   ├── invalid_sequence_scores.json
+│   │   ├── package_data.json
+│   │   ├── route_data.json
+│   │   └── travel_times.json
 │   ├── model_build_outputs
 │   ├── model_apply_inputs
-│   │   └── <model-apply-input-file(s)>
-│   └── model_apply_outputs
+│   │   ├── new_package_data.json
+│   │   ├── new_route_data.json
+│   │   └── new_travel_times.json
+│   ├── model_apply_outputs
+│   │   └── proposed_sequences.json
+│   ├── model_score_inputs
+│   │   ├── new_actual_sequences.json
+│   │   └── new_invalid_sequence_scores.json
+│   ├── model_score_outputs
+│   │   └── scores.json
+│   └── model_score_timings
+│       ├── model_apply_time.json
+│       └── model_build_time.json
+├── snapshots
 ├── src
 │   └── <source-code-file(s)-or-dir(s)>
 ├── Dockerfile
@@ -75,15 +91,22 @@ The folders listed below include additional folders used for logging, storing sa
 ```
 ├── data
 │   ├── model_build_inputs
-│   │   └── <provided build-input-file(s)>
+│   │   ├── actual_sequences.json
+│   │   ├── invalid_sequence_scores.json
+│   │   ├── package_data.json
+│   │   ├── route_data.json
+│   │   └── travel_times.json
 │   ├── model_build_outputs
-│   │   └── TensorFlow_model.pb
+│   │   └── <trained-model-file(s)>
 │   ├── model_apply_inputs
-│   │   └── <provided apply-input-file(s)>
+│   │   ├── new_package_data.json
+│   │   ├── new_route_data.json
+│   │   └── new_travel_times.json
 │   ├── model_apply_outputs
 │   │   └── proposed_sequences.json
 │   ├── model_score_inputs
-│   │   └── <provided score-input-file(s)>
+│   │   ├── new_actual_sequences.json
+│   │   └── new_invalid_sequence_scores.json
 │   ├── model_score_outputs
 │   │   └── scores.json
 │   └── model_score_timings
@@ -98,7 +121,7 @@ The folders listed below include additional folders used for logging, storing sa
 │       └── test_model.tar.gz
 ├── logs
 │   └── save_snapshot
-│       └── test1_configure_2021-03-15T00:21:15.log
+│       └── test_model_configure_2021-03-15T00:00:00.log
 ├── .dockerignore
 ├── Dockerfile
 ├── model_build.sh
