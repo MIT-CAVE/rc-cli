@@ -29,5 +29,5 @@ All JSON files above may contain the necessary information corresponding to one 
 - scores: a python dictionary that contains the submission score, the scores assigned to each route, the feasibility of each route, and any inputted kwargs.
 
 ## Specifications of submission_json
-- The submission_json file must have the same format as the actual_routes_json file (e.g actual_sequences.json), but it should have 'prediction' everywhere actual_routes_json has 'actual'.
+- The submission_json file must have the same format as the actual_routes_json file (e.g actual_sequences.json), but it should have 'projected' everywhere actual_routes_json has 'actual'.
 - The route sequences your model ouputs in submission_json should begin but not end at the station. In other words, the station's stop number should be 0 and only 0. To match reality, in which a driver must return to the station after completing a route, the station will be automatically appended to the end of the route during the scoring process.
