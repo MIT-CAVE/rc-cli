@@ -47,7 +47,7 @@ Please follow these guidelines to ensure the `rc-cli` will work with your develo
     - Code in your `src` directory can pull data from the relative app `data` directory path during local development and `rc-cli` testing
       - During local development:
         - You will have unrestricted access to the `data` directory as you will be executing code locally
-      - During `rc-cli` development (`model-build`, `model-apply`, `model-debug`)
+      - During `rc-cli` development (`model-build`, `model-apply`, `enter-app`)
         - The `rc-cli` will mount the needed data for each command from your local `data` folder as they exist at run time
           - Changes to this data during run time will be reflected in your local `data` folder
         - Data is restricted to the current phase
@@ -58,7 +58,7 @@ Please follow these guidelines to ensure the `rc-cli` will work with your develo
             - `data/model_build_outputs` (read)
             - `data/model_apply_inputs` (read)
             - `data/model_apply_outputs` (read/write)
-          - `model-debug`:
+          - `enter-app`:
             - `data/model_build_inputs` (read/write)
             - `data/model_build_outputs` (read/write)
             - `data/model_apply_inputs` (read/write)

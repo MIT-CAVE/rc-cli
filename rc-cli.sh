@@ -628,9 +628,9 @@ main() {
       run_scoring_image ${cmd} $(get_app_name) ${src_mnt}
       ;;
 
-    model-debug | debug | md)
+    enter-app | model-debug | debug | md | ea)
       # Enable an interactive shell at runtime to debug the app container.
-      cmd="model-debug"
+      cmd="enter-app"
       make_logs ${cmd}
       basic_checks
       if [[ -z $2 ]]; then
@@ -653,8 +653,8 @@ main() {
       [[ -n $(echo ${valid_sh} | grep "/bin/bash") ]] \
         && app_sh="/bin/bash" || app_sh="/bin/sh"
       printf "${CHARS_LINE}\n"
-      printf "Debug mode:\n"
-      printf "  - You are in the equivalent of your current app directory inside of a Docker container\n"
+      printf "Entering your app:\n"
+      printf "  - You are in the equivalent of your current app directory inside of your app's Docker container\n"
       printf "  - You can test your code directly in this environment\n"
       printf "    - EG: try running:\n"
       printf "      ${CHARS_LINE}\n"
@@ -799,9 +799,9 @@ Core Commands:
                             - This overwrites previous image giving you an updated image.
                             - Every time you update your project root (shell scripts or
                               Dockerfile), you should run model-configure again.
+  enter-app (ea)            Launch an interactive terminal into your app's Docker image.
   model-apply (ma)          Execute the model_apply.sh script inside of your app's Docker image.
   model-build (mb)          Execute the model_build.sh script inside of your app's Docker image.
-  model-debug (md)          Launch an interactive terminal into your app's Docker image.
   model-score (ms)          Apply the scoring algorithm against your app's current data.
   new-app (na)              Create a new application directory within your current directory.
   production-test (pt)      Run your app phases end to end exactly as it will be run during your
@@ -830,6 +830,16 @@ Usage Examples:
       rc-cli configure-app
       ${CHARS_LINE}
 
+  enter-app [snapshot-name]
+    - Debug your current app
+      ${CHARS_LINE}
+      rc-cli enter-app
+      ${CHARS_LINE}
+    - Debug a snapshot
+      ${CHARS_LINE}
+      rc-cli enter-app my-snapshot
+      ${CHARS_LINE}
+
   model-build [snapshot-name]
     - Run the model-build phase for your current app
       ${CHARS_LINE}
@@ -848,16 +858,6 @@ Usage Examples:
     - Run the model-apply phase for a snapshot (after having run model-build)
       ${CHARS_LINE}
       rc-cli model-apply my-snapshot
-      ${CHARS_LINE}
-
-  model-debug [snapshot-name]
-    - Debug your current app
-      ${CHARS_LINE}
-      rc-cli model-debug
-      ${CHARS_LINE}
-    - Debug a snapshot
-      ${CHARS_LINE}
-      rc-cli model-debug my-snapshot
       ${CHARS_LINE}
 
   model-score [snapshot-name]

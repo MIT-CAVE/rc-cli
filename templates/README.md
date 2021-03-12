@@ -86,7 +86,7 @@ The folders listed below include additional folders used for logging, storing sa
 - `data/model_apply_outputs` folder would contain the predicted routes based on your model and the "apply inputs" dataset.
 - `data/model_score_inputs`,`data/model_score_outputs`, and `data/model_score_timings` directories are utilized by the RC-CLI when scoring your application and not necessary for submission. After scoring your model, find the results in `data/model_score_outputs/scores.json`.
 - `snapshots` contains saved Docker images and their corresponding data files.
-- `logs` contains folders created by the RC-CLI while running commands. Logs are kept for `configure-app`, `model-debug`, `save_snapshot`, etc...
+- `logs` contains folders created by the RC-CLI while running commands. Logs are kept for `configure-app`, `enter-app`, `save_snapshot`, etc...
 
 ```
 ├── data
@@ -263,11 +263,11 @@ model-score [snapshot-name]
 ```
 Apply the scoring algorithm using `data/model_apply_output/proposed_sequences.json` created during the `model-apply` phase. The scoring algorithm compares your proposed route sequences against the actual sequences for the same set of stops. It outputs a numerical score that quantifies the proximity / similarity of both sequences. This algorithm will be the same one used when evaluating submissions at the end of the competition. The only difference will be the dataset provided during the `model-apply` phase.
 
-### model-debug
+### enter-app
 ```sh
-rc-cli model-debug [snapshot-name]
+rc-cli enter-app [snapshot-name]
 ```
-Use this command to debug your current app. It will start the Docker image for your project. You can run shell scripts and execute files. You can test if your Docker image has the correct environment to run your source code. The `model-debug` command provides the following directory access:
+Use this command to enter your current app's docker image. This will start the Docker image for your project. You can run shell scripts and execute files. You can test if your Docker image has the correct environment to run your source code. The `enter-app` command provides the following directory access:
 - `data/model_build_inputs` (read/write)
 - `data/model_build_outputs` (read/write)
 - `data/model_apply_inputs` (read/write)
