@@ -261,7 +261,7 @@ You do not have access to the historical data at this phase, but there is a new 
 ```sh
 model-score [snapshot-name]
 ```
-Apply the scoring algorithm using `data/model_apply_output/proposed_sequences.json` created during the `model-apply` phase. The scoring algorithm compares your proposed route sequences against the actual sequences for the same set of stops. It outputs a numerical score that quantifies the proximity / similarity of both sequences. This algorithm will be the same one used when evaluating submissions at the end of the competition. The only difference will be the dataset provided during the `model-apply` phase.
+Apply the scoring algorithm using `data/model_apply_outputs/proposed_sequences.json` created during the `model-apply` phase. The scoring algorithm compares your proposed route sequences against the actual sequences for the same set of stops. It outputs a numerical score that quantifies the proximity / similarity of both sequences. This algorithm will be the same one used when evaluating submissions at the end of the competition. The only difference will be the dataset provided during the `model-apply` phase.
 
 ### enter-app
 ```sh
