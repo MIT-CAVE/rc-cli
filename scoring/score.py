@@ -125,7 +125,7 @@ def evaluate(actual_routes_json,submission_json,cost_matrices_json, invalid_scor
 
     Returns
     -------
-    scores_json : JSON
+    scores : dict
         Dictionary containing submission score, individual route scores, feasibility
         of routes, and kwargs.
 
