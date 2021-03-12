@@ -6,11 +6,13 @@ The scoring function below calculates the similarity between the true driver-tak
 
 <img src="https://render.githubusercontent.com/render/math?math=score = \frac{SD(A,B) \cdot {ERP}_{norm}(A,B)}{{ERP}_e(A,B)}">
 
-where sequence $$A$$ is the historically realized sequence of deliveries, sequence $$B$$ is the algorithm-produced sequence of deliveries, $$SD$$ denotes the Sequence Deviation of $$B$$ with respect to $$A$$, $$ERP_{norm}$$ denotes the Edit Distance with Real Penalty applied to sequences $$A$$ and $$B$$ with normalized travel times, and $${ERP}_e$$ denotes the number of edits done by the $$ERP$$ algorithm on sequence $$B$$ with respect to $$A$$. 
+where sequence <img src="https://render.githubusercontent.com/render/math?math=A"> is the historically realized sequence of deliveries, sequence <img src="https://render.githubusercontent.com/render/math?math=B"> is the algorithm-produced sequence of deliveries, <img src="https://render.githubusercontent.com/render/math?math=SD"> denotes the Sequence Deviation of <img src="https://render.githubusercontent.com/render/math?math=B"> with respect to <img src="https://render.githubusercontent.com/render/math?math=A">, <img src="https://render.githubusercontent.com/render/math?math=ERP_{norm}"> denotes the Edit Distance with Real Penalty applied to sequences <img src="https://render.githubusercontent.com/render/math?math=A"> and <img src="https://render.githubusercontent.com/render/math?math=B?> with normalized travel times, and <img src="https://render.githubusercontent.com/render/math?math={ERP}_e"> denotes the number of edits prescribed by the <img src="https://render.githubusercontent.com/render/math?math=ERP"> algorithm on sequence <img src="https://render.githubusercontent.com/render/math?math=B"> with respect to <img src="https://render.githubusercontent.com/render/math?math=A">. 
 
 If a user-submitted route is deemed invalid -- meaning it does not provide a valid sequence that contains the station (as Stop 0) and all stops -- the route is given a score equivalent to a typical complete random perturbation of the driver-taken sequence. 
 
-User-submitted sequences that perfectly match the driver-taken sequence are given a score of 0. Scores increase as the user-submitted sequence differs more and more from the driver-taken sequence. Complete random shuffles of all the stops in the driver-taken route typically receive scores betweeen 0.8 and 1.2. 
+User-submitted sequences that perfectly match the driver-taken sequence are given a score of 0. Scores increase as the user-submitted sequence differs more and more from the driver-taken sequence. Complete random shuffles of all the stops in the driver-taken route typically receive scores betweeen 0.8 and 1.2.
+
+The score for an entire submission is the simple, unweighted average of all route scores within the submission.
 
 # 'Evaluate' Function
 To incorporate the scoring logic into your own models, call the function 'evaluate' located within the score.py script and provide it the following inputs:
