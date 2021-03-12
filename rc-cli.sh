@@ -244,7 +244,7 @@ load_snapshot() {
   local old_image_tag
   f_name="$(kebab_to_snake ${snapshot})"
   docker rmi ${f_name}:${RC_IMAGE_TAG} &> /dev/null
-  load_stdout=$(docker load --quiet --input "snapshots/${f_name}/${f_name}.tar.gz" 2>&1)
+  load_stdout=$(docker load --quiet --input "snapshots/${f_name}/${f_name}.tar.gz" 2> /dev/null)
   old_image_tag="${load_stdout:14}"
   # Force the image tag to be that of the tar archive filename.
   if [[ "${old_image_tag}" != "${snapshot}:${RC_IMAGE_TAG}" ]]; then

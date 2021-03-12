@@ -25,7 +25,7 @@ wait_for_docker() {
 load_image() {
   image_file=$1
   printf "Loading the Image... "
-  load_stdout=$(docker load --quiet --input "/mnt/${image_file}" 2>&1)
+  load_stdout=$(docker load --quiet --input "/mnt/${image_file}" 2> /dev/null)
   old_image_tag="${load_stdout:14}"
   new_image_tag="${image_file:0:-7}:${RC_IMAGE_TAG}"
   # Force the image tag to be that of the tar archive filename.
