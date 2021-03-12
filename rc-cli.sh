@@ -831,11 +831,11 @@ Usage Examples:
       ${CHARS_LINE}
 
   enter-app [snapshot-name]
-    - Debug your current app
+    - Enter your current app's docker image
       ${CHARS_LINE}
       rc-cli enter-app
       ${CHARS_LINE}
-    - Debug a snapshot
+    - Enter a snapshot's docker image
       ${CHARS_LINE}
       rc-cli enter-app my-snapshot
       ${CHARS_LINE}
