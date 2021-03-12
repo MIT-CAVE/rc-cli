@@ -46,7 +46,7 @@ def good_format(file,input_type,filepath):
         Dictionary loaded from evaluate input file.
     input_type : str
         Indicates which input of evaluate the current file is. Can be
-        "actual," "projected," "costs," or "invalids."
+        "actual," "proposed," "costs," or "invalids."
     filepath : str
         Path from which file was loaded.
 
@@ -65,13 +65,13 @@ def good_format(file,input_type,filepath):
     for route in file:
         if route[:8]!='RouteID_':
             raise JSONDecodeError('Improper route ID in {}. Every route must be denoted by a string that begins with "RouteID_".'.format(filepath))
-    if input_type=='projected' or input_type=='actual':
+    if input_type=='proposed' or input_type=='actual':
         for route in file:
             if type(file[route])!=dict or len(file[route])!=1: 
                 raise JSONDecodeError('Improper route in {}. Each route ID must map to a dictionary with a single key.'.format(filepath))
             if input_type not in file[route]:
-                if input_type=='projected':
-                    raise JSONDecodeError('Improper route in {}. Each route\'s dictionary in a projected sequence file must have the key, "projected".'.format(filepath))
+                if input_type=='proposed':
+                    raise JSONDecodeError('Improper route in {}. Each route\'s dictionary in a proposed sequence file must have the key, "proposed".'.format(filepath))
                 else:
                     raise JSONDecodeError('Improper route in {}. Each route\'s dictionary in an actual sequence file must have the key, "actual".'.format(filepath))
             if type(file[route][input_type])!=dict:
@@ -133,7 +133,7 @@ def evaluate(actual_routes_json,submission_json,cost_matrices_json, invalid_scor
     actual_routes=read_json_data(actual_routes_json)
     good_format(actual_routes,'actual',actual_routes_json)
     submission=read_json_data(submission_json)
-    good_format(submission,'projected',submission_json)
+    good_format(submission,'proposed',submission_json)
     cost_matrices=read_json_data(cost_matrices_json)
     good_format(cost_matrices,'costs',cost_matrices_json)
     invalid_scores=read_json_data(invalid_scores_json)
@@ -434,8 +434,8 @@ def route2list(route_dict):
         Route as a list.
 
     '''
-    if 'projected' in route_dict:
-        stops=route_dict['projected']
+    if 'proposed' in route_dict:
+        stops=route_dict['proposed']
     elif 'actual' in route_dict:
         stops=route_dict['actual']
     route_list=[0]*(len(stops)+1)
