@@ -16,11 +16,11 @@ def sort_by_key(stops, sort_by):
     ordered_stop_list_ids=[i['id'] for i in ordered_stop_list]
     return {i:ordered_stop_list_ids.index(i) for i in ordered_stop_list_ids}
 
-def predict_all_routes(prediction_routes, sort_by):
-    return {key:{'prediction':sort_by_key(stops=value['stops'], sort_by=sort_by)} for key, value in prediction_routes.items()}
+def propose_all_routes(prediction_routes, sort_by):
+    return {key:{'proposed':sort_by_key(stops=value['stops'], sort_by=sort_by)} for key, value in prediction_routes.items()}
 
 sort_by=model_build_out.get("sort_by")
-output=predict_all_routes(prediction_routes=prediction_routes, sort_by=sort_by)
+output=propose_all_routes(prediction_routes=prediction_routes, sort_by=sort_by)
 
 output_path=path.join(BASE_DIR, 'data/model_apply_outputs/proposed_sequences.json')
 with open(output_path, 'w') as out_file:

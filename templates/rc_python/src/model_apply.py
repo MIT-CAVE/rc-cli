@@ -70,9 +70,9 @@ def sort_by_key(stops, sort_by):
     # Serialize back to dictionary format with output order as the values
     return {i:ordered_stop_list_ids.index(i) for i in ordered_stop_list_ids}
 
-def predict_all_routes(prediction_routes, sort_by):
+def propose_all_routes(prediction_routes, sort_by):
     """
-    Applies `sort_by_key` to each route's set of stops and returns them in a dictionary under `output[route_id]['prediction']`
+    Applies `sort_by_key` to each route's set of stops and returns them in a dictionary under `output[route_id]['proposed']`
 
     EG:
 
@@ -94,14 +94,14 @@ def predict_all_routes(prediction_routes, sort_by):
       ...
     }
 
-    print(predict_all_routes(prediction_routes, 'lat'))
+    print(propose_all_routes(prediction_routes, 'lat'))
     ```
 
     Output:
     ```
     {
       "RouteID_001": {
-        "prediction": {
+        "proposed": {
           "Depot": 0,
           "StopID_001": 1,
           "StopID_002": 2
@@ -111,7 +111,7 @@ def predict_all_routes(prediction_routes, sort_by):
     }
     ```
     """
-    return {key:{'prediction':sort_by_key(stops=value['stops'], sort_by=sort_by)} for key, value in prediction_routes.items()}
+    return {key:{'proposed':sort_by_key(stops=value['stops'], sort_by=sort_by)} for key, value in prediction_routes.items()}
 
 # Apply faux algorithms to pass time
 time.sleep(1)
@@ -132,7 +132,7 @@ time.sleep(1)
 print('\nApplying answer with real model...')
 sort_by=model_build_out.get("sort_by")
 print('Sorting data by the key: {}'.format(sort_by))
-output=predict_all_routes(prediction_routes=prediction_routes, sort_by=sort_by)
+output=propose_all_routes(prediction_routes=prediction_routes, sort_by=sort_by)
 print('Data sorted!')
 
 # Write output data
