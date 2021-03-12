@@ -153,4 +153,4 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     - Alternatively, your `Ubuntu 20.04` app stores files on your local operating system at:
       - `\\wsl$`>`Ubuntu-20.04`>`home`>`your-username`
 
-5. All `rc-cli` commands and usages are documented in your createped application as README.md
+5. All `rc-cli` commands and usages are documented in your created application as `README.md`
