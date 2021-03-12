@@ -175,7 +175,7 @@ At this point you have two options.
 1. Copy the `pip` lines from the `environment.yaml` file into `requirements.txt`. This only works if you use `pip` to install packages while your `conda` environment is active.
 2. Edit the Dockerfile to specify a Base Image that includes `conda`. You can then import the `environment.yaml` file directly into the Dockerfile image. The example we provided does not include `conda`.
 
-If you choose option 2, we recommend you read  [../custom_dev_stack.md](../custom_dev_stack.md) to learn more about creating a custom development stack.
+If you choose option 2, we recommend you read  [./custom_dev_stack.md](./custom_dev_stack.md) to learn more about creating a custom development stack.
 </details>
 
 ## Routing Challenge CLI Commands
