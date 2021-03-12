@@ -59,7 +59,7 @@ To see a more detailed example file structure, expand the Python example below:
 <details>
 <summary>Details</summary>
 
-There are templates available for Python, a Unix shell, and R. See the [Bootstrap your Project section](../README.md#bootstrap-your-project) of the [RC-CLI readme](../README.md#bootstrap-your-project) for more information. This is an example file structure for a Python-based solution.
+There are templates available for Python, a Unix shell, and R. See the [Create your Project section](../README.md#create-your-project) of the [RC-CLI readme](../README.md) for more information. This is an example file structure for a Python-based solution.
 
 When you create a `new-app`, the RC-CLI creates a Docker image. In this Python example, the `Dockerfile` installs packages from `requirements.txt` needed for your dockerized Python environment.
 

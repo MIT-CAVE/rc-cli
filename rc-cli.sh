@@ -91,7 +91,7 @@ get_app_name() {
 # Check that the CLI is run from a valid app directory.
 check_app() {
   if ! valid_app_dir; then
-    err "Error: You are not in a valid app directory. Make sure to cd into an app directory that you bootstrapped with the rc-cli."
+    err "Error: You are not in a valid app directory. Make sure to cd into an app directory that you created with the rc-cli."
     exit 1
   fi
 }
@@ -933,13 +933,13 @@ $(get_help_template_string)
       ${CHARS_LINE}
 
   update
-    - Update this cli
+    - Update your cli to the newest version
       ${CHARS_LINE}
       rc-cli update
       ${CHARS_LINE}
 
   update-data
-    - Update the data provided by Amazon to build and apply your model
+    - Update your data to the newest version
       ${CHARS_LINE}
       rc-cli update-data
       ${CHARS_LINE}

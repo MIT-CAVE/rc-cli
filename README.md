@@ -3,7 +3,7 @@
 This repository houses all code needed to setup, evaluate and test code for the Amazon Routing Challenge.
 
 Using the `rc-cli`, participants of the Amazon Routing Challenge will be able to:
-- Bootstrap a new project
+- Create a new project
 - Run local development code with competition data
 - Run environment agnostic code with competition data
 - Save solution files (a file that can be submitted for evaluation)
@@ -46,7 +46,7 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     rc-cli version
     ```
 
-5. Continue to the [Bootstrap your Project section](#bootstrap-your-project) below
+5. Continue to the [Create your Project section](#create-your-project) below
 
 ## Windows 10 Setup
 1. Install [Docker](https://hub.docker.com/editions/community/docker-ce-desktop-windows/)
@@ -111,15 +111,15 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     rc-cli version
     ```
 
-9. Continue to the [Bootstrap your Project section](#bootstrap-your-project) below
+9. Continue to the [Create your Project section](#create-your-project) below
 
-## Bootstrap your Project
+## Create your Project
 1. Get available commands
   ```
   rc-cli help
   ```
 
-2. Bootstrap a project in your current directory
+2. Create a project in your current directory
   - Note: Feel free to change `my-app` to any name you want
   ```
   rc-cli new-app my-app
@@ -153,4 +153,4 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     - Alternatively, your `Ubuntu 20.04` app stores files on your local operating system at:
       - `\\wsl$`>`Ubuntu-20.04`>`home`>`your-username`
 
-5. All `rc-cli` commands and usages are documented in your bootstrapped application as README.md
+5. All `rc-cli` commands and usages are documented in your createped application as README.md

@@ -12,7 +12,7 @@ This document will help you to correctly set up a functional custom app template
     ```
 
 2. Folder structure is very important when using the `rc-cli`
-  - To get started on any custom template, you should bootstrap a base template
+  - To get started on any custom template, you should create a base template
   - This includes some starter code as well as all the necessary files and folder structures to properly set up your template
   - You can boostrap a new (and fully functional) app named `my-app` in your current directory using the `rc_base` template by running:
     ```
