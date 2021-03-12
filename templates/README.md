@@ -107,6 +107,76 @@ The folders listed below include additional folders used for logging, storing sa
 ```
 </details>
 
+## Managing your Docker environment
+If you have ever tried to distribute code for others to run, you know that it can be frustrating when others try to run your code and it fails because they do not have the same setup as you do.
+
+The RC-CLI avoids this issue by ensuring that you include everything needed to run your program in your Docker image. All the system settings, libraries, and packages need to be specified so that when it comes time to evaluate your submission, we can build your Docker image and know that things will work.
+
+We suggest contestants use an environment to ensure they have included everything necessary in their Docker image. Using an environment starts with a clean slate and forces you to install packages in your environment to use them. After you have your code running, you can query your active  environment to list the required packages needed to include in your the Docker image.
+
+For Python there are two main environment managers - `virtualenv` and  `conda`. There are other environment managers, such as renv for R and conan for C/C++, but we will not be covering those.
+
+<details>
+<summary>Virtualenv Example</summary>
+
+When using `virtualenv`, you will usually have a few Python packages installed globally on your system. One of these will be `virtualenv` itself. In this example we will show how to create a virtual environment and to capture its requirements for use in RC-CLI.
+
+To start, you navigate to your project directory. Create a virtual environment and activate it.
+
+    $ virtualenv
+    Created virtual environment in venv/bin/python
+    $ source venv/bin/activate
+    (venv)$
+
+Next install a package that your program will need. Then export the virtual environment's requirements to include in your Docker image. Last, use the RC-CLI to update the Docker image. The RC-CLI builds the Docker image by importing packages using `pip` and `requirements.txt`.
+
+    (venv)$ pip install numpy
+    Successfully installed numpy-1.20.1
+    (venv)$ pip freeze > requirements.txt
+    (venv)$ more requirements.txt
+    numpy==1.20.1
+    (venv)$ rc-cli configure-app
+</details>
+
+<details>
+<summary>Conda Example</summary>
+
+In this example, we create an empty environment, activate it, install a package, and export the environment.
+
+    $ conda create --name example_env python=3.9
+    $ source activate example_env
+    (example_env) $ conda install numpy
+    (example_env) $ conda env export > environment.yaml
+    (example_env) $ more environment.yaml
+    name: example_env
+    channels:
+     - defaults
+    dependencies:
+     - libcxx=10.0.0
+     - libedit=3.1.20191231
+     - libffi=3.3
+     - ncurses=6.2
+     - pip=21.0.1
+     - python=3.9.2
+     - readline=8.1
+     - setuptools=52.0.0
+     - sqlite=3.33.0
+     - tk=8.6.10
+     - tzdata=2020f
+     - wheel=0.36.2
+     - xz=5.2.5
+     - zlib=1.2.11
+     - pip 
+       - numpy==1.20.1
+
+The `environment.yaml` file lists the conda dependencies and pip dependencies (with version numbers) that need to be included to match this environment. The RC-CLI sample Python template's Dockerfile uses `pip` to update the image by installing the packages in `requirements.txt`.
+
+At this point you have two options.
+1. Copy the `pip` lines from the `environment.yaml` file into `requirements.txt`. This only works if you use `pip` to install packages while your `conda` environment is active.
+2. Edit the Dockerfile to specify a Base Image that includes `conda`. You can then import the `environment.yaml` file directly into the Dockerfile image. The example we provided does not include `conda`.
+
+If you choose option 2, we recommend you read  [../custom_dev_stack.md](../custom_dev_stack.md) to learn more about creating a custom development stack.
+</details>
 
 ## Routing Challenge CLI Commands
 General Usage:  `rc-cli COMMAND [options]`
