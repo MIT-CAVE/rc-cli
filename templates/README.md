@@ -71,6 +71,7 @@ When developing your model, you can run any code from the `src/` directory and r
 For additional details on Dockerfile setup please refer to [custom_dev_stack.md](custom_dev_stack.md).
 
 To see a more detailed example file structure, expand the Python example below:
+
 ### An example Python-based project structure
 <details>
 <summary>Details</summary>
@@ -129,6 +130,9 @@ The folders listed below include additional folders used for logging, storing sa
 └── requirements.txt
 ```
 </details>
+
+### Data
+Please refer to [data_structures.md](data_structures.md) for more details on the format of each of the data files contained in the `data` folder.
 
 ## Managing your Docker environment
 If you have ever tried to distribute code for others to run, you know that it can be frustrating when others try to run your code and it fails because they do not have the same setup as you do.
