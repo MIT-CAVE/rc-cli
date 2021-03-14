@@ -174,8 +174,8 @@ copy_compressed_data_down() { # Copy the needed data files locally
   # EG:
   # copy_compressed_data_down URL LOCAL_PATH NEW_DIR_NAME
   new_dir_name="${3:-$compressed_folder_name}"
-  printf "Copying data down from $1... "
-  curl -s -o "${compressed_file_path}" "$1" > /dev/null
+  printf "Copying data down from $1...\n"
+  curl -o "${compressed_file_path}" "$1" --progress-bar
   if [[ "${compressed_file_type}" = "xz" ]]; then
     tar -xf "${compressed_file_path}" -C "$2"
   elif [[ "${compressed_file_type}" = "zip" ]]; then
