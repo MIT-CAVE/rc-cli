@@ -45,8 +45,16 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     ```
     rc-cli version
     ```
+  - If successful, the output should look something like:
+    ```
+    Routing Challenge CLI 0.1.0
+    ```
+  - If unsuccessful, you may get something like:
+    ```
+    rc-cli: command not found
+    ```
 
-5. Continue to the [Create your Project section](#create-your-project) below
+5. Continue to the [Create Your App section](#create-your-app) below
 
 ## Windows 10 Setup
 1. Install [Docker](https://hub.docker.com/editions/community/docker-ce-desktop-windows/)
@@ -111,26 +119,26 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     rc-cli version
     ```
 
-9. Continue to the [Create your Project section](#create-your-project) below
+9. Continue to the [Create Your App section](#create-your-app) below
 
-## Create your Project
+## Create Your App
 1. Get available commands
   ```
   rc-cli help
   ```
 
-2. Create a project in your current directory
+2. Create an app in your current directory
   - Note: Feel free to change `my-app` to any name you want
   ```
   rc-cli new-app my-app
   ```
 
-3. Enter the project directory
+3. Enter the app directory
   ```
   cd my-app
   ```
 
-4. Get the folder location on your machine to open the project in your favorite editor.
+4. Get the folder location on your machine to open the app in your favorite editor.
   - On Mac:
     - Open your current directory in finder
       ```
