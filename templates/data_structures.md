@@ -10,7 +10,7 @@ In each "Data Format" section, some placeholder elements are specified to provid
 - `<YYYY-MM-DD hh:mm:ss>`: an ISO 8601 compliant datetime format that typically represents a timestamp
 - `<bool-value>`: a boolean value (`false`, `true`)
 - `<float-number>`: a decimal number
-- `<hex-hash>`: a hexadecimal hash appended to the `RouteID` property
+- `<hex-hash>`: a hexadecimal hash appended to the `RouteID` or `PackageID` property
 - `<hh:mm:ss>`: a time format in hours, minutes, and seconds
 - `<proc-status>`: status of a `model-build` or `model-apply` run (`success` | `failure` | `timeout`)
 - `<route-score>`: a qualifier for the route (`Average` | `Good`)
