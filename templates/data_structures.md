@@ -6,7 +6,7 @@ In this document we provide each data format of the input and output files inclu
 
 ## `data/`
 ### `model_build_inputs`:
-1. `actual_sequences.json`:
+1. `actual_sequences.json`
 
     Data format:
     ```json
@@ -52,7 +52,7 @@ In this document we provide each data format of the input and output files inclu
     </details>
 
 
-2. `invalid_sequence_scores.json`:
+2. `invalid_sequence_scores.json`
 
     Data format:
     ```json
@@ -77,7 +77,7 @@ In this document we provide each data format of the input and output files inclu
     </details>
 
 
-3. `package_data.json`:
+3. `package_data.json`
 
     Data format:
     ```json
@@ -160,7 +160,7 @@ In this document we provide each data format of the input and output files inclu
 </details>
 
 
-4. `route_data.json`:
+4. `route_data.json`
 
     Data format:
     ```json
@@ -244,7 +244,7 @@ In this document we provide each data format of the input and output files inclu
     </details>
 
 
-5. `travel_times.json`:
+5. `travel_times.json`
 
     Data format:
     ```json
@@ -303,23 +303,7 @@ In this document we provide each data format of the input and output files inclu
 
 
 ### `model_build_outputs`:
-1. `model.json`
-
-    Data format:
-    <!-- TODO -->
-    ```json
-    {}
-    ```
-
-    <details>
-      <summary>Example</summary>
-
-      <!-- TODO -->
-      ```json
-      {}
-      ```
-    </details>
-
+As for the model build output data, the file(s) generated in the `model-build` process can be in the format(s) that best suits your needs. Please note that the output file(s) should be used in your `model-apply` implementation.
 
 ### `model_apply_inputs`:
 1. `new_package_data.json`
@@ -414,7 +398,7 @@ In this document we provide each data format of the input and output files inclu
     </details>
 
 
-2. `new_route_data.json`:
+2. `new_route_data.json`
 
     Data format:
     ```json
@@ -482,7 +466,7 @@ In this document we provide each data format of the input and output files inclu
     </details>
 
 
-3. `new_travel_times.json`:
+3. `new_travel_times.json`
 
     Data format:
     ```json
@@ -580,7 +564,7 @@ In this document we provide each data format of the input and output files inclu
     </details>
 
 ### `model_score_inputs`:
-1. `new_actual_sequences.json`:
+1. `new_actual_sequences.json`
 
     Data format:
     ```json
@@ -619,7 +603,7 @@ In this document we provide each data format of the input and output files inclu
     </details>
 
 
-2. `new_invalid_sequence_scores.json`:
+2. `new_invalid_sequence_scores.json`
 
     Data format:
     ```json
@@ -641,7 +625,7 @@ In this document we provide each data format of the input and output files inclu
     </details>
 
 ### `model_score_timings`:
-1. `model_build_time.json`:
+1. `model_build_time.json`
 
     Data format:
     ```json
@@ -663,7 +647,7 @@ In this document we provide each data format of the input and output files inclu
     </details>
 
 
-2. `model_apply_time.json`:
+2. `model_apply_time.json`
 
     Data format:
     ```json
@@ -685,7 +669,7 @@ In this document we provide each data format of the input and output files inclu
     </details>
 
 ### `model_score_outputs`:
-1. `scores.json`:
+1. `scores.json`
 
     Data format:
     ```json
