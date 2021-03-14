@@ -5,6 +5,23 @@ Data is at the very heart of your project. In order for you to correctly parse t
 In this document we provide each data format of the input and output files included in the `data` folder.
 
 ## `data/`
+In each "Data Format" section, some placeholder elements are specified to provide information about the property regarding its context or value type. All placeholders are enclosed in double quotes and angle brackets `"<>"`. However, if you are not sure about the value of a property, expand the "Example" below the data structure.
+- `<YYYY-MM-DD>`: an ISO 8601 compliant date format
+- `<YYYY-MM-DD hh:mm:ss>`: an ISO 8601 compliant datetime format that typically represents a timestamp
+- `<bool-value>`: a boolean value (`false`, `true`)
+- `<float-number>`: a decimal number
+- `<hex-hash>`: a hexadecimal hash appended to the `RouteID` property
+- `<hh:mm:ss>`: a time format in hours, minutes, and seconds
+- `<proc-status>`: status of a `model-build` or `model-apply` run (`success` | `failure` | `timeout`)
+- `<route-score>`: a qualifier for the route (`Average` | `Good`)
+- `<scan-status>`: status of a package (`DELIVERED` | `DELIVERY_ATTEMPTED`)
+- `<station-code>`: a string identifier for a station
+- `<stop-id>`: a random two-letter code for a stop ID (`AA`| `AB`|...|`ZZ`)
+- `<stop-type>`: a stop type (`Dropoff` | `Station`)
+- `<uint-number>`: an integer number contained in the `[0, 65535]` range
+- `<uint32-number>`: an integer number contained in the `[0, 4294967295]` range
+- `<zone-id>`: a string identifier for a zone within the stop
+
 ### `model_build_inputs`:
 1. `actual_sequences.json`
 
@@ -13,7 +30,7 @@ In this document we provide each data format of the input and output files inclu
     {
       "RouteID_<hex-hash>": {
         "actual": {
-          "<stop-id>": "<int-number>",
+          "<stop-id>": "<uint-number>",
           "..."
         }
       },
@@ -44,7 +61,7 @@ In this document we provide each data format of the input and output files inclu
           "actual": {
             "AA": 65,
             "AD": 127,
-            "AG": 48,
+            "AG": 48
           }
         }
       }
@@ -90,7 +107,7 @@ In this document we provide each data format of the input and output files inclu
               "start_time_utc": "<YYYY-MM-DD hh:mm:ss>",
               "end_time_utc": "<YYYY-MM-DD hh:mm:ss>"
             },
-            "planned_service_time_seconds": "<int-number>",
+            "planned_service_time_seconds": "<uint-number>",
             "dimensions": {
               "depth_cm": "<float-number>",
               "height_cm": "<float-number>",
@@ -169,7 +186,7 @@ In this document we provide each data format of the input and output files inclu
         "station_code": "<station-code>",
         "date_YYYY_MM_DD": "<YYYY-MM-DD>",
         "departure_time_utc": "<hh:mm:ss>",
-        "executor_capacity_cm3": "<long-number>",
+        "executor_capacity_cm3": "<uint32-number>",
         "route_score": "<route-score>",
         "stops": {
           "<stop-id>": {
@@ -256,7 +273,7 @@ In this document we provide each data format of the input and output files inclu
           "<stop-id>": "<float-number>",
           "..."
         },
-        "<stop-id>": {
+        "<stop-id*>": {
           "<stop-id>": "<float-number>",
           "<stop-id*>": 0,
           "<stop-id>": "<float-number>",
@@ -290,7 +307,7 @@ In this document we provide each data format of the input and output files inclu
         "RouteID_1a2bfa66-0a93-4e55-a261-0e341b6f05b6": {
           "AA": {
             "AA": 0,
-            "AD": 370.4,
+            "AD": 370.4
           },
           "AD": {
             "AA": 452.9,
@@ -318,7 +335,7 @@ As for the model build output data, the file(s) generated in the `model-build` p
               "start_time_utc": "<YYYY-MM-DD hh:mm:ss>",
               "end_time_utc": "<YYYY-MM-DD hh:mm:ss>"
             },
-            "planned_service_time_seconds": "<int-number>",
+            "planned_service_time_seconds": "<uint-number>",
             "dimensions": {
               "depth_cm": "<float-number>",
               "height_cm": "<float-number>",
@@ -407,7 +424,7 @@ As for the model build output data, the file(s) generated in the `model-build` p
         "station_code": "<station-code>",
         "date_YYYY_MM_DD": "<YYYY-MM-DD>",
         "departure_time_utc": "<hh:mm:ss>",
-        "executor_capacity_cm3": "<long-number>",
+        "executor_capacity_cm3": "<uint32-number>",
         "stops": {
           "<stop-id>": {
             "lat": "<float-number>",
@@ -571,7 +588,7 @@ As for the model build output data, the file(s) generated in the `model-build` p
     {
       "RouteID_<hex-hash>": {
         "actual": {
-          "<stop-id>": "<int-number>",
+          "<stop-id>": "<uint-number>",
           "..."
         }
       },
@@ -630,7 +647,7 @@ As for the model build output data, the file(s) generated in the `model-build` p
     Data format:
     ```json
     {
-      "time": "<int-number>",
+      "time": "<uint-number>",
       "status": "<proc-status>"
     }
     ```
@@ -652,7 +669,7 @@ As for the model build output data, the file(s) generated in the `model-build` p
     Data format:
     ```json
     {
-      "time": "<int-number>",
+      "time": "<uint-number>",
       "status": "<proc-status>"
     }
     ```
@@ -685,8 +702,8 @@ As for the model build output data, the file(s) generated in the `model-build` p
         "RouteID_<hex-hash>": "<bool-value>",
         "..."
       },
-      "model_apply_time": "<int-number>",
-      "model_build_time": "<int-number>"
+      "model_apply_time": "<uint-number>",
+      "model_build_time": "<uint-number>"
     }
     ```
 
