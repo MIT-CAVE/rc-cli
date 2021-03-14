@@ -189,9 +189,9 @@ def score(actual,sub,cost_mat,g=1000):
 
     '''
     norm_mat=normalize_matrix(cost_mat)
-    return seq_dev(actual,sub)*erp_count(actual,sub,norm_mat,g)
+    return seq_dev(actual,sub)*erp_per_edit(actual,sub,norm_mat,g)
 
-def erp_count(actual,sub,matrix,g=1000):
+def erp_per_edit(actual,sub,matrix,g=1000):
     '''
     Outputs ERP of comparing sub to actual divided by the number of edits involved
     in the ERP. If there are 0 edits, returns 0 instead.
@@ -213,13 +213,13 @@ def erp_count(actual,sub,matrix,g=1000):
         ERP divided by number of ERP edits or 0 if there are 0 edits.
 
     '''
-    total,count=erp_count_helper(actual,sub,matrix,g)
+    total,count=erp_per_edit_helper(actual,sub,matrix,g)
     if count==0:
         return 0
     else:
         return total/count
 
-def erp_count_helper(actual,sub,matrix,g=1000,memo=None):
+def erp_per_edit_helper(actual,sub,matrix,g=1000,memo=None):
     '''
     Calculates ERP and counts number of edits in the process.
 
@@ -262,9 +262,9 @@ def erp_count_helper(actual,sub,matrix,g=1000,memo=None):
         head_sub=sub[0]
         rest_actual=actual[1:]
         rest_sub=sub[1:]
-        score1,count1=erp_count_helper(rest_actual,rest_sub,matrix,g,memo)
-        score2,count2=erp_count_helper(rest_actual,sub,matrix,g,memo)
-        score3,count3=erp_count_helper(actual,rest_sub,matrix,g,memo)
+        score1,count1=erp_per_edit_helper(rest_actual,rest_sub,matrix,g,memo)
+        score2,count2=erp_per_edit_helper(rest_actual,sub,matrix,g,memo)
+        score3,count3=erp_per_edit_helper(actual,rest_sub,matrix,g,memo)
         option_1=score1+dist_erp(head_actual,head_sub,matrix,g)
         option_2=score2+dist_erp(head_actual,'gap',matrix,g)
         option_3=score3+dist_erp(head_sub,'gap',matrix,g)

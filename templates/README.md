@@ -71,6 +71,7 @@ When developing your model, you can run any code from the `src/` directory and r
 For additional details on Dockerfile setup please refer to [custom_dev_stack.md](custom_dev_stack.md).
 
 To see a more detailed example file structure, expand the Python example below:
+
 ### An example Python-based project structure
 <details>
 <summary>Details</summary>
@@ -129,6 +130,9 @@ The folders listed below include additional folders used for logging, storing sa
 └── requirements.txt
 ```
 </details>
+
+### Data
+Please refer to [data_structures.md](data_structures.md) for more details on the format of each of the data files contained in the `data` folder.
 
 ## Managing your Docker environment
 If you have ever tried to distribute code for others to run, you know that it can be frustrating when others try to run your code and it fails because they do not have the same setup as you do.
@@ -261,7 +265,7 @@ You do not have access to the historical data at this phase, but there is a new 
 ```sh
 model-score [snapshot-name]
 ```
-Apply the scoring algorithm using `data/model_apply_output/proposed_sequences.json` created during the `model-apply` phase. The scoring algorithm compares your proposed route sequences against the actual sequences for the same set of stops. It outputs a numerical score that quantifies the proximity / similarity of both sequences. This algorithm will be the same one used when evaluating submissions at the end of the competition. The only difference will be the dataset provided during the `model-apply` phase.
+Apply the scoring algorithm using `data/model_apply_outputs/proposed_sequences.json` created during the `model-apply` phase. The scoring algorithm compares your proposed route sequences against the actual sequences for the same set of stops. It outputs a numerical score that quantifies the proximity / similarity of both sequences. This algorithm will be the same one used when evaluating submissions at the end of the competition. The only difference will be the dataset provided during the `model-apply` phase.
 
 ### enter-app
 ```sh
