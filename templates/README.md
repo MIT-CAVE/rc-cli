@@ -248,6 +248,8 @@ In `data/model_build_inputs`, you will have access to historical data of known r
 
 If you have not saved a model using the snapshot command, the  `model-build` phase is run on the current directory.
 
+> **NOTE: The maximum duration allowed for the `build-model` phase is exactly 8 hours**; Otherwise, a timeout will stop the process and the build phase of your model will not complete.
+
 ### model-apply
 ```sh
 rc-cli model-apply [snapshot-name]
@@ -260,6 +262,8 @@ During the `model-apply` phase you will have access to the following `data/` dir
 - `data/model_apply_outputs` (read/write)
 
 You do not have access to the historical data at this phase, but there is a new dataset provided in `data/model_apply_inputs` that will be used by the model created in the `model-build` phase to generate predicted routes. The predicted routes should be saved in `data/model_apply_outputs/proposed_sequences.json`
+
+> **NOTE: The maximum duration allowed for the `apply-model` phase is exactly 2 hours**; Otherwise, a timeout will stop the process and the apply phase of your model will not complete.
 
 ###  model-score
 ```sh
