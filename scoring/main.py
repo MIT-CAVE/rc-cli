@@ -44,12 +44,12 @@ if __name__ == '__main__':
     rt_show=output.get('route_scores')
     extra_str=None
     if len(rt_show.keys())>5:
-        rt_show=dict(zip(rt_show.items()[0:5]))
-        extra_str="\n..."
+        rt_show=dict(list(rt_show.items())[:5])
+        extra_str="..."
         print("\nFirst five route_scores:")
     else:
-        print("\nroute_scores:")
+        print("\nAll route_scores:")
     for rt_key, rt_score in rt_show.items():
         print(rt_key,": ",rt_score)
-        if extra_str:
-            print(extra_str)
+    if extra_str:
+        print(extra_str)
