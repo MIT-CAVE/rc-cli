@@ -3,7 +3,7 @@
 This repository houses all code needed to setup, evaluate and test code for the Amazon Routing Challenge.
 
 Using the `rc-cli`, participants of the Amazon Routing Challenge will be able to:
-- Create a new project
+- Create a new app
 - Run local development code with competition data
 - Run environment agnostic code with competition data
 - Save solution files (a file that can be submitted for evaluation)
