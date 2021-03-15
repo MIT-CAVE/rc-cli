@@ -5,22 +5,22 @@ Data is at the very heart of your project. In order for you to correctly parse t
 In this document we provide each data format of the input and output files included in the `data` folder.
 
 ## `data/`
-In each "Data Format" section, some placeholder elements are specified to provide information about the property regarding its context or value type. All placeholders are enclosed in double quotes and angle brackets `"<>"`. However, if you are not sure about the value of a property, expand the "Example" below the data structure.
+In each "Data Format" section, some placeholder elements are specified to provide information about the property regarding its context or value type. All placeholders are enclosed in double quotes and angle brackets `"<>"`. However, if you are not sure about the value of a property, please expand the "Example" below the data structure.
 - `<YYYY-MM-DD>`: an ISO 8601 compliant date format
 - `<YYYY-MM-DD hh:mm:ss>`: an ISO 8601 compliant datetime format that typically represents a timestamp
 - `<bool-value>`: a boolean value (`false`, `true`)
 - `<float-number>`: a decimal number
-- `<hex-hash>`: a hexadecimal hash appended to the `RouteID` or `PackageID` property
+- `<hex-hash>`: a unique identifier appended to the `RouteID` or `PackageID` property
 - `<hh:mm:ss>`: a time format in hours, minutes, and seconds
 - `<proc-status>`: status of a `model-build` or `model-apply` run (`success` | `failure` | `timeout`)
-- `<route-score>`: a qualifier for the route (`Average` | `Good`)
-- `<scan-status>`: status of a package (`DELIVERED` | `DELIVERY_ATTEMPTED`)
-- `<station-code>`: a string identifier for a station
-- `<stop-id>`: a random two-letter code for a stop ID (`AA`| `AB`|...|`ZZ`)
-- `<stop-type>`: a stop type (`Dropoff` | `Station`)
+- `<route-score>`: categorical variable denoting the quality of the observed stop sequence (`high` | `medium` | `low`)
+- `<scan-status>`: categorical variable denoting the delivery status of a package (`DELIVERED` | `DELIVERY_ATTEMPTED`)
+- `<station-code>`: a unique identifier of the delivery station that a route starts from
+- `<stop-id>`: a unique identifier code for each stop within a route (`AA` | `AB` | ... | `ZZ`)
+- `<stop-type>`: categorical variable denoting the type of stop (`station` | `delivery`)
 - `<uint-number>`: an integer number contained in the `[0, 65535]` range
 - `<uint32-number>`: an integer number contained in the `[0, 4294967295]` range
-- `<zone-id>`: a string identifier for a zone within the stop
+- `<zone-id>`: a unique identifier of the geographical planning area that the stop falls into
 
 ### `model_build_inputs`:
 1. `actual_sequences.json`
