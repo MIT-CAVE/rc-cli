@@ -248,7 +248,7 @@ In `data/model_build_inputs`, you will have access to historical data of known r
 
 If you have not saved a model using the snapshot command, the  `model-build` phase is run on the current directory.
 
-> **NOTE: The maximum duration allowed for the `build-model` phase is exactly 8 hours**; Otherwise, a timeout will stop the process and the build phase of your model will not complete.
+> **NOTE: The maximum duration allowed for the `build-model` phase is exactly 12 hours**; Otherwise, a timeout will stop the process and the build phase of your model will not complete.
 
 ### model-apply
 ```sh
