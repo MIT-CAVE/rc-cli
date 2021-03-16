@@ -13,11 +13,11 @@ In each "Data Format" section, some placeholder elements are specified to provid
 - `<hex-hash>`: a unique identifier appended to the `RouteID` or `PackageID` property
 - `<hh:mm:ss>`: a time format in hours, minutes, and seconds
 - `<proc-status>`: status of a `model-build` or `model-apply` run (`success` | `failure` | `timeout`)
-- `<route-score>`: categorical variable denoting the quality of the observed stop sequence (`high` | `medium` | `low`)
+- `<route-score>`: categorical variable denoting the quality of the observed stop sequence (`High` | `Medium` | `Low`)
 - `<scan-status>`: categorical variable denoting the delivery status of a package (`DELIVERED` | `DELIVERY_ATTEMPTED`)
 - `<station-code>`: a unique identifier of the delivery station that a route starts from
 - `<stop-id>`: a unique identifier code for each stop within a route (`AA` | `AB` | ... | `ZZ`)
-- `<stop-type>`: categorical variable denoting the type of stop (`station` | `delivery`)
+- `<stop-type>`: categorical variable denoting the type of stop (`Station` | `Dropoff`)
 - `<uint-number>`: an integer number contained in the `[0, 65535]` range
 - `<uint32-number>`: an integer number contained in the `[0, 4294967295]` range
 - `<zone-id>`: a unique identifier of the geographical planning area that the stop falls into
@@ -213,7 +213,7 @@ In each "Data Format" section, some placeholder elements are specified to provid
           "date_YYYY_MM_DD": "2018-07-23",
           "departure_time_utc": "15:36:07",
           "executor_capacity_cm3": 4247527,
-          "route_score": "Average",
+          "route_score": "Medium",
           "stops": {
             "AA": {
               "lat": 30.396307,
@@ -240,7 +240,7 @@ In each "Data Format" section, some placeholder elements are specified to provid
           "date_YYYY_MM_DD": "2018-08-07",
           "departure_time_utc": "16:00:58",
           "executor_capacity_cm3": 3313071,
-          "route_score": "Good",
+          "route_score": "High",
           "stops": {
             "AA": {
               "lat": 33.958825,
@@ -543,7 +543,7 @@ As for the model build output data, the file(s) generated in the `model-build` p
     ```json
     {
       "RouteID_<hex-hash>": {
-        "prediction": {
+        "proposed": {
           "<stop-id>": 0,
           "<stop-id>": 1,
           "<stop-id>": 2,
@@ -561,7 +561,7 @@ As for the model build output data, the file(s) generated in the `model-build` p
       ```json
       {
         "RouteID_1a4903de-1a85-4bca-921a-f746c68fbf7a": {
-          "prediction": {
+          "proposed": {
             "RY": 0,
             "QH": 1,
             "PY": 2,
@@ -569,7 +569,7 @@ As for the model build output data, the file(s) generated in the `model-build` p
           },
         },
         "RouteID_1a4e2edf-3fde-409f-8bf6-f01ff98d5afa": {
-          "prediction": {
+          "proposed": {
             "SF": 0,
             "PT": 1,
             "LG": 2,
