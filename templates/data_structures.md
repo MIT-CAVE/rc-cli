@@ -1,27 +1,41 @@
-# Data structures
+# Data Structures
 ## Introduction
 Data is at the very heart of your project. In order for you to correctly parse the input files in your program and generate the correct format for the output files in each phase (`model-build` and `model-apply`), you must become familiar with the input and output data structures.
 
-In this document we provide each data format of the input and output files included in the `data` folder.
+In this document we provide each data format of the input and output files included in the `data` folder. 
 
-## `data/`
-In each "Data Format" section, some placeholder elements are specified to provide information about the property regarding its context or value type. All placeholders are enclosed in double quotes and angle brackets `"<>"`. However, if you are not sure about the value of a property, please expand the "Example" below the data structure.
-- `<YYYY-MM-DD>`: an ISO 8601 compliant date format
-- `<YYYY-MM-DD hh:mm:ss>`: an ISO 8601 compliant datetime format that typically represents a timestamp
-- `<bool-value>`: a boolean value (`false`, `true`)
-- `<float-number>`: a decimal number
-- `<hex-hash>`: a unique identifier appended to the `RouteID` or `PackageID` property
-- `<hh:mm:ss>`: a time format in hours, minutes, and seconds
-- `<proc-status>`: status of a `model-build` or `model-apply` run (`success` | `failure` | `timeout`)
-- `<route-score>`: categorical variable denoting the quality of the observed stop sequence (`High` | `Medium` | `Low`)
-- `<scan-status>`: categorical variable denoting the delivery status of a package (`DELIVERED` | `DELIVERY_ATTEMPTED`)
-- `<station-code>`: a unique identifier of the delivery station that a route starts from
-- `<stop-id>`: a unique identifier code for each stop within a route (`AA` | `AB` | ... | `ZZ`)
-- `<stop-type>`: categorical variable denoting the type of stop (`Station` | `Dropoff`)
-- `<uint-number>`: an integer number contained in the `[0, 65535]` range
-- `<uint32-number>`: an integer number contained in the `[0, 4294967295]` range
-- `<zone-id>`: a unique identifier of the geographical planning area that the stop falls into
+## Placeholder Elements
+In each "Data Format" section, some placeholder elements are specified to provide information about the property regarding its context or value type. All placeholders are enclosed in double quotes and angle brackets `"<>"`. If you are not sure about the value of a property, please expand the "Example" below the data structure.
+- `<YYYY-MM-DD>`: an ISO 8601 compliant date format.
+- `<YYYY-MM-DD hh:mm:ss>`: an ISO 8601 compliant datetime format that typically represents a timestamp.
+- `<bool-value>`: a boolean value {`false`, `true`}.
+- `<float-number>`: a decimal number.
+- `<hex-hash>`: a unique identifier appended to the `RouteID` or `PackageID` property.
+- `<hh:mm:ss>`: a time format in hours, minutes, and seconds.
+- `<proc-status>`: status of a `model-build` or `model-apply` run {`success` | `failure` | `timeout`}.
+- `<uint-number>`: an integer number contained in the `[0, 65535]` range.
+- `<uint32-number>`: an integer number contained in the `[0, 4294967295]` range.
 
+## Data Field Definitions
+Below are defined the data fields you will encounter in provided `model_build_inputs`, `model_apply_inputs`, and `model_score_inputs` files. 
+- `RouteID_<hex-hash>`: an alphanumeric string that uniquely identifies each route.
+- `<stop-id>`: an identifier code for each stop within a route {`AA` | `AB` | ... | `ZZ`}. Stop identifier codes may be shared among routes. Do not assume, however, that stop identifiers shared by multiple routes refer to the same stop. 
+- `PackageID_<hex-hash>`: an alphanumeric string that uniquely identifies each package within a route. Package identifiers are not shared between routes. 
+- `scan_status`: categorical variable denoting the delivery status of a package {`DELIVERED` | `DELIVERY_ATTEMPTED` | `REJECTED`}. If a package’s delivery was attempted but not successful, delivery may be reattempted later in the route. 
+- `time_window`: the interval of time in which package delivery is acceptable, defined by `start_time_utc` and `end_time_utc`, both specified in Coordinated Universal Time (UTC). If a package’s `start_time_utc` and `end_time_utc` fields are `NaN`, no time window was specified. 
+- `planned_service_time_seconds`: The duration of time expected to deliver the package once the delivery person has arrived at the package’s delivery location, specified in seconds. Service time may include time required to park and hand-off the package at the drop-off location. 
+- `dimensions`: the approximate depth, height, and width of the package {`depth_cm`, `height_cm`, and `width_cm`}, specified in centimeters.
+- `station_code`: an alphanumeric string that uniquely identifies the delivery station (or depot) at which the route began.
+- `date_YYYY_MM_DD`: the date the delivery vehicle departed from the station. 
+- `departure_time_utc`: the time the delivery vehicle departed from the station, specified in UTC.
+- `executor_capacity_cm3`: the volume capacity of the delivery vehicle, specified in cm^3.
+- `lat`, `lng`: the latitude and longitude of each stop specified via the WGS 84 projection system. 
+- `route_score`: categorical variable denoting the quality of the observed stop sequence {`High` | `Medium` | `Low`}. The quality score is based both on the level of time window adherence and the amount of backtracking in the observed sequence. Backtracking occurs when a delivery vehicle delivers packages within some neighborhood or geographical area, leaves the neighborhood or geographical area, then returns later during the route. Backtracking is inefficient and should be limited when possible. 
+- `type`: categorical variable denoting the type of stop {`Station` | `Dropoff`}. The delivery vehicle acquires all packages at the station and delivers them at subsequent drop-off locations.
+- `zone_id`: a unique identifier denoting the geographical planning area into which the stop falls. The numeral before the dash denotes a high-level planning zone. The text after the dash denotes the subzone within the high-level zone.
+- Travel times provided in the travel_times.json and new_travel_times.json files are, for a given pair of stops, the average of historically realized travel times between all combinations of package delivery locations between those stops.  
+
+## Templates
 ### `model_build_inputs`:
 1. `actual_sequences.json`
 
