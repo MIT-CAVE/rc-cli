@@ -17,6 +17,8 @@ readonly RC_SCORING_IMAGE="rc-scoring"
 readonly RC_TEST_IMAGE="rc-test"
 
 readonly APP_DEST_MNT="/home/app/data"
+# APP_NAME_PATTERN="^[[:alnum:]_-]+$" # FIXME: handle locale
+readonly APP_NAME_PATTERN="^[ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-]+$"
 readonly TMP_DIR="/tmp"
 
 readonly RC_CONFIGURE_APP_NAME="configure_app"
@@ -501,6 +503,13 @@ main() {
         exit 1
       elif [[ -d "$2" ]]; then
         err "Cannot create app '$2': This folder already exists in the current directory"
+        exit 1
+      # Check the app name complies with Docker repository names
+      elif [[ ${#2} -lt 2 || ${#2} -gt 255 ]]; then
+        err "The app name needs to be two to 255 characters"
+        exit 1
+      elif [[ ! $2 =~ ${APP_NAME_PATTERN} ]]; then
+        err "The app name can only contain lowercase letters, numbers, hyphens (-), and underscores (_)"
         exit 1
       fi
 
