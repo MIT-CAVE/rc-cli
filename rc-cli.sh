@@ -17,7 +17,7 @@ readonly RC_SCORING_IMAGE="rc-scoring"
 readonly RC_TEST_IMAGE="rc-test"
 
 readonly APP_DEST_MNT="/home/app/data"
-readonly APP_NAME_PATTERN="^[abcdefghijklmnopqrstuvwxyz_-]+$"
+readonly APP_NAME_PATTERN="^[abcdefghijklmnopqrstuvwxyz0-9_-]+$"
 readonly TMP_DIR="/tmp"
 
 readonly RC_CONFIGURE_APP_NAME="configure_app"
@@ -89,8 +89,27 @@ get_app_name() {
   printf "$(basename "$(pwd)")"
 }
 
+valid_app_name() {
+  local app_name=$1
+  if [[ ${#app_name} -lt 2 || ${#app_name} -gt 255 ]]; then
+    printf "The app name needs to be two to 255 characters"
+  elif [[ ! ${app_name} =~ ${APP_NAME_PATTERN} ]]; then
+    printf "The app name can only contain lowercase letters, numbers, hyphens (-), and underscores (_)"
+  fi
+}
+
+# Determine if the given app name complies with Docker repository names.
+check_app_name() {
+  local app_name_err
+  app_name_err=$(valid_app_name $1)
+  if [[ -n ${app_name_err} ]]; then
+    err "${app_name_err}"
+    exit 1
+  fi
+}
+
 # Check that the CLI is run from a valid app directory.
-check_app() {
+check_app_dir() {
   if ! valid_app_dir; then
     err "Error: You are not in a valid app directory. Make sure to cd into an app directory that you created with the rc-cli."
     exit 1
@@ -121,7 +140,8 @@ foolproof_setup() {
 
 # Run basic checks on requirements for some commands.
 basic_checks() {
-  check_app
+  check_app_dir
+  check_app_name "$(get_app_name)"
   check_docker
   foolproof_setup
 }
@@ -160,12 +180,20 @@ image_name_prompt() {
   local src_cmd=$1
   local snapshot=$2
 
+  local app_name_err
   local input=${snapshot}
-  while [[ -f "snapshots/${input}/${input}.tar.gz" && -n ${input} ]]; do
-    # Prompt confirmation to overwrite or rename image
-    printf "WARNING! ${src_cmd}: Snapshot with name '${snapshot}' exists\n" >&2
-    read -r -p "Enter a new name or overwrite [${snapshot}]: " input
-    [[ -n ${input} ]] && snapshot=${input}
+  app_name_err=$(valid_app_name ${input})
+  while [[ -n ${app_name_err} || -f "snapshots/${input}/${input}.tar.gz" ]]; do
+    if [[ -z ${app_name_err} ]]; then
+      # Prompt confirmation to overwrite or rename image
+      printf "WARNING! ${src_cmd}: Snapshot with name '${snapshot}' exists\n" >&2
+      read -r -p "Enter a new name or overwrite [${snapshot}]: " input
+    else
+      printf "WARNING! ${src_cmd}: ${app_name_err}\n" >&2
+      read -r -p "Enter a new name: " input
+    fi
+    app_name_err=$(valid_app_name ${input})
+    [[ -z ${app_name_err} && -n ${input} ]] && snapshot=${input}
     printf "\n" >&2
   done
   printf ${snapshot}
@@ -508,14 +536,8 @@ main() {
       elif [[ -d "$2" ]]; then
         err "Cannot create app '$2': This folder already exists in the current directory"
         exit 1
-      # Check the app name complies with Docker repository names
-      elif [[ ${#2} -lt 2 || ${#2} -gt 255 ]]; then
-        err "The app name needs to be two to 255 characters"
-        exit 1
-      elif [[ ! $2 =~ ${APP_NAME_PATTERN} ]]; then
-        err "The app name can only contain lowercase letters, numbers, hyphens (-), and underscores (_)"
-        exit 1
       fi
+      check_app_name $2
 
       template=$(select_template ${3:-"None Provided"})
       template_path="${RC_CLI_PATH}/templates/${template}"
