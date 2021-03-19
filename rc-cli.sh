@@ -333,7 +333,7 @@ reset_data_prompt() {
 get_status() {
   [[ -z $1 ]] \
     && printf "success" \
-    || printf "fail" # : $(printf $1 | sed s/\"/\"/)" # TODO: handle newlines
+    || printf "failure" # : $(printf $1 | sed s/\"/\"/)" # TODO: handle newlines
 }
 
 #######################################
@@ -351,7 +351,7 @@ print_stdout_stats() {
   local error=$2
   local out_file=$3
   printf "{ \"time\": ${secs}, \"status\": \"$(get_status ${error})\" }" > ${out_file}
-  printf "\nTime Elapsed: $(secs_to_iso_8601 ${secs})\n"
+  printf "Time Elapsed: $(secs_to_iso_8601 ${secs})\n"
   printf "\n${CHARS_LINE}\n"
 }
 
@@ -388,11 +388,16 @@ run_app_image() {
   printf "${CHARS_LINE}\n"
   printf "Running ${image_type} [${image_name}] (${src_cmd}):\n\n"
   start_time=$(date +%s)
-  { error=$(docker run --rm ${entrypoint} ${run_opts} \
+  local log_file
+  log_file="logs/${f_name}/${image_name}_$(timestamp).log"
+  local stderr_file="${TMP_DIR}/rc_cli_${f_name}_error"
+
+  docker run --rm ${entrypoint} ${run_opts} \
     --volume ${src_mnt}/${f_name}_inputs:${APP_DEST_MNT}/${f_name}_inputs:ro \
     --volume ${src_mnt}/${f_name}_outputs:${APP_DEST_MNT}/${f_name}_outputs \
-    ${image_name}:${RC_IMAGE_TAG} ${cmd} 2>&1 >&3 3>&-); } 3>&1; echo ${error} \
-    | tee "logs/${f_name}/${image_name}_$(timestamp).log"
+    ${image_name}:${RC_IMAGE_TAG} ${cmd} 2>${stderr_file} | tee ${log_file}
+  error=$(<${stderr_file})
+  echo ${error} | tee --append ${log_file}
   secs=$(($(date +%s) - start_time))
   print_stdout_stats "${secs}" "${error}" \
     "${src_mnt}/model_score_timings/${f_name}_time.json"
