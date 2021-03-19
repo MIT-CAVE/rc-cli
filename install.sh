@@ -160,7 +160,7 @@ install_new() { # Copy the needed files locally
   fi
   git clone "${CLONE_URL}" \
     ${clone_opts} \
-    "${RC_CLI_PATH}"
+    "${RC_CLI_PATH}" > /dev/null
   if [ ! -d "${RC_CLI_PATH}" ]; then
     err "Git Clone Failed. Installation Canceled"
     exit 1
@@ -176,6 +176,8 @@ copy_compressed_data_down() { # Copy the needed data files locally
   new_dir_name="${3:-$compressed_folder_name}"
   printf "Copying data down from $1...\n"
   curl -o "${compressed_file_path}" "$1" --progress-bar
+  printf "done\n"
+  printf "Decompressing downloaded data...\n"
   if [[ "${compressed_file_type}" = "xz" ]]; then
     tar -xf "${compressed_file_path}" -C "$2"
   elif [[ "${compressed_file_type}" = "zip" ]]; then

@@ -17,7 +17,6 @@ readonly RC_SCORING_IMAGE="rc-scoring"
 readonly RC_TEST_IMAGE="rc-test"
 
 readonly APP_DEST_MNT="/home/app/data"
-# APP_NAME_PATTERN="^[[:alnum:]_-]+$" # FIXME: handle locale
 readonly APP_NAME_PATTERN="^[abcdefghijklmnopqrstuvwxyz_-]+$"
 readonly TMP_DIR="/tmp"
 
