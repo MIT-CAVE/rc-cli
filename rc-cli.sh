@@ -424,7 +424,7 @@ run_app_image() {
     --volume ${src_mnt}/${f_name}_outputs:${APP_DEST_MNT}/${f_name}_outputs \
     ${image_name}:${RC_IMAGE_TAG} ${cmd} 2>${stderr_file} | tee ${log_file}
   error=$(<${stderr_file})
-  echo ${error} | tee --append ${log_file}
+  echo ${error} | tee -a ${log_file}
   secs=$(($(date +%s) - start_time))
   print_stdout_stats "${secs}" "${error}" \
     "${src_mnt}/model_score_timings/${f_name}_time.json"
