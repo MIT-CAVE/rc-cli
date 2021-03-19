@@ -495,7 +495,7 @@ main() {
     && $1 != "app" \
     && $1 != 'na' \
   ]]; then
-    err "too many arguments"
+    err "Too many arguments"
     exit 1
   fi
 
@@ -689,7 +689,7 @@ main() {
 
     purge) # Remove all the logs, images and snapshots created by 'rc-cli'.
       if [[ $# -gt 1 ]]; then
-        err "too many arguments"
+        err "Too many arguments"
         exit 1
       fi
       # Prompt confirmation to delete user
@@ -742,45 +742,45 @@ main() {
 
     update) # Update rc-cli & run maintenance commands after breaking changes on the framework.
       if [[ $# -gt 1 ]]; then
-        err "too many arguments"
+        err "Too many arguments"
         exit 1
       fi
       printf "${CHARS_LINE}\n"
       printf "Checking for updates...\n"
-
+      check_docker
       local_rc_cli_ver=$(<${RC_CLI_PATH}/VERSION)
       latest_rc_cli_ver=$(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/VERSION)
       if [[ "${local_rc_cli_ver}" == "${latest_rc_cli_ver}" ]]; then
-        printf "\nYou already have the latest version.\n"
+        printf "\nYou already have the latest version of ${RC_CLI_SHORT_NAME} (${latest_rc_cli_ver}).\n"
+        read -r -p "Would you like to reinstall this version? [y/N] " input
       else
         printf "A new version of ${RC_CLI_SHORT_NAME} (${latest_rc_cli_ver}) is available.\n"
         read -r -p "Would you like to update now? [y/N] " input
-        case ${input} in
-          [yY][eE][sS] | [yY])
-            printf "\nUpdating ${RC_CLI_SHORT_NAME} (${local_rc_cli_ver} -> ${latest_rc_cli_ver})... "
-            git -C ${RC_CLI_PATH} pull > /dev/null
-            printf "done\n"
-
-            printf "\n${CHARS_LINE}\n"
-            printf "Running other update maintenance tasks\n"
-            check_docker
-            configure_image ${NO_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
-            configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
-            save_scoring_image
-
-            printf "${CHARS_LINE}\n"
-            printf "\n${RC_CLI_SHORT_NAME} was updated successfully.\n"
-            ;;
-          [nN][oO] | [nN] | "")
-            err "Update canceled"
-            exit 1
-            ;;
-          *)
-            err "Invalid input: Update canceled."
-            exit 1
-            ;;
-        esac
       fi
+      case ${input} in
+        [yY][eE][sS] | [yY])
+          printf "\nUpdating ${RC_CLI_SHORT_NAME} (${local_rc_cli_ver} -> ${latest_rc_cli_ver})... "
+          git -C ${RC_CLI_PATH} pull > /dev/null
+          printf "done\n"
+
+          printf "\n${CHARS_LINE}\n"
+          printf "Running other update maintenance tasks\n"
+          configure_image ${NO_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
+          configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+          save_scoring_image
+
+          printf "${CHARS_LINE}\n"
+          printf "\n${RC_CLI_SHORT_NAME} was updated successfully.\n"
+          ;;
+        [nN][oO] | [nN] | "")
+          err "Update canceled"
+          exit 1
+          ;;
+        *)
+          err "Invalid input: Update canceled."
+          exit 1
+          ;;
+      esac
       ;;
 
     update-data) # Update the data provided by Amazon to build and apply the model
@@ -797,7 +797,7 @@ main() {
 
     uninstall)
       if [[ $# -gt 1 ]]; then
-        err "too many arguments"
+        err "Too many arguments"
         exit 1
       fi
       printf "${CHARS_LINE}\n"
