@@ -554,7 +554,6 @@ main() {
     save-snapshot | save | snapshot | ss)
       # Build the app image and save it to the 'snapshots' directory
       cmd="save-snapshot"
-      make_logs ${cmd}
       basic_checks
       snapshot="$(basename ${2:-''})"
       [[ -z ${snapshot} ]] && tmp_name=$(get_app_name) || tmp_name=${snapshot}
@@ -644,6 +643,11 @@ main() {
     model-score | score | ms)
       # Calculate the score for the app or the specified snapshot.
       basic_checks
+      if [[ -z $2 ]]; then
+        image_name=$(get_app_name)
+      else
+        image_name=$(get_snapshot $2)
+      fi
       # Validate that build and apply have happend by checking for timings.
       src_mnt=$(get_data_context_abs $2)
       model_build_time="${src_mnt}/model_score_timings/model_build_time.json"
@@ -661,7 +665,7 @@ main() {
       if ! is_image_built ${RC_SCORING_IMAGE}; then
         configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
-      run_scoring_image ${cmd} $(get_app_name) ${src_mnt}
+      run_scoring_image ${cmd} ${image_name} ${src_mnt}
       ;;
 
     enter-app | model-debug | debug | md | ea)
