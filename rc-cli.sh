@@ -671,7 +671,7 @@ main() {
     enter-app | model-debug | debug | md | ea)
       # Enable an interactive shell at runtime to debug the app container.
       cmd="enter-app"
-      make_logs ${cmd}
+      # make_logs ${cmd}
       basic_checks
       if [[ -z $2 ]]; then
         local app_name
