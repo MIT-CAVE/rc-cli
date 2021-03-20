@@ -17,6 +17,7 @@ readonly RC_SCORING_IMAGE="rc-scoring"
 readonly RC_TEST_IMAGE="rc-test"
 
 readonly APP_DEST_MNT="/home/app/data"
+readonly APP_NAME_PATTERN="^[abcdefghijklmnopqrstuvwxyz0-9_-]+$"
 readonly TMP_DIR="/tmp"
 
 readonly RC_CONFIGURE_APP_NAME="configure_app"
@@ -88,8 +89,27 @@ get_app_name() {
   printf "$(basename "$(pwd)")"
 }
 
+valid_app_name() {
+  local app_name=$1
+  if [[ ${#app_name} -lt 2 || ${#app_name} -gt 255 ]]; then
+    printf "The app name needs to be two to 255 characters"
+  elif [[ ! ${app_name} =~ ${APP_NAME_PATTERN} ]]; then
+    printf "The app name can only contain lowercase letters, numbers, hyphens (-), and underscores (_)"
+  fi
+}
+
+# Determine if the given app name complies with Docker repository names.
+check_app_name() {
+  local app_name_err
+  app_name_err=$(valid_app_name $1)
+  if [[ -n ${app_name_err} ]]; then
+    err "${app_name_err}"
+    exit 1
+  fi
+}
+
 # Check that the CLI is run from a valid app directory.
-check_app() {
+check_app_dir() {
   if ! valid_app_dir; then
     err "Error: You are not in a valid app directory. Make sure to cd into an app directory that you created with the rc-cli."
     exit 1
@@ -120,7 +140,8 @@ foolproof_setup() {
 
 # Run basic checks on requirements for some commands.
 basic_checks() {
-  check_app
+  check_app_dir
+  check_app_name "$(get_app_name)"
   check_docker
   foolproof_setup
 }
@@ -159,12 +180,20 @@ image_name_prompt() {
   local src_cmd=$1
   local snapshot=$2
 
+  local app_name_err
   local input=${snapshot}
-  while [[ -f "snapshots/${input}/${input}.tar.gz" && -n ${input} ]]; do
-    # Prompt confirmation to overwrite or rename image
-    printf "WARNING! ${src_cmd}: Snapshot with name '${snapshot}' exists\n" >&2
-    read -r -p "Enter a new name or overwrite [${snapshot}]: " input
-    [[ -n ${input} ]] && snapshot=${input}
+  app_name_err=$(valid_app_name ${input})
+  while [[ -n ${app_name_err} || -f "snapshots/${input}/${input}.tar.gz" ]]; do
+    if [[ -z ${app_name_err} ]]; then
+      # Prompt confirmation to overwrite or rename image
+      printf "WARNING! ${src_cmd}: Snapshot with name '${snapshot}' exists\n" >&2
+      read -r -p "Enter a new name or overwrite [${snapshot}]: " input
+    else
+      printf "WARNING! ${src_cmd}: ${app_name_err}\n" >&2
+      read -r -p "Enter a new name: " input
+    fi
+    app_name_err=$(valid_app_name ${input})
+    [[ -z ${app_name_err} && -n ${input} ]] && snapshot=${input}
     printf "\n" >&2
   done
   printf ${snapshot}
@@ -331,7 +360,7 @@ reset_data_prompt() {
 get_status() {
   [[ -z $1 ]] \
     && printf "success" \
-    || printf "fail" # : $(printf $1 | sed s/\"/\"/)" # TODO: handle newlines
+    || printf "failure" # : $(printf $1 | sed s/\"/\"/)" # TODO: handle newlines
 }
 
 #######################################
@@ -349,7 +378,7 @@ print_stdout_stats() {
   local error=$2
   local out_file=$3
   printf "{ \"time\": ${secs}, \"status\": \"$(get_status ${error})\" }" > ${out_file}
-  printf "\nTime Elapsed: $(secs_to_iso_8601 ${secs})\n"
+  printf "Time Elapsed: $(secs_to_iso_8601 ${secs})\n"
   printf "\n${CHARS_LINE}\n"
 }
 
@@ -386,11 +415,16 @@ run_app_image() {
   printf "${CHARS_LINE}\n"
   printf "Running ${image_type} [${image_name}] (${src_cmd}):\n\n"
   start_time=$(date +%s)
-  { error=$(docker run --rm ${entrypoint} ${run_opts} \
+  local log_file
+  log_file="logs/${f_name}/${image_name}_$(timestamp).log"
+  local stderr_file="${TMP_DIR}/rc_cli_${f_name}_error"
+
+  docker run --rm ${entrypoint} ${run_opts} \
     --volume ${src_mnt}/${f_name}_inputs:${APP_DEST_MNT}/${f_name}_inputs:ro \
     --volume ${src_mnt}/${f_name}_outputs:${APP_DEST_MNT}/${f_name}_outputs \
-    ${image_name}:${RC_IMAGE_TAG} ${cmd} 2>&1 >&3 3>&-); } 3>&1; echo ${error} \
-    | tee "logs/${f_name}/${image_name}_$(timestamp).log"
+    ${image_name}:${RC_IMAGE_TAG} ${cmd} 2>${stderr_file} | tee ${log_file}
+  error=$(<${stderr_file})
+  echo ${error} | tee -a ${log_file}
   secs=$(($(date +%s) - start_time))
   print_stdout_stats "${secs}" "${error}" \
     "${src_mnt}/model_score_timings/${f_name}_time.json"
@@ -488,7 +522,7 @@ main() {
     && $1 != "app" \
     && $1 != 'na' \
   ]]; then
-    err "too many arguments"
+    err "Too many arguments"
     exit 1
   fi
 
@@ -503,6 +537,7 @@ main() {
         err "Cannot create app '$2': This folder already exists in the current directory"
         exit 1
       fi
+      check_app_name $2
 
       template=$(select_template ${3:-"None Provided"})
       template_path="${RC_CLI_PATH}/templates/${template}"
@@ -519,7 +554,6 @@ main() {
     save-snapshot | save | snapshot | ss)
       # Build the app image and save it to the 'snapshots' directory
       cmd="save-snapshot"
-      make_logs ${cmd}
       basic_checks
       snapshot="$(basename ${2:-''})"
       [[ -z ${snapshot} ]] && tmp_name=$(get_app_name) || tmp_name=${snapshot}
@@ -609,6 +643,11 @@ main() {
     model-score | score | ms)
       # Calculate the score for the app or the specified snapshot.
       basic_checks
+      if [[ -z $2 ]]; then
+        image_name=$(get_app_name)
+      else
+        image_name=$(get_snapshot $2)
+      fi
       # Validate that build and apply have happend by checking for timings.
       src_mnt=$(get_data_context_abs $2)
       model_build_time="${src_mnt}/model_score_timings/model_build_time.json"
@@ -626,13 +665,13 @@ main() {
       if ! is_image_built ${RC_SCORING_IMAGE}; then
         configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
-      run_scoring_image ${cmd} $(get_app_name) ${src_mnt}
+      run_scoring_image ${cmd} ${image_name} ${src_mnt}
       ;;
 
     enter-app | model-debug | debug | md | ea)
       # Enable an interactive shell at runtime to debug the app container.
       cmd="enter-app"
-      make_logs ${cmd}
+      # make_logs ${cmd}
       basic_checks
       if [[ -z $2 ]]; then
         local app_name
@@ -675,7 +714,7 @@ main() {
 
     purge) # Remove all the logs, images and snapshots created by 'rc-cli'.
       if [[ $# -gt 1 ]]; then
-        err "too many arguments"
+        err "Too many arguments"
         exit 1
       fi
       # Prompt confirmation to delete user
@@ -726,21 +765,47 @@ main() {
       printf "${CHARS_LINE}\n"
       ;;
 
-    update) # Run maintenance commands after breaking changes on the framework.
-      # Accepts an additional parameter to pass to the install function (useful for --dev installs)
+    update) # Update rc-cli & run maintenance commands after breaking changes on the framework.
+      if [[ $# -gt 1 ]]; then
+        err "Too many arguments"
+        exit 1
+      fi
       printf "${CHARS_LINE}\n"
-      printf "Checking Installation\n"
-      load_config
-      bash <(curl -s "https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh") \
-        "${DATA_URL}" ${INSTALL_PARAM}
-      printf "\n${CHARS_LINE}\n"
-      printf "Running other update maintenance tasks\n"
+      printf "Checking for updates...\n"
       check_docker
-      configure_image ${NO_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
-      configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
-      save_scoring_image
+      local_rc_cli_ver=$(<${RC_CLI_PATH}/VERSION)
+      latest_rc_cli_ver=$(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/VERSION)
+      if [[ "${local_rc_cli_ver}" == "${latest_rc_cli_ver}" ]]; then
+        printf "\nYou already have the latest version of ${RC_CLI_SHORT_NAME} (${latest_rc_cli_ver}).\n"
+        read -r -p "Would you like to reinstall this version? [y/N] " input
+      else
+        printf "A new version of ${RC_CLI_SHORT_NAME} (${latest_rc_cli_ver}) is available.\n"
+        read -r -p "Would you like to update now? [y/N] " input
+      fi
+      case ${input} in
+        [yY][eE][sS] | [yY])
+          printf "\nUpdating ${RC_CLI_SHORT_NAME} (${local_rc_cli_ver} -> ${latest_rc_cli_ver})... "
+          git -C ${RC_CLI_PATH} pull > /dev/null
+          printf "done\n"
 
-      printf "${CHARS_LINE}\n"
+          printf "\n${CHARS_LINE}\n"
+          printf "Running other update maintenance tasks\n"
+          configure_image ${NO_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
+          configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
+          save_scoring_image
+
+          printf "${CHARS_LINE}\n"
+          printf "\n${RC_CLI_SHORT_NAME} was updated successfully.\n"
+          ;;
+        [nN][oO] | [nN] | "")
+          err "Update canceled"
+          exit 1
+          ;;
+        *)
+          err "Invalid input: Update canceled."
+          exit 1
+          ;;
+      esac
       ;;
 
     update-data) # Update the data provided by Amazon to build and apply the model
@@ -757,7 +822,7 @@ main() {
 
     uninstall)
       if [[ $# -gt 1 ]]; then
-        err "too many arguments"
+        err "Too many arguments"
         exit 1
       fi
       printf "${CHARS_LINE}\n"

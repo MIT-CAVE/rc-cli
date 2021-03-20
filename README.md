@@ -47,7 +47,7 @@ Saved solutions that have been tested can be uploaded to the competition site: [
     ```
   - If successful, the output should look something like:
     ```
-    Routing Challenge CLI 0.1.0
+    Routing Challenge CLI 0.1.2
     ```
   - If unsuccessful, you may get something like:
     ```
