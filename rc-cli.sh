@@ -643,11 +643,9 @@ main() {
     model-score | score | ms)
       # Calculate the score for the app or the specified snapshot.
       basic_checks
-      if [[ -z $2 ]]; then
-        image_name=$(get_app_name)
-      else
-        image_name=$(get_snapshot $2)
-      fi
+      [[ -z $2 ]] \
+        && image_name=$(get_app_name) \
+        ||  image_name=$(get_snapshot $2)
       # Validate that build and apply have happend by checking for timings.
       src_mnt=$(get_data_context_abs $2)
       model_build_time="${src_mnt}/model_score_timings/model_build_time.json"
@@ -785,6 +783,8 @@ main() {
       case ${input} in
         [yY][eE][sS] | [yY])
           printf "\nUpdating ${RC_CLI_SHORT_NAME} (${local_rc_cli_ver} -> ${latest_rc_cli_ver})... "
+          git -C ${RC_CLI_PATH} reset --hard origin/main > /dev/null
+          git -C ${RC_CLI_PATH} checkout main > /dev/null
           git -C ${RC_CLI_PATH} pull > /dev/null
           printf "done\n"
 
