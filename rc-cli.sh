@@ -5,27 +5,21 @@
 # TODO(luisvasq): Set -u globally and fix all unbound variables
 
 # Constants
-readonly CHARS_LINE="============================"
-
+readonly APP_NAME_PATTERN="^[abcdefghijklmnopqrstuvwxyz0-9_-]+$"
 readonly RC_CLI_DEFAULT_TEMPLATE="rc_python"
-readonly RC_CLI_PATH="${HOME}/.rc-cli"
-readonly RC_CLI_LONG_NAME="Routing Challenge CLI"
-readonly RC_CLI_SHORT_NAME="RC CLI"
-readonly RC_CLI_VERSION=$(<${RC_CLI_PATH}/VERSION)
-readonly RC_IMAGE_TAG="rc-cli"
+readonly RC_CONFIGURE_APP_NAME="configure_app"
 readonly RC_SCORING_IMAGE="rc-scoring"
 readonly RC_TEST_IMAGE="rc-test"
-
-readonly APP_DEST_MNT="/home/app/data"
-readonly APP_NAME_PATTERN="^[abcdefghijklmnopqrstuvwxyz0-9_-]+$"
-readonly TMP_DIR="/tmp"
-
-readonly RC_CONFIGURE_APP_NAME="configure_app"
 readonly NO_LOGS="no_logs"
 readonly ROOT_LOGS="root_logs"
+# Both constant and environment
+declare -xr RC_CLI_PATH="${HOME}/.rc-cli"
 
-readonly DATA_URL_XZ="https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.tar.xz"
-readonly DATA_URL_ZIP="https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.zip"
+# Import libraries
+# shellcheck source=lib/config.sh
+. ${RC_CLI_PATH}/lib/config.sh
+# shellcheck source=.env
+. ${RC_CLI_PATH}/.env
 
 #######################################
 # Display an error message when the user input is invalid.
@@ -114,16 +108,6 @@ check_app_dir() {
     err "Error: You are not in a valid app directory. Make sure to cd into an app directory that you created with the rc-cli."
     exit 1
   fi
-}
-
-# Load the CONFIG file. If it doesn't exist, it is created.
-load_config() {
-  if [[ ! -f "${RC_CLI_PATH}/CONFIG" ]]; then
-    err "Could not find a valid 'CONFIG' file. Using a default 'DATA_URL' value..."
-    printf "DATA_URL=\"${DATA_URL_XZ}\"\n" > "${RC_CLI_PATH}/CONFIG"
-  fi
-  # shellcheck source=./CONFIG
-  . "${RC_CLI_PATH}/CONFIG"
 }
 
 # Foolproof basic setup to minimize user-side errors
@@ -417,6 +401,7 @@ run_app_image() {
   start_time=$(date +%s)
   local log_file
   log_file="logs/${f_name}/${image_name}_$(timestamp).log"
+  # TODO: save to a rc-cli-$(uuidgen) directory
   local stderr_file="${TMP_DIR}/rc_cli_${f_name}_error"
 
   docker run --rm ${entrypoint} ${run_opts} \
@@ -810,14 +795,31 @@ main() {
 
     update-data) # Update the data provided by Amazon to build and apply the model
       printf "${CHARS_LINE}\n"
-      printf "Updating data\n"
-      # shellcheck source=lib/get_data.sh
-      . ${RC_CLI_PATH}/lib/get_data.sh
-      load_config
-      # shellcheck source=./CONFIG
-      . "${RC_CLI_PATH}/CONFIG"
-      data::update_data "${DATA_URL}" "${RC_CLI_PATH}" "${DATA_DIR}"
-      printf "${CHARS_LINE}\n"
+      printf "Update Data for ${RC_CLI_SHORT_NAME}:\n"
+      # shellcheck source=lib/datalib.sh
+      . ${RC_CLI_PATH}/lib/datalib.sh
+
+      datalib::load_or_create_config
+      # Look up the data size
+      size=$(datalib::get_content_length ${DATA_URL})
+      printf "\nWARNING! $1: The latest data provided to build and apply your model is $(echo $((${size} / 1048576))) MB in size.\n"
+      read -r -p "Would you like to update it now? [y/N] " input
+      case ${input} in
+        [yY][eE][sS] | [yY])
+          printf "\n"
+          datalib::update_data ${DATA_URL} "${RC_CLI_PATH}/${DATA_DIR}"
+          printf "${CHARS_LINE}\n"
+          printf "\nThe data was updated successfully.\n"
+          ;;
+        [nN][oO] | [nN] | "")
+          err "Update data canceled"
+          exit 1
+          ;;
+        *)
+          err "Invalid input: Update data canceled."
+          exit 1
+          ;;
+      esac
       ;;
 
     uninstall)
