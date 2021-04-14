@@ -5,8 +5,7 @@ ARG SOURCE_DIR=/home/app/
 FROM ubuntu:$UBUNTU_RELEASE
 ARG SOURCE_DIR
 ENV SOURCE_DIR $SOURCE_DIR
-# local python is preferred
-ENV PATH /usr/local/bin:$PATH:$SOURCE_DIR
+ENV PATH $PATH:$SOURCE_DIR
 RUN mkdir -p $SOURCE_DIR
 WORKDIR $SOURCE_DIR
 RUN groupadd --gid 1000 app \
@@ -23,8 +22,8 @@ RUN groupadd --gid 1000 app \
  && rm -rf /var/lib/apt/lists/*
 # make some useful symlinks
 RUN cd /usr/local/bin \
- && ln -s python3 python \
- && ln -s python3-config python-config
+ && ln -s /usr/bin/python3 python \
+ && ln -s /usr/bin/python3-config python-config
 COPY --chown=app:app ./requirements.txt ./requirements.txt
 RUN pip3 install --upgrade pip && pip3 install -r requirements.txt
 COPY --chown=app:app ./*.sh ./
