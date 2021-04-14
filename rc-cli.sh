@@ -317,7 +317,7 @@ save_image() {
 build_if_missing() { # Build the image if it is missing under the model configure terminology
   if ! is_image_built ${1}; then
     printf "${CHARS_LINE}\n"
-    printf "No prebuilt image exists yet. Configuring Image with 'model-configure'\n\n"
+    printf "No prebuilt image exists yet. Configuring Image with 'configure-app'\n\n"
     configure_image ${RC_CONFIGURE_APP_NAME} ${1}
   fi
 }
@@ -864,7 +864,7 @@ Core Commands:
   configure-app (ca)        Configure your app's Docker image using your local Dockerfile.
                             - This overwrites previous image giving you an updated image.
                             - Every time you update your project root (shell scripts or
-                              Dockerfile), you should run model-configure again.
+                              Dockerfile), you should run configure-app again.
   enter-app (ea)            Launch an interactive terminal into your app's Docker image.
   model-apply (ma)          Execute the model_apply.sh script inside of your app's Docker image.
   model-build (mb)          Execute the model_build.sh script inside of your app's Docker image.
