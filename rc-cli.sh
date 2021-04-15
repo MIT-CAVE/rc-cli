@@ -5,7 +5,11 @@
 # TODO(luisvasq): Set -u globally and fix all unbound variables
 
 # Constants
-readonly APP_NAME_PATTERN="^[abcdefghijklmnopqrstuvwxyz0-9_-]+$"
+readonly VALID_NAME_PATTERN="^[abcdefghijklmnopqrstuvwxyz0-9_-]+$"
+readonly INVALID_NAME_PATTERN_1="^[-_]+.*$"
+readonly INVALID_NAME_PATTERN_2="^.*[-_]+$"
+readonly INVALID_NAME_PATTERN_3="(-_)+"
+readonly INVALID_NAME_PATTERN_4="(_-)+"
 readonly RC_CLI_DEFAULT_TEMPLATE="rc_python"
 readonly RC_CONFIGURE_APP_NAME="configure_app"
 readonly RC_SCORING_IMAGE="rc-scoring"
@@ -87,8 +91,16 @@ valid_app_name() {
   local app_name=$1
   if [[ ${#app_name} -lt 2 || ${#app_name} -gt 255 ]]; then
     printf "The app name needs to be two to 255 characters"
-  elif [[ ! ${app_name} =~ ${APP_NAME_PATTERN} ]]; then
+  elif [[ ! ${app_name} =~ ${VALID_NAME_PATTERN} ]]; then
     printf "The app name can only contain lowercase letters, numbers, hyphens (-), and underscores (_)"
+  elif [[ ${app_name} =~ ${INVALID_NAME_PATTERN_1} ]]; then
+    printf "The app name cannot start with a hyphen (-) or an underscore (_)"
+  elif [[ ${app_name} =~ ${INVALID_NAME_PATTERN_2} ]]; then
+    printf "The app name cannot end with a hyphen (-) or an underscore (_)"
+  elif [[ ${app_name} =~ ${INVALID_NAME_PATTERN_3} ]]; then
+    printf "The app name cannot contain a hyphen (-) followed by an underscore (_)"
+  elif [[ ${app_name} =~ ${INVALID_NAME_PATTERN_4} ]]; then
+    printf "The app name cannot contain an underscore (_) followed by a hyphen (-)"
   fi
 }
 
