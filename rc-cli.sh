@@ -240,13 +240,13 @@ configure_image() {
   local f_name
   local out_file
   f_name="$(kebab_to_snake ${src_cmd})"
-  if [[ $f_name = $ROOT_LOGS ]]; then
+  if [[ ${f_name} == "${ROOT_LOGS}" ]]; then
     make_root_logs
     [[ -d "${RC_CLI_PATH}/logs/" ]] \
     && out_file="${RC_CLI_PATH}/logs/${image_name}_configure_$(timestamp).log" \
     || out_file="/dev/null"
-  elif [[ ! $f_name = $NO_LOGS ]]; then
-    make_logs $f_name
+  elif [[ ${f_name} != "${NO_LOGS}" ]]; then
+    make_logs ${f_name}
     [[ -d "logs/${f_name}" ]] \
     && out_file="logs/${f_name}/${image_name}_configure_$(timestamp).log" \
     || out_file="/dev/null"
@@ -265,15 +265,13 @@ configure_image() {
 # Load the Docker image for a given snapshot name.
 load_snapshot() {
   local snapshot=$1
-  local f_name
   local old_image_tag
-  f_name="$(kebab_to_snake ${snapshot})"
-  docker rmi ${f_name}:${RC_IMAGE_TAG} &> /dev/null
-  load_stdout=$(docker load --quiet --input "snapshots/${f_name}/${f_name}.tar.gz" 2> /dev/null)
+  docker rmi ${snapshot}:${RC_IMAGE_TAG} &> /dev/null
+  load_stdout=$(docker load --quiet --input "snapshots/${snapshot}/${snapshot}.tar.gz" 2> /dev/null)
   old_image_tag="${load_stdout:14}"
   # Force the image tag to be that of the tar archive filename.
   if [[ "${old_image_tag}" != "${snapshot}:${RC_IMAGE_TAG}" ]]; then
-    docker tag ${old_image_tag} ${f_name}:${RC_IMAGE_TAG}
+    docker tag ${old_image_tag} ${snapshot}:${RC_IMAGE_TAG}
     docker rmi ${old_image_tag} &> /dev/null
   fi
 }
@@ -282,10 +280,7 @@ load_snapshot() {
 # on the existence or not of a given 'snapshot' arg.
 get_data_context() {
   local snapshot=$1
-
-  [[ -z ${snapshot} ]] \
-    && printf "data" \
-    || printf "snapshots/$(kebab_to_snake ${snapshot})/data"
+  [[ -z ${snapshot} ]] && printf "data" || printf "snapshots/${snapshot}/data"
 }
 
 # Same than 'get_data_context' but return the absolute path.
@@ -297,16 +292,14 @@ get_data_context_abs() {
 save_image() {
   local image_name=$1
 
-  local f_name
-  f_name="$(kebab_to_snake ${image_name})"
   printf "${CHARS_LINE}\n"
   printf "Save Image [${image_name}]:\n\n"
   printf "Saving the '${image_name}' image to 'snapshots'... "
-  snapshot_path="snapshots/${f_name}"
+  snapshot_path="snapshots/${image_name}"
   mkdir -p ${snapshot_path}
   cp -R "${RC_CLI_PATH}/data" "${snapshot_path}/data"
   docker save ${image_name}:${RC_IMAGE_TAG} \
-    | gzip > "${snapshot_path}/${f_name}.tar.gz"
+    | gzip > "${snapshot_path}/${image_name}.tar.gz"
   printf "done\n\n"
 }
 
@@ -331,8 +324,6 @@ reset_data_prompt() {
   local src_cmd=$1
   local data_path=$2
 
-  local f_name
-  f_name="$(kebab_to_snake ${src_cmd})"
   printf "WARNING! ${src_cmd}: This will reset the data directory at '${data_path}' to the initial data state\n"
   read -r -p "Are you sure you want to continue? [y/N] " input
   case ${input} in
