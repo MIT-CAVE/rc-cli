@@ -33,7 +33,7 @@ Below are defined the data fields you will encounter in provided `model_build_in
 - `route_score`: categorical variable denoting the quality of the observed stop sequence {`High` | `Medium` | `Low`}. The quality score is based both on the level of time window adherence and the amount of backtracking in the observed sequence. Backtracking occurs when a delivery vehicle delivers packages within some neighborhood or geographical area, leaves the neighborhood or geographical area, then returns later during the route. Backtracking is inefficient and should be limited when possible. 
 - `type`: categorical variable denoting the type of stop {`Station` | `Dropoff`}. The delivery vehicle acquires all packages at the station and delivers them at subsequent drop-off locations.
 - `zone_id`: a unique identifier denoting the geographical planning area into which the stop falls. The numeral before the dash denotes a high-level planning zone. The text after the dash denotes the subzone within the high-level zone.
-- Travel times provided in the travel_times.json and new_travel_times.json files are, for a given pair of stops, the average of historically realized travel times between all combinations of package delivery locations between those stops.  
+- Travel times provided in the travel_times.json and new_travel_times.json files are, for a given pair of stops, the average of historically realized travel times between all combinations of package delivery locations between those stops, specified in seconds. 
 
 ## Templates
 ### `model_build_inputs`:
