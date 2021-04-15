@@ -24,24 +24,12 @@ declare -xr RC_CLI_PATH="${HOME}/.rc-cli"
 . ${RC_CLI_PATH}/lib/config.sh
 # shellcheck source=.env
 . ${RC_CLI_PATH}/.env
-
-#######################################
-# Display an error message when the user input is invalid.
-# Globals:
-#   None
-# Arguments:
-#   None
-# Returns:
-#   None
-#######################################
-err() {
-  printf "$(basename $0): $1\n" >&2
-}
-
-# Convert string from kebab case to snake case.
-kebab_to_snake() {
-  echo $1 | sed s/-/_/
-}
+# shellcheck source=lib/excep.sh
+. ${RC_CLI_PATH}/lib/excep.sh
+# shellcheck source=lib/docker.sh
+. ${RC_CLI_PATH}/lib/docker.sh
+# shellcheck source=lib/utils.sh
+. ${RC_CLI_PATH}/lib/utils.sh
 
 # Determine if the current directory contains a valid RC app
 valid_app_dir() {
@@ -61,26 +49,8 @@ valid_app_dir() {
  ]]
 }
 
-is_image_built() {
-  docker image inspect $1:${RC_IMAGE_TAG} &> /dev/null
-}
-
-# Check if the Docker daemon is running.
-check_docker() {
-  if ! docker ps > /dev/null; then
-    err "cannot connect to the Docker daemon. Is the Docker daemon running?"
-    exit 1
-  fi
-}
-
-# Get the current date and time expressed according to ISO 8601.
-timestamp() {
-  date +"%Y-%m-%dT%H:%M:%S"
-}
-
-# Convert a number of seconds to the ISO 8601 standard.
-secs_to_iso_8601() {
-  printf "%dh:%dm:%ds" $(($1 / 3600)) $(($1 % 3600 / 60)) $(($1 % 60))
+is_rc_image_built() {
+  docker::is_image_built $1:${RC_IMAGE_TAG}
 }
 
 get_app_name() {
@@ -109,7 +79,7 @@ check_app_name() {
   local app_name_err
   app_name_err=$(valid_app_name $1)
   if [[ -n ${app_name_err} ]]; then
-    err "${app_name_err}"
+    excep::err "${app_name_err}"
     exit 1
   fi
 }
@@ -117,7 +87,7 @@ check_app_name() {
 # Check that the CLI is run from a valid app directory.
 check_app_dir() {
   if ! valid_app_dir; then
-    err "Error: You are not in a valid app directory. Make sure to cd into an app directory that you created with the rc-cli."
+    excep::err "Error: You are not in a valid app directory. Make sure to cd into an app directory that you created with the rc-cli."
     exit 1
   fi
 }
@@ -138,7 +108,7 @@ foolproof_setup() {
 basic_checks() {
   check_app_dir
   check_app_name "$(get_app_name)"
-  check_docker
+  docker::check_status
   foolproof_setup
 }
 
@@ -166,7 +136,7 @@ check_snapshot() {
   local f_name
   f_name="$(get_snapshot ${snapshot})"
   if [[ ! -f "snapshots/${f_name}/${f_name}.tar.gz" ]]; then
-    err "${f_name}: snapshot not found"
+    excep::err "${f_name}: snapshot not found"
     exit 1
   fi
 }
@@ -239,16 +209,16 @@ configure_image() {
 
   local f_name
   local out_file
-  f_name="$(kebab_to_snake ${src_cmd})"
+  f_name="$(utils::kebab_to_snake ${src_cmd})"
   if [[ ${f_name} == "${ROOT_LOGS}" ]]; then
     make_root_logs
     [[ -d "${RC_CLI_PATH}/logs/" ]] \
-    && out_file="${RC_CLI_PATH}/logs/${image_name}_configure_$(timestamp).log" \
+    && out_file="${RC_CLI_PATH}/logs/${image_name}_configure_$(utils::timestamp).log" \
     || out_file="/dev/null"
   elif [[ ${f_name} != "${NO_LOGS}" ]]; then
     make_logs ${f_name}
     [[ -d "logs/${f_name}" ]] \
-    && out_file="logs/${f_name}/${image_name}_configure_$(timestamp).log" \
+    && out_file="logs/${f_name}/${image_name}_configure_$(utils::timestamp).log" \
     || out_file="/dev/null"
   else
     out_file="/dev/null"
@@ -304,7 +274,7 @@ save_image() {
 }
 
 build_if_missing() { # Build the image if it is missing under the model configure terminology
-  if ! is_image_built ${1}; then
+  if ! is_rc_image_built $1; then
     printf "${CHARS_LINE}\n"
     printf "No prebuilt image exists yet. Configuring Image with 'configure-app'\n\n"
     configure_image ${RC_CONFIGURE_APP_NAME} ${1}
@@ -335,10 +305,10 @@ reset_data_prompt() {
       ;;
     [nN][oO] | [nN] | "")
       printf "${src_cmd} was canceled by the user\n"
-      exit 0
+      exit # Required to prevent subsequent script commands from running
       ;;
     *)
-      err "invalid input: The ${src_cmd} was canceled"
+      excep::err "invalid input: The ${src_cmd} was canceled"
       exit 1
       ;;
   esac
@@ -365,7 +335,7 @@ print_stdout_stats() {
   local error=$2
   local out_file=$3
   printf "{ \"time\": ${secs}, \"status\": \"$(get_status ${error})\" }" > ${out_file}
-  printf "Time Elapsed: $(secs_to_iso_8601 ${secs})\n"
+  printf "Time Elapsed: $(utils::secs_to_iso_8601 ${secs})\n"
   printf "\n${CHARS_LINE}\n"
 }
 
@@ -388,7 +358,7 @@ run_app_image() {
   local f_name
   local entrypoint
   local cmd
-  f_name="$(kebab_to_snake ${src_cmd})"
+  f_name="$(utils::kebab_to_snake ${src_cmd})"
   local script="${f_name}.sh"
   if [[ ${image_type} == "Snapshot" ]]; then
     entrypoint="--entrypoint ${script}"
@@ -403,7 +373,7 @@ run_app_image() {
   printf "Running ${image_type} [${image_name}] (${src_cmd}):\n\n"
   start_time=$(date +%s)
   local log_file
-  log_file="logs/${f_name}/${image_name}_$(timestamp).log"
+  log_file="logs/${f_name}/${image_name}_$(utils::timestamp).log"
   # TODO: save to a rc-cli-$(uuidgen) directory
   local stderr_file="${TMP_DIR}/rc_cli_${f_name}_error"
 
@@ -460,7 +430,7 @@ run_test_image() {
     --volume "${src_mnt}/model_score_outputs:/data/model_score_outputs" \
     --volume "${src_mnt}/model_score_timings:/data/model_score_timings" \
     ${RC_TEST_IMAGE}:${RC_IMAGE_TAG} 2>&1 \
-    | tee "logs/$(kebab_to_snake ${src_cmd})/${image_name}_run_$(timestamp).log"
+    | tee "logs/$(utils::kebab_to_snake ${src_cmd})/${image_name}_run_$(utils::timestamp).log"
 }
 
 #######################################
@@ -486,12 +456,12 @@ run_scoring_image() {
     --volume "${src_mnt}/model_score_timings:${APP_DEST_MNT}/model_score_timings:ro" \
     --volume "${src_mnt}/model_score_outputs:${APP_DEST_MNT}/model_score_outputs" \
     ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} 2>&1 \
-    | tee "logs/$(kebab_to_snake ${src_cmd})/${app_name}_$(timestamp).log"
+    | tee "logs/$(utils::kebab_to_snake ${src_cmd})/${app_name}_$(utils::timestamp).log"
   printf "\n${CHARS_LINE}\n"
 }
 
 make_logs() { # Ensure the necessary log file structure for the calling command
-  mkdir -p "logs/$(kebab_to_snake $1)"
+  mkdir -p "logs/$(utils::kebab_to_snake $1)"
 }
 
 make_root_logs() { # Ensure the necessary log file structure for the calling command
@@ -501,7 +471,7 @@ make_root_logs() { # Ensure the necessary log file structure for the calling com
 # Single main function
 main() {
   if [[ $# -lt 1 ]]; then
-    err "missing command operand"
+    excep::err "missing command operand"
     exit 1
   elif [[
     $# -gt 2 \
@@ -510,7 +480,7 @@ main() {
     && $1 != "app" \
     && $1 != 'na' \
   ]]; then
-    err "Too many arguments"
+    excep::err "Too many arguments"
     exit 1
   fi
 
@@ -519,10 +489,10 @@ main() {
     new-app | new | app | na)
       # Create a new app based on a template
       if [[ $# -lt 2 ]]; then
-        err "Missing arguments. Try using:\nrc-cli help"
+        excep::err "Missing arguments. Try using:\nrc-cli help"
         exit 1
       elif [[ -d "$2" ]]; then
-        err "Cannot create app '$2': This folder already exists in the current directory"
+        excep::err "Cannot create app '$2': This folder already exists in the current directory"
         exit 1
       fi
       check_app_name $2
@@ -584,7 +554,7 @@ main() {
     configure-app | configure | ca)
       # Rebuild a Docker image for the current app
       if [[ $# -gt 1 ]]; then
-        err "Too many arguments"
+        excep::err "Too many arguments"
         exit 1
       fi
       cmd="configure-app"
@@ -615,10 +585,10 @@ main() {
       fi
 
       # Saving time if some images exist.
-      if ! is_image_built ${RC_TEST_IMAGE}; then
+      if ! is_rc_image_built ${RC_TEST_IMAGE}; then
         configure_image ${NO_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       fi
-      if ! is_image_built ${RC_SCORING_IMAGE}; then
+      if ! is_rc_image_built ${RC_SCORING_IMAGE}; then
         configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
       if [[ ! -f "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz" ]]; then
@@ -639,16 +609,16 @@ main() {
       model_build_time="${src_mnt}/model_score_timings/model_build_time.json"
       model_apply_time="${src_mnt}/model_score_timings/model_apply_time.json"
       if [[ ! -f "${model_build_time}" ]]; then
-        err "'${model_build_time}': file not found"
+        excep::err "'${model_build_time}': file not found"
         exit 1
       elif [[ ! -f "${model_apply_time}" ]]; then
-        err "'${model_apply_time}': file not found"
+        excep::err "'${model_apply_time}': file not found"
         exit 1
       fi
       cmd="model-score"
       make_logs ${cmd}
 
-      if ! is_image_built ${RC_SCORING_IMAGE}; then
+      if ! is_rc_image_built ${RC_SCORING_IMAGE}; then
         configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
       run_scoring_image ${cmd} ${image_name} ${src_mnt}
@@ -700,7 +670,7 @@ main() {
 
     purge) # Remove all the logs, images and snapshots created by 'rc-cli'.
       if [[ $# -gt 1 ]]; then
-        err "Too many arguments"
+        excep::err "Too many arguments"
         exit 1
       fi
       # Prompt confirmation to delete user
@@ -728,7 +698,7 @@ main() {
           printf "$1 was canceled by the user\n"
           ;;
         *)
-          err "invalid input: The $1 was canceled"
+          excep::err "invalid input: The $1 was canceled"
           exit 1
           ;;
       esac
@@ -743,7 +713,7 @@ main() {
     configure-utils | cu) # Run maintenance commands to configure the utility images during development
       printf "${CHARS_LINE}\n"
       printf "Configuring Utility Images\n"
-      check_docker
+      docker::check_status
       configure_image ${ROOT_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       configure_image ${ROOT_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       save_scoring_image
@@ -753,12 +723,12 @@ main() {
 
     update) # Update rc-cli & run maintenance commands after breaking changes on the framework.
       if [[ $# -gt 1 ]]; then
-        err "Too many arguments"
+        excep::err "Too many arguments"
         exit 1
       fi
       printf "${CHARS_LINE}\n"
       printf "Checking for updates...\n"
-      check_docker
+      docker::check_status
       local_rc_cli_ver=$(<${RC_CLI_PATH}/VERSION)
       latest_rc_cli_ver=$(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/VERSION)
       if [[ "${local_rc_cli_ver}" == "${latest_rc_cli_ver}" ]]; then
@@ -786,11 +756,11 @@ main() {
           printf "\n${RC_CLI_SHORT_NAME} was updated successfully.\n"
           ;;
         [nN][oO] | [nN] | "")
-          err "Update canceled"
+          excep::err "Update canceled"
           exit 1
           ;;
         *)
-          err "Invalid input: Update canceled."
+          excep::err "Invalid input: Update canceled."
           exit 1
           ;;
       esac
@@ -815,11 +785,11 @@ main() {
           printf "\nThe data was updated successfully.\n"
           ;;
         [nN][oO] | [nN] | "")
-          err "Update data canceled"
+          excep::err "Update data canceled"
           exit 1
           ;;
         *)
-          err "Invalid input: Update data canceled."
+          excep::err "Invalid input: Update data canceled."
           exit 1
           ;;
       esac
@@ -827,7 +797,7 @@ main() {
 
     uninstall)
       if [[ $# -gt 1 ]]; then
-        err "Too many arguments"
+        excep::err "Too many arguments"
         exit 1
       fi
       printf "${CHARS_LINE}\n"
@@ -853,7 +823,7 @@ main() {
           printf "$1 was canceled by the user\n"
           ;;
         *)
-          err "invalid input: The $1 was canceled"
+          excep::err "invalid input: The $1 was canceled"
           exit 1
           ;;
       esac
@@ -1028,7 +998,7 @@ EOF
       ;;
 
     *)
-      err "$1: command not found"
+      excep::err "$1: command not found"
       exit 1
       ;;
   esac
