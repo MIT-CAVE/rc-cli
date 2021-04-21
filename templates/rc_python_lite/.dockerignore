@@ -1,0 +1,17 @@
+# Git
+.git
+.gitignore
+
+# Docker-related files
+Dockerfile
+.dockerignore
+
+# Markdown files
+*.md
+
+# Logs
+logs
+*.log
+
+# dotenv environment variables file
+# **/.env

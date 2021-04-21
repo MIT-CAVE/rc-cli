@@ -5,45 +5,31 @@
 # TODO(luisvasq): Set -u globally and fix all unbound variables
 
 # Constants
-readonly CHARS_LINE="============================"
-
+readonly VALID_NAME_PATTERN="^[abcdefghijklmnopqrstuvwxyz0-9_-]+$"
+readonly INVALID_NAME_PATTERN_1="^[-_]+.*$"
+readonly INVALID_NAME_PATTERN_2="^.*[-_]+$"
+readonly INVALID_NAME_PATTERN_3="(-_)+"
+readonly INVALID_NAME_PATTERN_4="(_-)+"
 readonly RC_CLI_DEFAULT_TEMPLATE="rc_python"
-readonly RC_CLI_PATH="${HOME}/.rc-cli"
-readonly RC_CLI_LONG_NAME="Routing Challenge CLI"
-readonly RC_CLI_SHORT_NAME="RC CLI"
-readonly RC_CLI_VERSION=$(<${RC_CLI_PATH}/VERSION)
-readonly RC_IMAGE_TAG="rc-cli"
+readonly RC_CONFIGURE_APP_NAME="configure_app"
 readonly RC_SCORING_IMAGE="rc-scoring"
 readonly RC_TEST_IMAGE="rc-test"
-
-readonly APP_DEST_MNT="/home/app/data"
-readonly APP_NAME_PATTERN="^[abcdefghijklmnopqrstuvwxyz0-9_-]+$"
-readonly TMP_DIR="/tmp"
-
-readonly RC_CONFIGURE_APP_NAME="configure_app"
 readonly NO_LOGS="no_logs"
 readonly ROOT_LOGS="root_logs"
+# Both constant and environment
+declare -xr RC_CLI_PATH="${HOME}/.rc-cli"
 
-readonly DATA_URL_XZ="https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.tar.xz"
-readonly DATA_URL_ZIP="https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.zip"
-
-#######################################
-# Display an error message when the user input is invalid.
-# Globals:
-#   None
-# Arguments:
-#   None
-# Returns:
-#   None
-#######################################
-err() {
-  printf "$(basename $0): $1\n" >&2
-}
-
-# Convert string from kebab case to snake case.
-kebab_to_snake() {
-  echo $1 | sed s/-/_/
-}
+# Import libraries
+# shellcheck source=lib/config.sh
+. ${RC_CLI_PATH}/lib/config.sh
+# shellcheck source=.env
+. ${RC_CLI_PATH}/.env
+# shellcheck source=lib/excep.sh
+. ${RC_CLI_PATH}/lib/excep.sh
+# shellcheck source=lib/docker.sh
+. ${RC_CLI_PATH}/lib/docker.sh
+# shellcheck source=lib/utils.sh
+. ${RC_CLI_PATH}/lib/utils.sh
 
 # Determine if the current directory contains a valid RC app
 valid_app_dir() {
@@ -63,26 +49,8 @@ valid_app_dir() {
  ]]
 }
 
-is_image_built() {
-  docker image inspect $1:${RC_IMAGE_TAG} &> /dev/null
-}
-
-# Check if the Docker daemon is running.
-check_docker() {
-  if ! docker ps > /dev/null; then
-    err "cannot connect to the Docker daemon. Is the Docker daemon running?"
-    exit 1
-  fi
-}
-
-# Get the current date and time expressed according to ISO 8601.
-timestamp() {
-  date +"%Y-%m-%dT%H:%M:%S"
-}
-
-# Convert a number of seconds to the ISO 8601 standard.
-secs_to_iso_8601() {
-  printf "%dh:%dm:%ds" $(($1 / 3600)) $(($1 % 3600 / 60)) $(($1 % 60))
+is_rc_image_built() {
+  docker::is_image_built $1:${RC_IMAGE_TAG}
 }
 
 get_app_name() {
@@ -93,8 +61,16 @@ valid_app_name() {
   local app_name=$1
   if [[ ${#app_name} -lt 2 || ${#app_name} -gt 255 ]]; then
     printf "The app name needs to be two to 255 characters"
-  elif [[ ! ${app_name} =~ ${APP_NAME_PATTERN} ]]; then
+  elif [[ ! ${app_name} =~ ${VALID_NAME_PATTERN} ]]; then
     printf "The app name can only contain lowercase letters, numbers, hyphens (-), and underscores (_)"
+  elif [[ ${app_name} =~ ${INVALID_NAME_PATTERN_1} ]]; then
+    printf "The app name cannot start with a hyphen (-) or an underscore (_)"
+  elif [[ ${app_name} =~ ${INVALID_NAME_PATTERN_2} ]]; then
+    printf "The app name cannot end with a hyphen (-) or an underscore (_)"
+  elif [[ ${app_name} =~ ${INVALID_NAME_PATTERN_3} ]]; then
+    printf "The app name cannot contain a hyphen (-) followed by an underscore (_)"
+  elif [[ ${app_name} =~ ${INVALID_NAME_PATTERN_4} ]]; then
+    printf "The app name cannot contain an underscore (_) followed by a hyphen (-)"
   fi
 }
 
@@ -103,7 +79,7 @@ check_app_name() {
   local app_name_err
   app_name_err=$(valid_app_name $1)
   if [[ -n ${app_name_err} ]]; then
-    err "${app_name_err}"
+    excep::err "${app_name_err}"
     exit 1
   fi
 }
@@ -111,19 +87,9 @@ check_app_name() {
 # Check that the CLI is run from a valid app directory.
 check_app_dir() {
   if ! valid_app_dir; then
-    err "Error: You are not in a valid app directory. Make sure to cd into an app directory that you created with the rc-cli."
+    excep::err "Error: You are not in a valid app directory. Make sure to cd into an app directory that you created with the rc-cli."
     exit 1
   fi
-}
-
-# Load the CONFIG file. If it doesn't exist, it is created.
-load_config() {
-  if [[ ! -f "${RC_CLI_PATH}/CONFIG" ]]; then
-    err "Could not find a valid 'CONFIG' file. Using a default 'DATA_URL' value..."
-    printf "DATA_URL=\"${DATA_URL_XZ}\"\n" > "${RC_CLI_PATH}/CONFIG"
-  fi
-  # shellcheck source=./CONFIG
-  . "${RC_CLI_PATH}/CONFIG"
 }
 
 # Foolproof basic setup to minimize user-side errors
@@ -142,7 +108,7 @@ foolproof_setup() {
 basic_checks() {
   check_app_dir
   check_app_name "$(get_app_name)"
-  check_docker
+  docker::check_status
   foolproof_setup
 }
 
@@ -170,7 +136,7 @@ check_snapshot() {
   local f_name
   f_name="$(get_snapshot ${snapshot})"
   if [[ ! -f "snapshots/${f_name}/${f_name}.tar.gz" ]]; then
-    err "${f_name}: snapshot not found"
+    excep::err "${f_name}: snapshot not found"
     exit 1
   fi
 }
@@ -243,16 +209,16 @@ configure_image() {
 
   local f_name
   local out_file
-  f_name="$(kebab_to_snake ${src_cmd})"
-  if [[ $f_name = $ROOT_LOGS ]]; then
+  f_name="$(utils::kebab_to_snake ${src_cmd})"
+  if [[ ${f_name} == "${ROOT_LOGS}" ]]; then
     make_root_logs
     [[ -d "${RC_CLI_PATH}/logs/" ]] \
-    && out_file="${RC_CLI_PATH}/logs/${image_name}_configure_$(timestamp).log" \
+    && out_file="${RC_CLI_PATH}/logs/${image_name}_configure_$(utils::timestamp).log" \
     || out_file="/dev/null"
-  elif [[ ! $f_name = $NO_LOGS ]]; then
-    make_logs $f_name
+  elif [[ ${f_name} != "${NO_LOGS}" ]]; then
+    make_logs ${f_name}
     [[ -d "logs/${f_name}" ]] \
-    && out_file="logs/${f_name}/${image_name}_configure_$(timestamp).log" \
+    && out_file="logs/${f_name}/${image_name}_configure_$(utils::timestamp).log" \
     || out_file="/dev/null"
   else
     out_file="/dev/null"
@@ -269,15 +235,13 @@ configure_image() {
 # Load the Docker image for a given snapshot name.
 load_snapshot() {
   local snapshot=$1
-  local f_name
   local old_image_tag
-  f_name="$(kebab_to_snake ${snapshot})"
-  docker rmi ${f_name}:${RC_IMAGE_TAG} &> /dev/null
-  load_stdout=$(docker load --quiet --input "snapshots/${f_name}/${f_name}.tar.gz" 2> /dev/null)
+  docker rmi ${snapshot}:${RC_IMAGE_TAG} &> /dev/null
+  load_stdout=$(docker load --quiet --input "snapshots/${snapshot}/${snapshot}.tar.gz" 2> /dev/null)
   old_image_tag="${load_stdout:14}"
   # Force the image tag to be that of the tar archive filename.
   if [[ "${old_image_tag}" != "${snapshot}:${RC_IMAGE_TAG}" ]]; then
-    docker tag ${old_image_tag} ${f_name}:${RC_IMAGE_TAG}
+    docker tag ${old_image_tag} ${snapshot}:${RC_IMAGE_TAG}
     docker rmi ${old_image_tag} &> /dev/null
   fi
 }
@@ -286,10 +250,7 @@ load_snapshot() {
 # on the existence or not of a given 'snapshot' arg.
 get_data_context() {
   local snapshot=$1
-
-  [[ -z ${snapshot} ]] \
-    && printf "data" \
-    || printf "snapshots/$(kebab_to_snake ${snapshot})/data"
+  [[ -z ${snapshot} ]] && printf "data" || printf "snapshots/${snapshot}/data"
 }
 
 # Same than 'get_data_context' but return the absolute path.
@@ -301,21 +262,19 @@ get_data_context_abs() {
 save_image() {
   local image_name=$1
 
-  local f_name
-  f_name="$(kebab_to_snake ${image_name})"
   printf "${CHARS_LINE}\n"
   printf "Save Image [${image_name}]:\n\n"
   printf "Saving the '${image_name}' image to 'snapshots'... "
-  snapshot_path="snapshots/${f_name}"
+  snapshot_path="snapshots/${image_name}"
   mkdir -p ${snapshot_path}
   cp -R "${RC_CLI_PATH}/data" "${snapshot_path}/data"
   docker save ${image_name}:${RC_IMAGE_TAG} \
-    | gzip > "${snapshot_path}/${f_name}.tar.gz"
+    | gzip > "${snapshot_path}/${image_name}.tar.gz"
   printf "done\n\n"
 }
 
 build_if_missing() { # Build the image if it is missing under the model configure terminology
-  if ! is_image_built ${1}; then
+  if ! is_rc_image_built $1; then
     printf "${CHARS_LINE}\n"
     printf "No prebuilt image exists yet. Configuring Image with 'configure-app'\n\n"
     configure_image ${RC_CONFIGURE_APP_NAME} ${1}
@@ -335,8 +294,6 @@ reset_data_prompt() {
   local src_cmd=$1
   local data_path=$2
 
-  local f_name
-  f_name="$(kebab_to_snake ${src_cmd})"
   printf "WARNING! ${src_cmd}: This will reset the data directory at '${data_path}' to the initial data state\n"
   read -r -p "Are you sure you want to continue? [y/N] " input
   case ${input} in
@@ -348,10 +305,10 @@ reset_data_prompt() {
       ;;
     [nN][oO] | [nN] | "")
       printf "${src_cmd} was canceled by the user\n"
-      exit 0
+      exit # Required to prevent subsequent script commands from running
       ;;
     *)
-      err "invalid input: The ${src_cmd} was canceled"
+      excep::err "invalid input: The ${src_cmd} was canceled"
       exit 1
       ;;
   esac
@@ -378,7 +335,7 @@ print_stdout_stats() {
   local error=$2
   local out_file=$3
   printf "{ \"time\": ${secs}, \"status\": \"$(get_status ${error})\" }" > ${out_file}
-  printf "Time Elapsed: $(secs_to_iso_8601 ${secs})\n"
+  printf "Time Elapsed: $(utils::secs_to_iso_8601 ${secs})\n"
   printf "\n${CHARS_LINE}\n"
 }
 
@@ -401,7 +358,7 @@ run_app_image() {
   local f_name
   local entrypoint
   local cmd
-  f_name="$(kebab_to_snake ${src_cmd})"
+  f_name="$(utils::kebab_to_snake ${src_cmd})"
   local script="${f_name}.sh"
   if [[ ${image_type} == "Snapshot" ]]; then
     entrypoint="--entrypoint ${script}"
@@ -416,7 +373,8 @@ run_app_image() {
   printf "Running ${image_type} [${image_name}] (${src_cmd}):\n\n"
   start_time=$(date +%s)
   local log_file
-  log_file="logs/${f_name}/${image_name}_$(timestamp).log"
+  log_file="logs/${f_name}/${image_name}_$(utils::timestamp).log"
+  # TODO: save to a rc-cli-$(uuidgen) directory
   local stderr_file="${TMP_DIR}/rc_cli_${f_name}_error"
 
   docker run --rm ${entrypoint} ${run_opts} \
@@ -472,7 +430,7 @@ run_test_image() {
     --volume "${src_mnt}/model_score_outputs:/data/model_score_outputs" \
     --volume "${src_mnt}/model_score_timings:/data/model_score_timings" \
     ${RC_TEST_IMAGE}:${RC_IMAGE_TAG} 2>&1 \
-    | tee "logs/$(kebab_to_snake ${src_cmd})/${image_name}_run_$(timestamp).log"
+    | tee "logs/$(utils::kebab_to_snake ${src_cmd})/${image_name}_run_$(utils::timestamp).log"
 }
 
 #######################################
@@ -498,12 +456,12 @@ run_scoring_image() {
     --volume "${src_mnt}/model_score_timings:${APP_DEST_MNT}/model_score_timings:ro" \
     --volume "${src_mnt}/model_score_outputs:${APP_DEST_MNT}/model_score_outputs" \
     ${RC_SCORING_IMAGE}:${RC_IMAGE_TAG} 2>&1 \
-    | tee "logs/$(kebab_to_snake ${src_cmd})/${app_name}_$(timestamp).log"
+    | tee "logs/$(utils::kebab_to_snake ${src_cmd})/${app_name}_$(utils::timestamp).log"
   printf "\n${CHARS_LINE}\n"
 }
 
 make_logs() { # Ensure the necessary log file structure for the calling command
-  mkdir -p "logs/$(kebab_to_snake $1)"
+  mkdir -p "logs/$(utils::kebab_to_snake $1)"
 }
 
 make_root_logs() { # Ensure the necessary log file structure for the calling command
@@ -513,7 +471,7 @@ make_root_logs() { # Ensure the necessary log file structure for the calling com
 # Single main function
 main() {
   if [[ $# -lt 1 ]]; then
-    err "missing command operand"
+    excep::err "missing command operand"
     exit 1
   elif [[
     $# -gt 2 \
@@ -522,7 +480,7 @@ main() {
     && $1 != "app" \
     && $1 != 'na' \
   ]]; then
-    err "Too many arguments"
+    excep::err "Too many arguments"
     exit 1
   fi
 
@@ -531,10 +489,10 @@ main() {
     new-app | new | app | na)
       # Create a new app based on a template
       if [[ $# -lt 2 ]]; then
-        err "Missing arguments. Try using:\nrc-cli help"
+        excep::err "Missing arguments. Try using:\nrc-cli help"
         exit 1
       elif [[ -d "$2" ]]; then
-        err "Cannot create app '$2': This folder already exists in the current directory"
+        excep::err "Cannot create app '$2': This folder already exists in the current directory"
         exit 1
       fi
       check_app_name $2
@@ -596,7 +554,7 @@ main() {
     configure-app | configure | ca)
       # Rebuild a Docker image for the current app
       if [[ $# -gt 1 ]]; then
-        err "Too many arguments"
+        excep::err "Too many arguments"
         exit 1
       fi
       cmd="configure-app"
@@ -627,10 +585,10 @@ main() {
       fi
 
       # Saving time if some images exist.
-      if ! is_image_built ${RC_TEST_IMAGE}; then
+      if ! is_rc_image_built ${RC_TEST_IMAGE}; then
         configure_image ${NO_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       fi
-      if ! is_image_built ${RC_SCORING_IMAGE}; then
+      if ! is_rc_image_built ${RC_SCORING_IMAGE}; then
         configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
       if [[ ! -f "${RC_CLI_PATH}/scoring/${RC_SCORING_IMAGE}.tar.gz" ]]; then
@@ -643,26 +601,24 @@ main() {
     model-score | score | ms)
       # Calculate the score for the app or the specified snapshot.
       basic_checks
-      if [[ -z $2 ]]; then
-        image_name=$(get_app_name)
-      else
-        image_name=$(get_snapshot $2)
-      fi
+      [[ -z $2 ]] \
+        && image_name=$(get_app_name) \
+        ||  image_name=$(get_snapshot $2)
       # Validate that build and apply have happend by checking for timings.
       src_mnt=$(get_data_context_abs $2)
       model_build_time="${src_mnt}/model_score_timings/model_build_time.json"
       model_apply_time="${src_mnt}/model_score_timings/model_apply_time.json"
       if [[ ! -f "${model_build_time}" ]]; then
-        err "'${model_build_time}': file not found"
+        excep::err "'${model_build_time}': file not found"
         exit 1
       elif [[ ! -f "${model_apply_time}" ]]; then
-        err "'${model_apply_time}': file not found"
+        excep::err "'${model_apply_time}': file not found"
         exit 1
       fi
       cmd="model-score"
       make_logs ${cmd}
 
-      if ! is_image_built ${RC_SCORING_IMAGE}; then
+      if ! is_rc_image_built ${RC_SCORING_IMAGE}; then
         configure_image ${NO_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       fi
       run_scoring_image ${cmd} ${image_name} ${src_mnt}
@@ -714,7 +670,7 @@ main() {
 
     purge) # Remove all the logs, images and snapshots created by 'rc-cli'.
       if [[ $# -gt 1 ]]; then
-        err "Too many arguments"
+        excep::err "Too many arguments"
         exit 1
       fi
       # Prompt confirmation to delete user
@@ -742,7 +698,7 @@ main() {
           printf "$1 was canceled by the user\n"
           ;;
         *)
-          err "invalid input: The $1 was canceled"
+          excep::err "invalid input: The $1 was canceled"
           exit 1
           ;;
       esac
@@ -757,7 +713,7 @@ main() {
     configure-utils | cu) # Run maintenance commands to configure the utility images during development
       printf "${CHARS_LINE}\n"
       printf "Configuring Utility Images\n"
-      check_docker
+      docker::check_status
       configure_image ${ROOT_LOGS} ${RC_TEST_IMAGE} ${RC_CLI_PATH}
       configure_image ${ROOT_LOGS} ${RC_SCORING_IMAGE} ${RC_CLI_PATH}/scoring
       save_scoring_image
@@ -767,12 +723,12 @@ main() {
 
     update) # Update rc-cli & run maintenance commands after breaking changes on the framework.
       if [[ $# -gt 1 ]]; then
-        err "Too many arguments"
+        excep::err "Too many arguments"
         exit 1
       fi
       printf "${CHARS_LINE}\n"
       printf "Checking for updates...\n"
-      check_docker
+      docker::check_status
       local_rc_cli_ver=$(<${RC_CLI_PATH}/VERSION)
       latest_rc_cli_ver=$(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/VERSION)
       if [[ "${local_rc_cli_ver}" == "${latest_rc_cli_ver}" ]]; then
@@ -785,6 +741,8 @@ main() {
       case ${input} in
         [yY][eE][sS] | [yY])
           printf "\nUpdating ${RC_CLI_SHORT_NAME} (${local_rc_cli_ver} -> ${latest_rc_cli_ver})... "
+          git -C ${RC_CLI_PATH} reset --hard origin/main > /dev/null
+          git -C ${RC_CLI_PATH} checkout main > /dev/null
           git -C ${RC_CLI_PATH} pull > /dev/null
           printf "done\n"
 
@@ -798,11 +756,11 @@ main() {
           printf "\n${RC_CLI_SHORT_NAME} was updated successfully.\n"
           ;;
         [nN][oO] | [nN] | "")
-          err "Update canceled"
+          excep::err "Update canceled"
           exit 1
           ;;
         *)
-          err "Invalid input: Update canceled."
+          excep::err "Invalid input: Update canceled."
           exit 1
           ;;
       esac
@@ -810,19 +768,36 @@ main() {
 
     update-data) # Update the data provided by Amazon to build and apply the model
       printf "${CHARS_LINE}\n"
-      printf "Updating data\n"
-      # shellcheck source=lib/get_data.sh
-      . ${RC_CLI_PATH}/lib/get_data.sh
-      load_config
-      # shellcheck source=./CONFIG
-      . "${RC_CLI_PATH}/CONFIG"
-      data::update_data "${DATA_URL}" "${RC_CLI_PATH}" "${DATA_DIR}"
-      printf "${CHARS_LINE}\n"
+      printf "Update Data for ${RC_CLI_SHORT_NAME}:\n"
+      # shellcheck source=lib/datalib.sh
+      . ${RC_CLI_PATH}/lib/datalib.sh
+
+      datalib::load_or_create_config
+      # Look up the data size
+      size=$(datalib::get_content_length ${DATA_URL})
+      printf "\nWARNING! $1: The latest data provided to build and apply your model is $(echo $((${size} / 1048576))) MB in size.\n"
+      read -r -p "Would you like to update it now? [y/N] " input
+      case ${input} in
+        [yY][eE][sS] | [yY])
+          printf "\n"
+          datalib::update_data ${DATA_URL} "${RC_CLI_PATH}/${DATA_DIR}"
+          printf "${CHARS_LINE}\n"
+          printf "\nThe data was updated successfully.\n"
+          ;;
+        [nN][oO] | [nN] | "")
+          excep::err "Update data canceled"
+          exit 1
+          ;;
+        *)
+          excep::err "Invalid input: Update data canceled."
+          exit 1
+          ;;
+      esac
       ;;
 
     uninstall)
       if [[ $# -gt 1 ]]; then
-        err "Too many arguments"
+        excep::err "Too many arguments"
         exit 1
       fi
       printf "${CHARS_LINE}\n"
@@ -848,7 +823,7 @@ main() {
           printf "$1 was canceled by the user\n"
           ;;
         *)
-          err "invalid input: The $1 was canceled"
+          excep::err "invalid input: The $1 was canceled"
           exit 1
           ;;
       esac
@@ -1023,7 +998,7 @@ EOF
       ;;
 
     *)
-      err "$1: command not found"
+      excep::err "$1: command not found"
       exit 1
       ;;
   esac
