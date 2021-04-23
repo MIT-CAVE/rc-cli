@@ -1,0 +1,5 @@
+(c) Copyright 2021 Massachusetts Institute of Technology Center for Transportation & Logistics. All rights reserved.
+
+This repository contains proprietary information of the Massachusetts Institute of Technology Center for Transportation & Logistics and is protected under U.S. and international copyright and other intellectual property laws.
+
+THIS COPYRIGHT NOTICE MUST BE RETAINED AS PART OF THIS REPOSITORY AT ALL TIMES.
