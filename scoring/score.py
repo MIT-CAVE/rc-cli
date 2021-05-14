@@ -1,7 +1,8 @@
 import numpy as np
 import json
 import sys
-import multiprocessing as multi
+import multiprocess as mp
+import functools
 
 def read_json_data(filepath):
     '''
@@ -106,7 +107,7 @@ def good_format(file,input_type,filepath):
 class JSONDecodeError(Exception):
     pass
 
-def evaluate(actual_routes_json,submission_json,cost_matrices_json, invalid_scores_json,**kwargs):
+def evaluate(actual_routes_json,submission_json,cost_matrices_json,invalid_scores_json,**kwargs):
     '''
     Calculates score for a submission.
 
@@ -142,30 +143,41 @@ def evaluate(actual_routes_json,submission_json,cost_matrices_json, invalid_scor
     scores={'submission_score':'x','route_scores':{},'route_feasibility':{}}
     for kwarg in kwargs:
         scores[kwarg]=kwargs[kwarg]
-    for route in actual_routes:
-        if route not in submission:
-            scores['route_scores'][route]=invalid_scores[route]
-            scores['route_feasibility'][route]=False
-        else:
-            actual_dict=actual_routes[route]
-            actual=route2list(actual_dict)
-            try:
-                sub_dict=submission[route]
-                sub=route2list(sub_dict)
-            except:
-                scores['route_scores'][route]=invalid_scores[route]
-                scores['route_feasibility'][route]=False
-            else:
-                if isinvalid(actual,sub):
-                    scores['route_scores'][route]=invalid_scores[route]
-                    scores['route_feasibility'][route]=False
-                else:
-                     cost_mat=cost_matrices[route]
-                     scores['route_scores'][route]=score(actual,sub,cost_mat)
-                     scores['route_feasibility'][route]=True
+    route_list=list(actual_routes.keys())
+    if __name__=='__main__':
+        with mp.Pool() as p:
+            score_triples=p.map(functools.partial(evaluate_parallel,actual_routes,submission,cost_matrices),route_list)
+    for triple in score_triples:
+        route,score_route,feasibility=triple
+        scores['route_scores'][route],scores['route_feasibility'][route]=score_route,feasibility
     submission_score=np.mean(list(scores['route_scores'].values()))
     scores['submission_score']=submission_score
     return scores
+
+def evaluate_parallel(actual_routes,submission,cost_matrices,invalid_scores,route):
+    if route not in submission:
+            score_route=invalid_scores[route]
+            feasibility=False
+    else:
+        actual_dict=actual_routes[route]
+        actual=route2list(actual_dict)
+        try:
+            sub_dict=submission[route]
+            sub=route2list(sub_dict)
+        except:
+            score_route=invalid_scores[route]
+            feasibility=False
+        else:
+            if isinvalid(actual,sub):
+                score_route=invalid_scores[route]
+                feasibility=False
+            else:
+                cost_mat=cost_matrices[route]
+                score_route=score(actual,sub,cost_mat)
+                feasibility=True
+    return route,score_route,feasibility
+
+
 
 def score(actual,sub,cost_mat,g=1000):
     '''
