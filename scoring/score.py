@@ -1,7 +1,7 @@
 import numpy as np
 import json
 import sys
-import multiprocess as mp
+import multiprocessing as mp
 import functools
 
 def read_json_data(filepath):
@@ -140,13 +140,16 @@ def evaluate(actual_routes_json,submission_json,cost_matrices_json,invalid_score
     good_format(cost_matrices,'costs',cost_matrices_json)
     invalid_scores=read_json_data(invalid_scores_json)
     good_format(invalid_scores,'invalids',invalid_scores_json)
+    print('Done reading')
     scores={'submission_score':'x','route_scores':{},'route_feasibility':{}}
     for kwarg in kwargs:
         scores[kwarg]=kwargs[kwarg]
     route_list=list(actual_routes.keys())
     if __name__=='__main__':
+        print('Begin pooling')
         with mp.Pool() as p:
             score_triples=p.map(functools.partial(evaluate_parallel,actual_routes,submission,cost_matrices),route_list)
+            print('Done parallel')
     for triple in score_triples:
         route,score_route,feasibility=triple
         scores['route_scores'][route],scores['route_feasibility'][route]=score_route,feasibility
@@ -155,6 +158,7 @@ def evaluate(actual_routes_json,submission_json,cost_matrices_json,invalid_score
     return scores
 
 def evaluate_parallel(actual_routes,submission,cost_matrices,invalid_scores,route):
+    print(route)
     if route not in submission:
             score_route=invalid_scores[route]
             feasibility=False
@@ -456,3 +460,14 @@ def route2list(route_dict):
         route_list[stops[stop]]=stop
     route_list[-1]=route_list[0]
     return route_list
+
+
+
+import os
+os.chdir('C:/Dropbox (MIT)')#/2020-21 Amazon Research Challenge - Internal/05 - Scoring Logic/05 - JSON Objects and Functions for Connor & Code Conversion to JSON Script/Final_March_15_Data')
+# a='model_score_inputs/new_actual_sequences_sample.json'
+# b='model_score_inputs/proposed_sequences.json'
+# c='model_build_inputs/travel_times.json'
+# d='model_build_inputs/invalid_sequence_scores.json'
+# scores=evaluate(a,b,c,d,5000,2000)
+# json.dump(score,'test_scores.json')
