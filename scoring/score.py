@@ -82,7 +82,7 @@ def good_format(file,input_type,filepath):
                     raise JSONDecodeError('Improper stop ID in {}. Each stop must be denoted by a two-letter ID string.'.format(filepath))
                 stop_num=file[route][input_type][stop]
                 if type(stop_num)!=int or stop_num>=num_stops:
-                    raise JSONDecodeError('Improper stop number in {}. Each stop\'s position number, x, must be an integer in the range 0<=x<N where N is the number of stops in the route (including the depot).'.format(filepath))
+                    file[route][input_type][stop]='invalid'
     if input_type=='costs':
         for route in file:
             if type(file[route])!=dict:
