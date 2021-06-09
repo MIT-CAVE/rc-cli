@@ -3,6 +3,8 @@ import json
 import sys
 import multiprocessing as mp
 import functools
+import os
+import psutil
 
 def read_json_data(filepath):
     '''
@@ -145,11 +147,12 @@ def evaluate(actual_routes_json,submission_json,cost_matrices_json,invalid_score
     for kwarg in kwargs:
         scores[kwarg]=kwargs[kwarg]
     route_list=list(actual_routes.keys())
-    if __name__=='__main__':
-        print('Begin pooling')
-        with mp.Pool() as p:
-            score_triples=p.map(functools.partial(evaluate_parallel,actual_routes,submission,cost_matrices),route_list)
-            print('Done parallel')
+    proc=psutil.Process()
+    print('Begin pooling')
+    with mp.Pool() as p:
+        print(proc.cpu_affinity())
+        score_triples=p.map(functools.partial(evaluate_parallel,actual_routes,submission,cost_matrices,invalid_scores),route_list)
+        print('Done parallel')
     for triple in score_triples:
         route,score_route,feasibility=triple
         scores['route_scores'][route],scores['route_feasibility'][route]=score_route,feasibility
@@ -463,11 +466,20 @@ def route2list(route_dict):
 
 
 
-import os
-os.chdir('C:/Dropbox (MIT)')#/2020-21 Amazon Research Challenge - Internal/05 - Scoring Logic/05 - JSON Objects and Functions for Connor & Code Conversion to JSON Script/Final_March_15_Data')
-# a='model_score_inputs/new_actual_sequences_sample.json'
-# b='model_score_inputs/proposed_sequences.json'
-# c='model_build_inputs/travel_times.json'
-# d='model_build_inputs/invalid_sequence_scores.json'
-# scores=evaluate(a,b,c,d,5000,2000)
-# json.dump(score,'test_scores.json')
+'''
+Everything below was written specifically to test the code on Joey's machine.
+It should be removed before publishing.
+'''
+
+
+if __name__ == '__main__':
+    path='C:/Users/joest/Dropbox (MIT)/2020-21 Amazon Research Challenge - Internal/05 - Scoring Logic/05 - JSON Objects and Functions for Connor & Code Conversion to JSON Script/Final_March_15_Data/'
+    a=path+'model_score_inputs/new_actual_sequences_sample.json'
+    b=path+'model_score_inputs/proposed_sequences.json'
+    c=path+'model_build_inputs/travel_times.json'
+    d=path+'model_build_inputs/invalid_sequence_scores.json'
+    scores=evaluate(a,b,c,d)
+    with open('C:/Users/joest/OneDrive/Documents/test_scores.json','w') as outfile:
+        json.dump(scores,outfile)
+        outfile.close()
+    print('Dumped')
