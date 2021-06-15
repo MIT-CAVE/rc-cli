@@ -4,7 +4,7 @@ set -u
 readonly CHARS_LINE="============================"
 readonly RC_IMAGE_TAG="rc-cli"
 readonly MODEL_BUILD_TIMEOUT=$((12*60*60))
-readonly MODEL_APPLY_TIMEOUT=$((2*60*60))
+readonly MODEL_APPLY_TIMEOUT=$((4*60*60))
 readonly APP_DEST_MNT="/home/app/data"
 
 wait_for_docker() {
