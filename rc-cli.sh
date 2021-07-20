@@ -42,7 +42,7 @@ valid_app_dir() {
  && -d data/model_apply_inputs \
  && -d data/model_apply_outputs \
  && -d data/model_build_inputs \
- && -d data/model_build_outputs
+ && -d data/model_build_outputs \
  && -d data/model_score_inputs \
  && -d data/model_score_outputs \
  && -d data/model_score_timings
@@ -604,7 +604,7 @@ main() {
       [[ -z $2 ]] \
         && image_name=$(get_app_name) \
         ||  image_name=$(get_snapshot $2)
-      # Validate that build and apply have happend by checking for timings.
+      # Validate that build and apply have happened by checking for timings.
       src_mnt=$(get_data_context_abs $2)
       model_build_time="${src_mnt}/model_score_timings/model_build_time.json"
       model_apply_time="${src_mnt}/model_score_timings/model_apply_time.json"
