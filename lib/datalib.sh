@@ -98,9 +98,16 @@ check_file_archiver() {
   check_version ${file_arch} 1 "${install_msg}" ${min_ver} ${file_arch_ver}
 }
 
+# Shoutout to:
+# https://unix.stackexchange.com/a/450405
+# https://stackoverflow.com/a/39615292
 datalib::get_content_length() {
   local url=$1
-  printf "$(curl -sI ${url} | awk '/Content-Length/ { print $2 }' | sed 's/\r$//')"
+  local redirect_sizes
+  local size
+  redirect_sizes="$(curl -sLI ${url} | awk -v IGNORECASE=1 '/^Content-Length/ { print $2 }')"
+  size=$(echo ${redirect_sizes##*$'\n'} | sed 's/\r$//')
+  printf ${size}
 }
 
 # Download the data file(s) from the given URL
@@ -113,7 +120,7 @@ download_data() {
 
   local tmp_dl_path="${TMP_DIR}/${f_name}"
   printf "Downloading data from ${data_url}...\n" >&2
-  curl -o "${tmp_dl_path}" --progress-bar ${data_url}
+  curl -L -o "${tmp_dl_path}" --progress-bar ${data_url}
   printf ${tmp_dl_path}
 }
 
