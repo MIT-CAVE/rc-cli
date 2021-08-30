@@ -47,7 +47,7 @@ get_compressed_data_info() { # Get information on compressed data to download
   DATA_URL="${1:-''}"
   compressed_file_name="$(basename $DATA_URL)"
   compressed_file_path="${RC_CLI_PATH}/${compressed_file_name}"
-  compressed_file_type="${compressed_file_path##*.}"
+  compressed_file_type=$(printf "${compressed_file_path##*.}" | sed 's/[^a-zA-Z0-9].*//')
   if [[ "$compressed_file_type" = "xz" ]]; then
     compressed_file_name_no_ext==${compressed_file_name%.*.*}
     compressed_folder_name=${compressed_file_name%.*.*}
