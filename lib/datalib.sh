@@ -23,10 +23,10 @@ get_data_url() {
   local file_arch=$1
   case ${file_arch} in
     ${BSDTAR_BIN} | ${TAR_BIN})
-      printf ${DATA_URL_XZ}
+      printf "${DATA_URL_XZ}"
       ;;
     ${UNZIP_BIN})
-      printf ${DATA_URL_ZIP}
+      printf "${DATA_URL_ZIP}"
       ;;
     *)
       err "Could not find a URL compatible with the provided file archiver"
@@ -105,9 +105,9 @@ datalib::get_content_length() {
   local url=$1
   local redirect_sizes
   local size
-  redirect_sizes="$(curl -sLI ${url} | awk -v IGNORECASE=1 '/^Content-Length/ { print $2 }')"
+  redirect_sizes="$(curl -sLI "${url}" | awk -v IGNORECASE=1 '/^Content-Length/ { print $2 }')"
   size=$(echo ${redirect_sizes##*$'\n'} | sed 's/\r$//')
-  printf ${size}
+  printf "${size}"
 }
 
 # Download the data file(s) from the given URL

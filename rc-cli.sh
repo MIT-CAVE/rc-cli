@@ -775,6 +775,11 @@ main() {
       datalib::load_or_create_config
       # Look up the data size
       size=$(datalib::get_content_length ${DATA_URL})
+      # Validate the data URL
+      if [[ -z ${size} ]]; then
+        excep::err "Invalid data URL in \"${RC_CLI_PATH}/.env\" file"
+        exit 1
+      fi
       printf "\nWARNING! $1: The latest data provided to build and apply your model is $(echo $((${size} / 1048576))) MB in size.\n"
       read -r -p "Would you like to update it now? [y/N] " input
       case ${input} in
