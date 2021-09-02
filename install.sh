@@ -205,7 +205,7 @@ get_data() { # Copy the needed data files locally
 check_args() {
   local cmd_ex="
     bash <(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh) \\
-    https://www.dropbox.com/s/dl7eg2hixweu081/data.tar.xz?dl=1"
+    <data-url-here>"
   if [[ $# -lt 1 ]]; then
     err "Not enough arguments to install the CLI with data. Please specify a DATA_URL \nEG:${cmd_ex}"
     exit 1
