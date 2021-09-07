@@ -263,7 +263,7 @@ During the `model-apply` phase you will have access to the following `data/` dir
 
 You do not have access to the historical data at this phase, but there is a new dataset provided in `data/model_apply_inputs` that will be used by the model created in the `model-build` phase to generate predicted routes. The predicted routes should be saved in `data/model_apply_outputs/proposed_sequences.json`
 
-> **NOTE: The maximum duration allowed for the `apply-model` phase is exactly 2 hours**; Otherwise, a timeout will stop the process and the apply phase of your model will not complete.
+> **NOTE: The maximum duration allowed for the `apply-model` phase is exactly 4 hours**; Otherwise, a timeout will stop the process and the apply phase of your model will not complete.
 
 ###  model-score
 ```sh
@@ -276,9 +276,9 @@ Apply the scoring algorithm using `data/model_apply_outputs/proposed_sequences.j
 rc-cli enter-app [snapshot-name]
 ```
 Use this command to enter your current app's docker image. This will start the Docker image for your project. You can run shell scripts and execute files. You can test if your Docker image has the correct environment to run your source code. The `enter-app` command provides the following directory access:
-- `data/model_build_inputs` (read/write)
+- `data/model_build_inputs` (read)
 - `data/model_build_outputs` (read/write)
-- `data/model_apply_inputs` (read/write)
+- `data/model_apply_inputs` (read)
 - `data/model_apply_outputs` (read/write)
 
 ### save-snapshot

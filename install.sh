@@ -7,7 +7,7 @@ readonly CHARS_LINE="============================"
 readonly RC_CLI_PATH="${HOME}/.rc-cli"
 readonly RC_CLI_SHORT_NAME="RC CLI"
 readonly RC_CLI_COMMAND="rc-cli"
-readonly RC_CLI_VERSION="0.1.4"
+readonly RC_CLI_VERSION="0.1.5"
 readonly BIN_DIR="/usr/local/bin"
 readonly DATA_DIR="data"
 readonly SSH_CLONE_URL="git@github.com:MIT-CAVE/rc-cli.git"
@@ -45,7 +45,7 @@ check_os() { # Validate that the current OS
 
 get_compressed_data_info() { # Get information on compressed data to download
   DATA_URL="${1:-''}"
-  compressed_file_name="$(basename $DATA_URL)"
+  compressed_file_name=$(printf "$(basename $DATA_URL)" | sed 's/?.*//')
   compressed_file_path="${RC_CLI_PATH}/${compressed_file_name}"
   compressed_file_type=$(printf ${compressed_file_path##*.} | sed 's/?dl=1//')
   if [[ "$compressed_file_type" = "xz" ]]; then
@@ -175,7 +175,7 @@ copy_compressed_data_down() { # Copy the needed data files locally
   # copy_compressed_data_down URL LOCAL_PATH NEW_DIR_NAME
   new_dir_name="${3:-$compressed_folder_name}"
   printf "Copying data down from $1...\n"
-  curl -o "${compressed_file_path}" "$1" --progress-bar
+  curl -L -o "${compressed_file_path}" "$1" --progress-bar
   printf "done\n"
   printf "Decompressing downloaded data...\n"
   if [[ "${compressed_file_type}" = "xz" ]]; then
@@ -203,15 +203,14 @@ get_data() { # Copy the needed data files locally
 }
 
 check_args() {
-  if [[ $# -lt 1 ]]; then
-    err "Not enough arguments to install the CLI with data. Please specify a DATA_URL \nEG:
+  local cmd_ex="
     bash <(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh) \\
-    https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.tar.xz"
+    <data-url-here>"
+  if [[ $# -lt 1 ]]; then
+    err "Not enough arguments to install the CLI with data. Please specify a DATA_URL \nEG:${cmd_ex}"
     exit 1
   elif [[ $# -gt 1 && $2 != "--dev" ]]; then
-    err "Too many arguments for CLI installation. Please only specify a DATA_URL\nEG:
-    bash <(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh) \\
-    https://cave-competition-app-data.s3.amazonaws.com/amzn_2021/data.tar.xz"
+    err "Too many arguments for CLI installation. Please only specify a DATA_URL\nEG:${cmd_ex}"
     exit 1
   fi
 }
