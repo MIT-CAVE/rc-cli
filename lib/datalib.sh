@@ -29,7 +29,7 @@ get_data_url() {
       printf "${DATA_URL_ZIP}"
       ;;
     *)
-      err "Could not find a URL compatible with the provided file archiver"
+      excep::err "Could not find a URL compatible with the provided file archiver"
       ;;
   esac
 }
@@ -48,7 +48,7 @@ get_file_arch_version() {
       # TODO
       ;;
     *)
-      err "Error"
+      excep::err "Error"
       ;;
   esac
 }
@@ -60,7 +60,7 @@ check_version() {
   local min_ver="$4"
   local current_ver="$5"
   if [[ ! "$(printf '%s\n' "${min_ver}" "${current_ver}" | sort -V | head -n1)" == "${min_ver}" ]]; then
-    err "Your current ${prog_name} version (${current_ver}) is too old. ${err_str}"
+    excep::err "Your current ${prog_name} version (${current_ver}) is too old. ${err_str}"
     [[ ${exit_code} -eq 1 ]] && exit 1
   fi
 }
@@ -72,7 +72,7 @@ check_file_archiver() {
   local install_msg
   file_arch=$(get_file_archiver)
   if [[ -z ${file_arch} ]]; then
-    err "There is no compatible file archiver installed on your system.\nPlease install tar (preferably) or zip."
+    excep::err "There is no compatible file archiver installed on your system.\nPlease install tar (preferably) or zip."
     exit 1
   fi
   # Validate file archiver version
@@ -87,10 +87,10 @@ check_file_archiver() {
       # TODO:
       # Check the compatibility with the unzip version
       # and the compression level used for the data.
-      # err "The data file you are installing with is not recognized. \nPlease install the ${RC_CLI_SHORT_NAME} with a 'xz' or 'ZIP' file."
+      # excep::err "The data file you are installing with is not recognized. \nPlease install the ${RC_CLI_SHORT_NAME} with a 'xz' or 'ZIP' file."
       ;;
     *) # This should not happen unless there's a bug in get_file_archiver
-      err "The file archiver is not recognized."
+      excep::err "The file archiver is not recognized"
       exit 1
       ;;
   esac
@@ -129,7 +129,7 @@ download_data() {
 check_file_integrity() {
   local f_path=$1
   if [[ -n "" ]]; then
-    err "The file '${f_path}' is corrupted"
+    excep::err "The file '${f_path}' is corrupted"
     exit 1
   fi
 }
@@ -157,6 +157,44 @@ decompress_and_load() {
   esac
   printf "done\n\n"
   rm ${f_path}
+}
+
+# Validate the data URL.
+# BUG: Check return value. See: https://stackoverflow.com/q/5431909
+valid_data_url() {
+  local data_url=$1
+  local size
+  size=$(datalib::get_content_length ${data_url})
+  [[ $((${size})) -gt 0 ]]
+}
+
+# Check that the given URL is valid.
+datalib::check_data_url() {
+  local data_url=$1
+  size=$(datalib::get_content_length ${data_url})
+  if [[ $((${size})) -eq 0 ]]; then
+    excep::err "The URL '${data_url}' is invalid"
+    exit 1
+  fi
+}
+
+# Prompts for a DATA_URL if the given URL is invalid.
+data_url_prompt() {
+  local src_cmd=$1
+  local data_url=$2
+  local input=${data_url}
+
+  local size
+  size=$(datalib::get_content_length ${input})
+  # [[ $(valid_data_url ${input}) -eq 0 ]] && echo "Yes" >&2 || echo "No" >&2
+  while [[ -n ${input} && $((${size})) -eq 0 ]]; do
+    # Prompt confirmation to overwrite or rename image
+    printf "WARNING! ${src_cmd}: could not find a valid data in '${input}'\n" >&2
+    read -r -p "Enter a new URL (or a blank input to cancel): " input
+    size=$(datalib::get_content_length ${input})
+    [[ $((${size})) -gt 0 ]] && data_url=${input} || printf "\n" >&2
+  done
+  printf "${data_url}"
 }
 
 # Saves the DATA_URL and INSTALL_PARAM to the CONFIG file.

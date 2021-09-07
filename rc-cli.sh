@@ -22,8 +22,6 @@ declare -xr RC_CLI_PATH="${HOME}/.rc-cli"
 # Import libraries
 # shellcheck source=lib/config.sh
 . ${RC_CLI_PATH}/lib/config.sh
-# shellcheck source=.env
-. ${RC_CLI_PATH}/.env
 # shellcheck source=lib/excep.sh
 . ${RC_CLI_PATH}/lib/excep.sh
 # shellcheck source=lib/docker.sh
@@ -668,7 +666,8 @@ main() {
       printf "${CHARS_LINE}\n"
       ;;
 
-    purge) # Remove all the logs, images and snapshots created by 'rc-cli'.
+    purge)
+      # Remove all the logs, images and snapshots created by 'rc-cli'.
       if [[ $# -gt 1 ]]; then
         excep::err "Too many arguments"
         exit 1
@@ -705,7 +704,8 @@ main() {
       printf "${CHARS_LINE}\n"
       ;;
 
-    reset-data | reset | rd) # Flush the output data in the directories
+    reset-data | reset | rd)
+      # Flush the output data in the directories
       data_path=$(get_data_context $2)
       reset_data_prompt $1 ${data_path}
       ;;
@@ -721,7 +721,8 @@ main() {
       printf "${CHARS_LINE}\n"
       ;;
 
-    update) # Update rc-cli & run maintenance commands after breaking changes on the framework.
+    update)
+      # Update rc-cli & run maintenance commands after breaking changes on the framework.
       if [[ $# -gt 1 ]]; then
         excep::err "Too many arguments"
         exit 1
@@ -766,26 +767,26 @@ main() {
       esac
       ;;
 
-    update-data) # Update the data provided by Amazon to build and apply the model
+    update-data)
+      # Update the data provided by Amazon to build and apply the model
+      cmd="update-data"
       printf "${CHARS_LINE}\n"
       printf "Update Data for ${RC_CLI_SHORT_NAME}:\n"
       # shellcheck source=lib/datalib.sh
       . ${RC_CLI_PATH}/lib/datalib.sh
 
       datalib::load_or_create_config
+      data_url=$(data_url_prompt ${cmd} ${2:-${DATA_URL}})
+      datalib::check_data_url ${data_url}
+
       # Look up the data size
-      size=$(datalib::get_content_length ${DATA_URL})
-      # Validate the data URL
-      if [[ -z ${size} ]]; then
-        excep::err "Invalid data URL in \"${RC_CLI_PATH}/.env\" file"
-        exit 1
-      fi
+      size=$(datalib::get_content_length ${data_url})
       printf "\nWARNING! $1: The latest data provided to build and apply your model is $(echo $((${size} / 1048576))) MB in size.\n"
       read -r -p "Would you like to update it now? [y/N] " input
       case ${input} in
         [yY][eE][sS] | [yY])
           printf "\n"
-          datalib::update_data ${DATA_URL} "${RC_CLI_PATH}/${DATA_DIR}"
+          datalib::update_data ${data_url} "${RC_CLI_PATH}/${DATA_DIR}"
           printf "${CHARS_LINE}\n"
           printf "\nThe data was updated successfully.\n"
           ;;
@@ -984,10 +985,14 @@ $(get_help_template_string)
       rc-cli update
       ${CHARS_LINE}
 
-  update-data
+  update-data [data-url]
     - Update your data to the newest version
       ${CHARS_LINE}
       rc-cli update-data
+      ${CHARS_LINE}
+    - Update your data from the given URL
+      ${CHARS_LINE}
+      rc-cli update-data data-url
       ${CHARS_LINE}
 
   version
