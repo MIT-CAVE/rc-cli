@@ -132,8 +132,8 @@ check_previous_installation() { # Check to make sure previous installations are 
     case ${input} in
       [yY][eE][sS] | [yY])
         printf "Moving your dataset to a temporary location... "
-        data_path_tmp="${HOME}/${RC_CLI_COMMAND}-data-$(uuidgen)"
-        mv ${RC_CLI_PATH}/${DATA_DIR} ${data_path_tmp}
+        data_path_tmp="${HOME}/${RC_CLI_COMMAND}-data-$(uuidgen)/"
+        mv "${RC_CLI_PATH}/${DATA_DIR}/" "${data_path_tmp}"
         printf "done\n"
         printf "Removing old installation... "
         rm -rf "${RC_CLI_PATH}"
@@ -152,11 +152,10 @@ check_previous_installation() { # Check to make sure previous installations are 
 }
 
 install_new() { # Copy the needed files locally
-  printf "Creating application folder at '${RC_CLI_PATH}'..."
+  printf "Creating application folder at '${RC_CLI_PATH}'... "
   mkdir -p "${RC_CLI_PATH}/${DATA_DIR}"
   printf "done\n"
   printf "${CHARS_LINE}\n"
-  printf ${data_path_tmp}
   if [[ $1 = "--dev" ]]; then
     CLONE_URL="$SSH_CLONE_URL"
     INSTALL_PARAM="--dev"
@@ -175,7 +174,7 @@ install_new() { # Copy the needed files locally
   else
     if [ -n "${data_path_tmp}" ]; then
       printf "Restoring data from previous installation... "
-      mv "${data_path_tmp}" "${RC_CLI_PATH}/${DATA_DIR}"
+      mv "${data_path_tmp}" "${RC_CLI_PATH}/${DATA_DIR}/"
       printf "done\n"
     fi
     printf "INSTALL_PARAM=\"${INSTALL_PARAM}\"\n" > "${RC_CLI_PATH}/CONFIG"
