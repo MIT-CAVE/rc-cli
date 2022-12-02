@@ -217,7 +217,7 @@ get_data() { # Copy the needed data files locally
 check_args() {
   local cmd_ex="bash <(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh)"
   if [[ $# -gt 0 && $1 != "--dev" ]]; then
-    err "Too many arguments for CLI installation. Please only specify a '--dev' option if you want to work on the development of ${RC_CLI_SHORT_NAME}\nEG:${cmd_ex}"
+    err "Too many arguments for CLI installation. Please only specify a '--dev' option if you want to work on the development of ${RC_CLI_SHORT_NAME}. Otherwise:\n${cmd_ex}"
     exit 1
   fi
 }
