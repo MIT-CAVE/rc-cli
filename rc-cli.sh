@@ -767,40 +767,6 @@ main() {
       esac
       ;;
 
-    update-data)
-      # Update the data provided by Amazon to build and apply the model
-      cmd="update-data"
-      printf "${CHARS_LINE}\n"
-      printf "Update Data for ${RC_CLI_SHORT_NAME}:\n"
-      # shellcheck source=lib/datalib.sh
-      . ${RC_CLI_PATH}/lib/datalib.sh
-
-      datalib::load_or_create_config
-      data_url=$(data_url_prompt ${cmd} ${2:-${DATA_URL}})
-      datalib::check_data_url ${data_url}
-
-      # Look up the data size
-      size=$(datalib::get_content_length ${data_url})
-      printf "\nWARNING! $1: The latest data provided to build and apply your model is $(echo $((${size} / 1048576))) MB in size.\n"
-      read -r -p "Would you like to update it now? [y/N] " input
-      case ${input} in
-        [yY][eE][sS] | [yY])
-          printf "\n"
-          datalib::update_data ${data_url} "${RC_CLI_PATH}/${DATA_DIR}"
-          printf "${CHARS_LINE}\n"
-          printf "\nThe data was updated successfully.\n"
-          ;;
-        [nN][oO] | [nN] | "")
-          excep::err "Update data canceled"
-          exit 1
-          ;;
-        *)
-          excep::err "Invalid input: Update data canceled."
-          exit 1
-          ;;
-      esac
-      ;;
-
     uninstall)
       if [[ $# -gt 1 ]]; then
         excep::err "Too many arguments"
@@ -983,16 +949,6 @@ $(get_help_template_string)
     - Update your cli to the newest version
       ${CHARS_LINE}
       rc-cli update
-      ${CHARS_LINE}
-
-  update-data [data-url]
-    - Update your data to the newest version
-      ${CHARS_LINE}
-      rc-cli update-data
-      ${CHARS_LINE}
-    - Update your data from the given URL
-      ${CHARS_LINE}
-      rc-cli update-data data-url
       ${CHARS_LINE}
 
   version
