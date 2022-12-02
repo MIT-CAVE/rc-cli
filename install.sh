@@ -7,7 +7,7 @@ readonly CHARS_LINE="============================"
 readonly RC_CLI_PATH="${HOME}/.rc-cli"
 readonly RC_CLI_SHORT_NAME="RC CLI"
 readonly RC_CLI_COMMAND="rc-cli"
-readonly RC_CLI_VERSION="0.1.5"
+readonly RC_CLI_VERSION="0.2.0"
 readonly BIN_DIR="/usr/local/bin"
 readonly DATA_DIR="data"
 readonly SSH_CLONE_URL="git@github.com:MIT-CAVE/rc-cli.git"
@@ -47,7 +47,7 @@ get_compressed_data_info() { # Get information on compressed data to download
   DATA_URL="${1:-''}"
   compressed_file_name=$(printf "$(basename $DATA_URL)" | sed 's/?.*//')
   compressed_file_path="${RC_CLI_PATH}/${compressed_file_name}"
-  compressed_file_type=$(printf ${compressed_file_path##*.} | sed 's/?dl=1//')
+  compressed_file_type="${compressed_file_path##*.}"
   if [[ "$compressed_file_type" = "xz" ]]; then
     compressed_file_name_no_ext==${compressed_file_name%.*.*}
     compressed_folder_name=${compressed_file_name%.*.*}
@@ -125,10 +125,16 @@ check_previous_installation() { # Check to make sure previous installations are 
     if [ "$LOCAL_CLI_VERSION" = "$RC_CLI_VERSION" ] ; then
       read -r -p "Would you like to reinstall ${RC_CLI_SHORT_NAME} ($RC_CLI_VERSION)? [y/N] " input
     else
+      data_warn="WARNING! As of version 0.2.0, ${RC_CLI_SHORT_NAME} does not download the dataset for you in the installation process. The data in your current version of ${RC_CLI_SHORT_NAME} will be backed up temporarily and restored once the update process completes. If you want to update your data sources manually please refer to:\n1. https://github.com/MIT-CAVE/rc-cli#download-your-dataset\n2. https://registry.opendata.aws/amazon-last-mile-challenges/\n\n"
+      [ "${RC_CLI_PATH:2:1}" = 2 ] && printf "${data_warn}"
       read -r -p "Would you like to update to ${RC_CLI_SHORT_NAME} ($RC_CLI_VERSION)? [y/N] " input
     fi
     case ${input} in
       [yY][eE][sS] | [yY])
+        printf "Moving your dataset to a temporary location... "
+        data_path_tmp="${HOME}/${RC_CLI_COMMAND}-data-$(uuidgen)"
+        mv "${RC_CLI_PATH}/${DATA_DIR}" "${data_path_tmp}"
+        printf "done\n"
         printf "Removing old installation... "
         rm -rf "${RC_CLI_PATH}"
         printf "done\n"
@@ -146,11 +152,11 @@ check_previous_installation() { # Check to make sure previous installations are 
 }
 
 install_new() { # Copy the needed files locally
-  printf "Creating application folder at '${RC_CLI_PATH}'..."
+  printf "Creating application folder at '${RC_CLI_PATH}'... "
   mkdir -p "${RC_CLI_PATH}"
   printf "done\n"
   printf "${CHARS_LINE}\n"
-  if [[ $2 = "--dev" ]]; then
+  if [[ $1 = "--dev" ]]; then
     CLONE_URL="$SSH_CLONE_URL"
     INSTALL_PARAM="--dev"
   else
@@ -163,8 +169,14 @@ install_new() { # Copy the needed files locally
     "${RC_CLI_PATH}" > /dev/null
   if [ ! -d "${RC_CLI_PATH}" ]; then
     err "Git Clone Failed. Installation Canceled"
+    [ -n "${data_path_tmp}" ] && printf "Your data was backed up to '${data_path_tmp}'.\n"
     exit 1
   else
+    if [ -n "${data_path_tmp}" ]; then
+      printf "Restoring data from previous installation... "
+      mv "${data_path_tmp}" "${RC_CLI_PATH}/${DATA_DIR}"
+      printf "done\n"
+    fi
     printf "INSTALL_PARAM=\"${INSTALL_PARAM}\"\n" > "${RC_CLI_PATH}/CONFIG"
   fi
 }
@@ -203,14 +215,9 @@ get_data() { # Copy the needed data files locally
 }
 
 check_args() {
-  local cmd_ex="
-    bash <(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh) \\
-    <data-url-here>"
-  if [[ $# -lt 1 ]]; then
-    err "Not enough arguments to install the CLI with data. Please specify a DATA_URL \nEG:${cmd_ex}"
-    exit 1
-  elif [[ $# -gt 1 && $2 != "--dev" ]]; then
-    err "Too many arguments for CLI installation. Please only specify a DATA_URL\nEG:${cmd_ex}"
+  local cmd_ex="bash <(curl -s https://raw.githubusercontent.com/MIT-CAVE/rc-cli/main/install.sh)"
+  if [[ $# -gt 0 && $1 != "--dev" ]]; then
+    err "Too many arguments for CLI installation. Please only specify a '--dev' option if you want to work on the development of ${RC_CLI_SHORT_NAME}. Otherwise:\n${cmd_ex}"
     exit 1
   fi
 }
@@ -219,7 +226,7 @@ add_to_path() { # Add the cli to a globally accessable path
   printf "${CHARS_LINE}\n"
   printf "Making '${RC_CLI_COMMAND}' globally accessable: \nCreating link from '${RC_CLI_PATH}/${RC_CLI_COMMAND}.sh' as '${BIN_DIR}/${RC_CLI_COMMAND}':\n"
   if [ ! $(ln -sf "${RC_CLI_PATH}/${RC_CLI_COMMAND}.sh" "${BIN_DIR}/${RC_CLI_COMMAND}") ]; then
-    printf "WARNING!: Super User priviledges required to complete link! Using 'sudo'.\n"
+    printf "WARNING! Super User privileges required to complete link! Using 'sudo'.\n"
     sudo ln -sf "${RC_CLI_PATH}/${RC_CLI_COMMAND}.sh" "${BIN_DIR}/${RC_CLI_COMMAND}"
   fi
   printf "done\n"
@@ -228,20 +235,20 @@ add_to_path() { # Add the cli to a globally accessable path
 success_message() { # Send a success message to the user on successful installation
   printf "${CHARS_LINE}\n"
   printf "${RC_CLI_SHORT_NAME} (${RC_CLI_COMMAND}) has been successfully installed \n"
-  printf "You can verify the installation with 'rc-cli version'\n"
-  printf "To get started use 'rc-cli help'\n"
+  printf "You can verify the installation with '${RC_CLI_COMMAND} version'\n"
+  printf "To get started use '${RC_CLI_COMMAND} help'\n"
 }
 
 main() {
   check_args "$@"
   check_os
-  get_compressed_data_info "$@"
-  check_compression
+  # get_compressed_data_info "$@"
+  # check_compression
   check_docker
   check_git
   check_previous_installation
   install_new "$@"
-  get_data
+  # get_data
   add_to_path
   success_message
 }
